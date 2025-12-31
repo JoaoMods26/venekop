@@ -218,13 +218,23 @@ end
 
 local function CalculatePredictiveDistance(velocity, distance, ping)
     if velocity == 0 then return BaseDistance end
-    
-    local pingCompensation = ping * 50
-    local velocityFactor = math.clamp(velocity / 100, 0.5, 2)
-    local distanceFactor = 1 + (distance / 100)
-    
-    local dynamicDistance = BaseDistance + pingCompensation + (velocity * VelocityMultiplier * velocityFactor * distanceFactor)
-    return math.clamp(dynamicDistance, MinimumDistance, MaximumDistance)
+    local timeToImpact = distance / velocity
+    local totalReactionTime = ping + ReactionTime
+    local distanceDuringReaction = velocity * totalReactionTime
+    local predictiveDistance = BaseDistance + distanceDuringReaction
+    return predictiveDistance
+end
+
+local function GetSpeedCategory(velocity)
+    if velocity < 50 then
+        return "Lenta", Color3.fromRGB(0, 255, 0)
+    elseif velocity < 150 then
+        return "Normal", Color3.fromRGB(255, 255, 0)
+    elseif velocity < 250 then
+        return "Rápida", Color3.fromRGB(255, 165, 0)
+    else
+        return "Extrema", Color3.fromRGB(255, 0, 0)
+    end
 end
 
 local function IsBallActive(color)
