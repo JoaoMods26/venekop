@@ -1,3 +1,1248 @@
---// This file was created by XHider https://discord.com/invite/E2N7w35zkt
+-- JDeath BallMods con Interfaz JmodsLib
+-- Cargar JmodsLib
+local JmodsLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/pruebasjoao/test/refs/heads/main/JmodsLibV1.0'))()
 
-([[This file was protected with Xhider Obfuscator]]):gsub(".+",function(i)_PZ1Nfcb=i end)return(function()local H,C do local i=math.floor local u=string.char local O=string.byte local function a(u,O)local a=0x0 for R=0x0,0x7,0x1 do local p=u/0x2+O/0x2 if p~=i(p)then a=a+0x2^R end u=i(u/0x2)O=i(O/0x2)end return a end local R={0x9A;0x86;0xAC,0x25}local function p(u,a)local R={}local p=0x1 local V=#u while p<=V do if O(u,p)==0x7A then for i=0x1,0x4,0x1 do R[#R+0x1]=0x0 end p=p+0x1 else local a=0x0 local N=0x5 if p+0x4>V then N=(V-p)+0x1 for i=0x1,N,0x1 do a=a*0x55+(O(u,(p+i)-0x1)-0x21)end for i=N+0x1,0x5,0x1 do a=a*0x55+0x54 end else for i=0x0,0x4,0x1 do a=a*0x55+(O(u,p+i)-0x21)end end local K=i(a/0x1000000)%0x100 local S=i(a/0x10000)%0x100 local T=i(a/0x100)%0x100 local B=a%0x100 R[#R+0x1]=K R[#R+0x1]=S R[#R+0x1]=T R[#R+0x1]=B p=p+(N==0x5 and 0x5 or N)end end for i=0x1,a,0x1 do R[#R]=nil end return R end local V="[\"bY.cL/YP]&:P!s/+O=l)*6;p%$3omc2@lmI/\\%]&(A!ro;i=e`=kLl/g/ep%4l2X<mf0_b0-aL9)]rs4BS4(9Ah:L9)YhL8R#\"A[!HrR]Jr4L71,kFgiY$SZJoDL2T;F+1<JiS?-@TL86u$(:tjqOK:$mL=%]D\"1TYfP,uETL/g1$`4dNRQ`ST\"L1;^%&>LQLM6\'.2LA!*cd\\A,<M6(QZL4h%FP+s=fM6&:oL9<\"pHD2^%Lof-kL&rlo/tsXOLoe\"KL=n)Gl_5]ALobEWL79]^\\\"Y1RLo^T@L9iD!OeO.eLo_V_L4C_ACSrJXNiW_RL>b7`/@6_^SZHXYL6a*RL9)\\iM6&\"lSua6,lDu;#ri@E7qlD*4$EPPB*NUQU+fluY3NONq<idU9@B:cDHE8E]Mle:oVl_86\\#gsFYcT4?a/pYVc`JL^e#apbfW?Hgm&_S&l)c8#s/dT9$EYVC+0?iX-`n\\`.]k\"c409ft<NRR9A$%&GF0-aWO00dtS?=0,V62,5WidY:\\um?JafZqYhQA/ngTDiki3\"Apl)l>$nua:-s/mZ:\"Kj&>!Nm`;$Eb\\D\'<WXM1p/-n4g$*\"6EVW\';m%F8F06gXO09ju[\'(dE]!!EKbc`=]d]XscjKBkuo<0I/r3%E8%^.1I(U#-R,d/M_.^(.e6a%f)=0Ep=IBOrcNi47mMl7qjOf0RpVPkf0Xf*P7\\YpgCl)5nsqktg0%B(SA*iLBR,,cfV2lJ$k4fBZq8uO&)=K!O7CT&PJIAeH\\L8cJfQ`2:\"R&MC#WMq24];[*Fe#=X^m\\qM$#H9#<%B1YB(9&UK(o\\gM.B+V^6)c0!<iIC6AZ6uEDQ+qNGc<!XKrQGfT;j3+R&VI$V5bi1\\Z-sEf;^-cm]%S%\"KEc:)6,!O4K9]r<N7@6DQ5\"OKrZMgR]@a\'\\#UgDc`8@\\gT)WhpT#U/(TSjN*NLKT2le6n6`VN%;6)\"3FfQgWNhdtiUnf<*YbWS6e\"e:YfVBg^iM7cgq4o=*!i.-2&#:M?+J^<P/Yj\\]2P_Xf9V`u\'>GNR6BVZrCH))aTP,0In=J[=4FJU:PNi\"+k<Mh(2A#:Q@GGZ[TJYsf_QDZ$tT;O!([AP=>iMRujlDGqsnY[\\%\"/dH6$E#2=*N(3P.&SA[0rH=d7].Q$8>dc&=JmI6D5S\\KGGcaUEMk+OH`&0YNM%SdP+X+iR%PaoYFm21ZCiM4_4W*Cf:XFYgn5s^je*oglC]Glo:RCu%%no8/taMZ18#q^8\"_/s8Y@AuAtUH=GG$7NH(ZIPQD#UnS=q6tV4f3(X.^i.[%Se7Z(WJ4\\tLF=f:aLZlCfMm#,*?3$_\\l8(ni7E+e^3N1SH+`7A2#r:8&u&;5#;)@\\G*:DkSJGFJ1\"LIA%sUJ>+?YT;!X#UnT0(Z_Ab7]:pU?cCuVReY4@YgS-!_ih@`fl_5\\orh:^-\"em<3VP>H+Tq`p&WM:c.\\YCI>f:sX\\fqTj^#GWT6(S`:F(o&CG.AJ2X7AD/t<MLk/AYUQ?CSN2EFJC.NLV+q%MnC@)S\\-8;VS\"4DUV%nA[CdfS^:Yb\\]=]GY_7V(_e%?uqik-S+pUhf@#.u7N$bRdS)S@Ab/%d0s0t\\g$6G+V58\\?@<?G%SQB=oOZ@([eSE4dKcGe>>kPJ&92VS+:E\\%O)V]Y,V[_7_.`f\"EAuh7Y,\'i4UG*ke/:2#/)=O%D=\'V*k`kg+MB(i1VG*\':;%sBA\\BCYFM/uhLV>(\'QbFc7VnOIGWP0[I\\@s8Xc+YKmj1Zh.otD`@pqA&C$,.^S)SRMd-b^mq+hf7k._[3t5JAG46,\"Y69\"lU?<5\'ZI;8+?FB\"fR[Cq_3aEkWigL;,%\'SA-A=UVA+DW4sXI^V;(`_nRLdfY8`$mCss9otMfA#JVRR$,7dT&\\fW\\)S[Se1VY6)=hc8OBtks_6Eqip_SedMI!$KiLTDe<\'P_<j`O+3UKWHJ9Ij1;t3N-#=KrcR]M-3_YBccSOLTGHSJug9mMJ!c;LTHBYp[J;rLTH%5gTsiBLnWB\\]ppNRPJU0\'e(O6d2<\'n1P;\'O.,\\3oW)i(\'mq)H\"MVq*:XSc*D-9[,SWK<-@0LTDfIDCIEO+4Z1,KWHJ9(E\'p\'nrMsnJ?1%XF<Ga/aCF(<LTKm&JZL0l-0Y#5LTE8VKNUlXLTHdJ+q`Mlg2gmf=Zfeg;%U6sK<-@0KWHKF-\"8\"+=AmJ)KWHJ9XX?!CilE.\"NiXNf2egoH-24NQLTI\\=JZL0leH9i\'LTI/o4kmMYLTGG$;\'NC2!cDX3CuUpdFcEbfK<-@0KrcTG6fYbero2%ZKWHJ9RDO-a5\"C$\\O/sWg?uk++aUp:>LTKQrJZL0l//D;uLTG=;J*7,KLTH.8en2SY3KXJ+)2.9W5#+k4K<-@0Jug9DBsE?#X<EI\\KWHJ9jBW)/JPuB)N3\"<d6T0$gEb3g5LTD5MJZL0l950Z&LTFt1d47t\'LTI*SZ@/#%!cV4%En4/kpDgo,K<-@0K<-BEC,/u%B$i8kKWHJ9j\"WU3b<\'EtNN=EeB\"[8.HfiI^LTGi^JZL0l7PL?DLTG^FlsX+0LTDg/YIPnAPf)cIm!CcqUB#4lK<-@0J?1\'B0/a\'E$W[guKWHJ9fPP!41`u.FMQA*bm^r0p8^9V5LTJ=OJZL0l7#Hk5LTL3pqC-,iLTIH]@s^?%SYuHJ.=sBYg#h%KK<-@0JZL0C3^ccQo*-!SJZL/WMl\\5O32l*4j+/:H_]j\\[+KQm7`\'ShpJZL/WLo_oL<\"e7d&.f%,\":<(M%=VTBK<-@0NiXPP;oCc,C8b\\eJZL/WLo_oLWg#A%Nj(lQhi1!_K<-@0O/sYQWlZp\'qKsb9KrcS[M6&#MBTV^E%rb<H9VYCCK<-@0N3\">N42\'CX&SUhnq%KPb3F>$R!Qa;\\K<-@0NN=GO2K@riG=]b1OeOfr,@1m_HnRC;K<-@0MQA,L!BeT8PHmS4:/l[\'\\=2nhd:m*MK<-@0Ml\\5MVsNu`OQ[iD+q#_Y@k#,o&B)nSK<-@0Lo_oJ.EuA3:E*e\"@YEZ#3R9lkLKq]UK<-@0M6&#K%tg^f=aXm=%8H1M,Qol)IkjQSK<-@0QE2CX<:TgoM<T[L<DU^tp^\'VrOX)H:K<-@0Q`MLYT_Qa?gA!9ViLF\"2=+.>U9JkgiK<-@0PcQ1VB@lO[h<nu5FL_T:n%+uj2OBMbK<-@0Q)l:W#_9Rspc)5/m?_*>f(-d^ND@BNK<-@0P,otTGsW1RWI/;6V!]Ni*GdW93&l;FK<-@0PH6(U6$Y>s4H2K9kOB0GO-!CE``c9\"K<-@0OK9bRX+^ef]\"OIel8WK=H^WJf\'S/E,K<-@0OfTkSTQN9(^#Fu,C\\+qpCBXlDeHd+RK<-@0Sua6`C\"6S\"b2^2l]0;\'4d!t@`nVlgoK<-@0T<\'?aL?`Tai\';<=f;k`/?k4)V(Z4kEK<-@0S?+$^hYClpNC&@UMcsdTFJ$-H\"N(+sK<-@0SZF-_+EG`9k5GYaROH!5)0U%&@ijKdK<-@0R]Ig\\O,_u)3p8!iV>P$g`?N]3gEe,)K<-@0S#dp]\"DRbB%H<]OcRrWe!3MGe\'hD>aK<-@0R&hUZ#9r<>r:IsfQE2AnX^1a)#&3LbK<-@0RB.^[NgO+]B52D_c.t!5\"O?(1.f7bUK<-@0VQ;)hrY`Y`*+!!3Q`MKL3>5q_PcQ1X%YA?&3@P]&K<-AYK<-AYK<-@[_c0E6O:7lj%>!@!0?ZF<TQpfF#=^8(K<-@0VlV2i#mlj*a7;%aKG!<,cZCmD$lu:+K<-@0UoYlf5$<HG4/@u9bt/O/#?sr*d`]dmK<-@0V5tuggNb!P$/-d)I8g#()3+,fjejPeK<-@0U9#Zdf5d.c!YH=I95@lqhGJu/ZQkBfK<-@0UT>ce>_/TXJc?D]i0GBE>JV\"UgCNe5K<-@0TWBHb.?.WB)K<Cf,1lWOn_1KT4<:5WK<-@0Tr]Qciruj\"9:eM1QE2An-=G_5pJ(\"6K<-@0Y,iqp2)\\ID?.A9>\'3X`aUJhM%Z`$ESK<-@0YH0%q@a0M6ZL4TLQ)l9Jac&<@PcQ1X<4BTNmoQuXQE2BlQE2BlQE2AnZ\'C,IUU\\>N[uk1a!Tbjn$1/7*9RlktK<-@0XK3_n))l9=<sZ22&%%\'P[r\"--J%PuFK<-@0XfNhoeS\'-80+,PnH/7XE\'.c[V5kpk/K<-@0WiRMl$ard=lnEJW=TcH#(X:H3CqL==K<-@0X/mVm2dqQPKJ$>cQE2An30CsXr4:XBK<-@0W2q;jbSpVmK8s7o-e@ZG\\]i/tX=(uHK<-@0WN7DkN;!+W,W8MZQE2An>3$;ud9tdiK<-@0[]Ce#Gd%I_X@<Km_U\"C)P,oshQ`MKLoQJ$0PH6(Wk(Z%.=4:`?QE2BlOK9afOK9`hVn3RDbJYA,4s%c?;lr!-(LsD\'OfTjgQ`MKL94&*ePH6(WGJL8g[5*i\'OK9afQE2BlOK9`hqe8i.$j+HUoeaAXik4,s\'`?::Sua5tQ`MKLHV@e+PH6(WNitm\\8f\'^OQE2BlOK9afQE2AnCc_Z\"f)KXpN2ppn*V&`MTh]]hT<\'>uQ`MKLZ)h]\"PH6(W>][Nd@An^9OK9afOK9afQE2AnE28e%;CdD,U#<W[V_P`2M(`(mS?+#rQ`MKL._DI8PH6(WC3\'$W`sbn+OK9afQE2BlOK9`h&mNphs)$Ks53+d#]m1-;ptY@uSZF,sQ`MKLIarS#PH6(W=Pm>l2d\':CQE2BlOK9afQE2Anf:H)H\\[#EG34YXV[(!_tq3;aWA$S7\"hl<-)K<-@0\\#^n$`?X$E4s\"kD$W,]>R]IfpQE2B]<5\\?fS#doqQE2B]abn&sR&hTnQE2B]\\dO4ORB.]oQE2B]/Y#\"aVQ;)\'QE2B]TsFi\\VlV2(UoYkYFusf*V5tuiB+L2TG%7&%U9#Z#QE2B](Z!ArUT>c$QE2B]li)o*KsFZ[qelLpK<-@0[&bS!s.\";Bc&Tf\'TWBGUp^]Hq,]Ye(,[;Kp-\"!qa]EnW&IidQ0/`ptR?b+@>K<-@0[B(\\\"SZT]:WWZC_Tr]P$BRJ]>33gYdK<-@0ZE,@tCWFB&ahPBGY,ip1H_1jO+4Ke?K<-@0Z`GIuoD![A84I!HYH0$2WR(HDE,[CgK<-@0YcK.r8$8l$9jhXoXK3^/>^\".iJ!^.oK<-@0Z)f7sl\"%W>-/uRsXfNg07WM(&eg,0nK<-@0^8rX+(u`3<P\"VS_\\pZq,T(N(cD.mO@K<-@0^T8a,:<!aPgl>j\'WiRL-!h96m.=9^,K<-@0]W<F)%c3P]Ec[.uX/mU.q\'(f#/jB&iK<-@0]rWO*7.!s_!p/m1W2q:+O:\\^\"1<G91K<-@0\\u[4\'3OBI/?_pa\"-h-F_3>pgY=^(c`K<-@0]<!=(XJ5j+YYi=915JO`jY\\2`a0Gc+K<-@0\\?%\"%MZK*PK;m&le;e<*@MJ]A.nMg^K<-@0\\Z@+&\'eS1L&,EC+_VCJ=[.XT(\'@h2aK<-@0`iLK3Qr:&qnC6=l+2bTLQ,bIY<=Q$hK<-@0a/gT4=e\'9:\\<[^(2j&AHkpY\"_J!NliK<-@0`2k91W4A>*&&_9AI-^_lA?^hk=&QAaK<-@0`N1B2\\R4%!^9^T4_GmQsB;A\"!83;llK<-@0_Q5\'/.mWL2&6/fULTDf=\'N,S@qCe_*WN7D*[]Cd(=Fls$\\#^m8[&bR&QpG>D[B([6ZE,@$L\"C:\'Z`GI4YcK.\"6368/Z)f72^8rW0o7HFj^T8^nXiUitVTjOK]W<E=[&bR&^4rJD]rWN>\\u[3,Ve?<p]<!<<\\?%!*XeY)@;^m?$520.MLTF+-\\Z@+OaPFL?LTF.o&-P\")LTJu3np:<!gi>M<j8\'?i_eVAoK<-@0_lP00s3@tpNiXO$$.>i$Xfj#QMdQ\'!LTDc<Ihc#]RlC/&`iLJGa/gS9(G8FA`2k8E`N1A7c-?`W_Q5&C_lP/5??>Xr^oSiA_5nr3Zo)qd]##Xn3`W=oLTK<kcE&>d[X:GRLTL\'l1e!gDLTE*7IN7tKq8$_&AGFgV^oo$dFdW^_LTDc<^Di./Htp*L`iLJGc`AFAD2/IX`2k8EbcE+>I9CNK_Q5&C_lP/5Fe\\>a^oSiA_5nr301&)gK9anf;\"`dYLTJ[YcE&>dJVF\\HLTKFZ5JP\'HLTL.T2e\\TJcB9C1?+qAh&!7eS_lP0$7:*lkc)`3P26!?Q8\\PdJLTFX<b,co`^r0hrLTFt1G5?r)LTI<YJ`58Fm-#KO5)W$8%]pe3K<-@0^oSj-5l15aUoZ9o_lP0$*5!JTbH*!N*/eN5`T]a$LTDGSb,co`Tn#^GLTKFZE0>odLTG\"m]*lI=LF(\\9ocu(jZfe*CK<-@0_5ns.0&`S7>61-8_lP0$![Q!LaK-[K(;G?$oL04#LTF71b,co`Wa0@NLTHZal\'dfILTJr2&C(OE?5J8UST!._9]UebK<-@0cE&>;,q<E6Tq&,+_lP0$W\'6E)afHdL%<4L4XiS7gLTH/gb,co`r8EHCLTK1SCRXj+LTEfKT7d=1%C:CBg2JiMR;L]<K<-@0c`AG<A:6tW4)O7+_lP0$nHVaIeuU/YY56aP+#UrILTI2/b,co`@H6K]LTJ#2PSeXVLTDC#$EYrEI?ts8J51i$\'[/.gK<-@0bcE,9qeqo_KWHK+c)`3NKrcT,b,cmKJug9)bH*!LK<-B*aK-[IJ?1\'\'afHdJJZL0(euU/WNiXP5f;p8XO/sY6e>srUN3\">3eZ:&VNN=G4d]=`SMQA,1e#XiTMl\\52d&\\NQLo_o/dB\"WRM6&#0hQ/\"_QE2C=hlJ+`Q`ML>goMe]PcQ1;h5hn^Q)l:<g8lS[P,ot9gT2\\\\PH6(:fW6AYOK9b7frQJZOfTk8k,]jgSua6EkH#shT<\'?FjK\'XN^oSj!\"A&HMf;p8Z]e%0*mg$mELTH&de>stjB\\\'4qLTE#OOF<s:LTH(6V]-cJ;d3TP^oSj!^CQA%-$71eWN7D*eZ:&?NiXPtnc?R$.^Hj;CTf&0r+bDSd]=bc#O:W&GHW=<SLPbAe#XidV&t#4?7E4?d&\\NLMPj0tXI#T>dB\"WRS?+#cVH[jtQhsZ_kZo]MLTFU;hQ/$t_F:S<LTC[)XZ8d\\LTDg/-LPC5EK(DN^oSj!pn5J#QG`]]WN7D*hlJ+INiXPt2o\\]h`$4YtLo;WF!*0,[d]=bckBTOEPc,nR1\\6\'Te#XidiV&4ZlQ5e[d&\\NL,W=b54QE;udB\"WRSZF,d$KY8KPdQNR-f9AaLTK!bhQ/$t+$$$+LTK.RWRfX3LTLF\\B1PbdHch3h^oSj!!R@kF&LcRsWN7D*goMfN\\juUVd&\\NLZ])/<k!%CVdB\"WRR]IfaP(Rp=cL.$$$S[oYLTKa\"hQ/$t0\'`UNLTCR&5a7jOLTH==jdHkPhD6W)^oSj!CpkOIh5hn`RbI44B>l--LTG9Ne>stj.>,`RLTCm/@cO7qLTKPCo^8\"6Mn#H(^oSj!jNj+ggm\\Y1WN7D*g8lTL_Gkc>gT2^u[/1PsW2q:gLTEVIZ*-KRfW6A[pu@-3$eeAdKWL,]00g,/frQKZK<-AJ9Y\\c1d&\\N:]rWN/a\"M%adB\"WRS#dobW-=IefKXX`IbsR*LTDqak,]m\'J1H+\\LTFM$,b)/PLTJ&n@=u_lCKa.M^oSj!I\\bluk@B\"#WN7D*kH#tY1,\'Z,gT2^uAo;+<XK3^kLTCupls\"t!Tr]P$A$oZGAMMOAKWGK/`1;\"0frQKZjK\'YV\'Jgqmd&\\N:\\u[3,r:0rLdB\"WRR&hT_-I(j;^%0`Vq801DLTJLTk,]m\'lH.1[LTJVC(\\<f$LTFnj^eiMLgoG\'2^oSj!H]?eWa>\"`qWN7D*jfBbWpXL=EgT2^uF.@lB_lP/-LTF(V%k_7LiiFFe!T1gtZbZ&?KWL&[p1E]OfrQKZK<-AJcE_kXd&\\N:ZE,@$3X;OAdB\"WRRB.]`0C,o)^e`Zd]Q!^YLTJj^k,]m\'\'2JjELTE8VgeO;LLTGY*:&!Q7h\'aNl^oSj!j3&\\EpZqj=WN7D*j/aPUDbHCUgT2^uP8plfK<-ABLTF^h5h(mTi2e4c/U@G\"2O-?6KWLSjENhE^frQKZjK\'YVq_Zucd&\\N:Z)f7#I(iaCdB\"WRVQ;(mE3^!8lLOgS@aUfZLTLE5k,]m\'\\ZV?3LTG%3UST;KLTEZGLg?25QXHp=^oSj!\\=$e&3g)+TWN7D*iN+>Sgr3QYgT2^u\\V:*Dm]7^XLTI_h1@(Ehn#RfrD`rSPX-T\"\\KWLhq*&O[TfrQKZ\\u[3,Pco:jd&\\N:^8rW0`l0\'[dB\"WRVlV1nAtk>InY.sEc\"bsDLTKj%k,]m\'g-2WMLTK7UZ?tSBLTE-8$1&T\"G*kW?_5ns\":j?-&m&VKocA4hidX-=PLTE7je>stj\"n9rOLTH*Q\'D$$OLTE?>@E<ld5o*KE_5ns\"V8oD/A)7fWWN7D*mAqU_l+c)7d&\\NLl(?:N[r*.EdB\"WRUoYkk[>-\"gQJ]&Or-HLsLTHSshQ/$t]TM2bLTE5U>keM7LTE*7QVaRKPkcaO_5ns\"N\'rL!f5#hpWN7D*lDu:\\I^EsOd&\\NLaC8h3<VPj>dB\"WRV5ttlPV$B+.OUZe/D[79LTD;OhQ/$tN3>]^LTCX(1_bUSLTJ]+<aa;D$)$i4_5ns\"G?q6GQ\\!nNWN7D*l`;C]4kp!rd&\\NL8nn!JAm[\'JdB\"WRU9#YioaPFmKuQnj\'5j(HLTJsahQ/$t5qN=QLTIAuNu.k.LTJ?!LO/ab3[C.;_5ns\"1^70Dkc?\'k\'PF=G#i\'l?LTHAme>stjN5P@#LTI]):mclHLTF\\dJa[(;Lhqkj_5ns\"!?S09!:c#-WN7D*l)Z1[mAO3Jd&\\NLM1M4H>R3\'DdB\"WRUT>bjnKOkl\"Yj[mk^ba*LTEUthQ/$tVAuRHLTF@u@e8GfLTFqk(.K&.nNfhl_5ns\"&Dn&rXG$h;WN7D*p8fQh*_VNQd&\\NLU!g>t]H#R`dB\"WRTWBGg9G\'u[.h;;UTN_D-LTFL8hQ/$t-g5bcLTIK#..JZrLTEWFL42Y^*4S*S_5ns\"ki#qH9WF;9WN7D*pT,Zi3><Nod&\\NL1NWJCnrKr5dB\"WRTr]Ph%f;AL31\"SdI,0?bLTK<khQ/$t$L#38LTEJ\\-5a^5LTFJ^;X>7i`SZ%d_5ns\"@&*>jf>7rUWN7D*oW0?f$\'1C3d&\\NLJt2ji^VEU(dB\"WRY,ipu8JPVoeK\\I(UbQImLTI;2hQ/$tpg0%nLTCL$!CksXLTKPCJ#eLsa:2Du_5ns\"q*Y\"<orKH#%S(>;SO;ILLTHYue>stjd^6f$LTF7rhrL5;LTL%Q^)1,E;QsaV_5ns\"rXtauQ7El5WN7D*nuO-do)KYfd&\\NLMoi;S*h!1jdB\"WRYH0%!E&,3iokQ<b7<jGrLTDk_hQ/$tJ$H4hLTKI[#C25=LTHF@\"ROV,HGhQ^_5ns\"0*]Jo\'U[(\'WN7D*o;j6e*t6>Pd&\\NL_:ceVGW(eGdB\"WRXK3^s[HSAdkX80JGC8UcLTD;OhQ/$tW^MVRLTLF!G\"1S)LTF)SfE8AIaK^+9_5ns\"np34kKPntmWN7D*n>mpbmLk)1d&\\NL7?34R3p8D[dB\"WRXfNgt@#Y1JblIH>P/dB1LTHo\'hQ/$tlZnA!LTIT&^8/&GLTCdg.SZi16pPl<_5ns\"1nCQA[_f5-WN7D*nZ4$cU%P4@d&\\NL4Q\'[tdHoDCdB\"WRWiRLqR`<H1+.6G;>G?UYLTCQ:hQ/$t+&:d+LTDWD75DMeLTHRD-A70D&E%OOcE&>/B.rS1ri@D,1@=U6)m&\"0LTG-Je>stjdjI+dLTKI[M0)$pLTDU)C1QW![9hT2cE&>/kiO/fL\\4`.WN7D*mAqU_02FQes/[Li\\#^m8P,otVR+/$_#TF&/dB\"WRX/mUrM[+VjDUg%8+E;70LTG$Gr2_4=llKtSLTD`GfidiVLTC[d`>4=\"\'-s\"icE&>/7+lVX2\'#PRWN7D*rN%;oNt.M9s/[Li\\#^m8OfTkUb[E5TlT3@OdB\"WRW2q:obof/1ljfOfDK\"3>LTD8Nr2_4=DK#GaLTFY((oaKGLTKD?4f>+F#rW,6cE&>/B:!*)GT5M!WN7D*l`;C]Tb/c6s/[Li\\#^m8Sua6bPlVSJ,TV2jdB\"WRWN7Cp4]:3!_ck8dSGk!LLTIJ7r2_4=0W4VULTIW\'\\s\'I3LTEuP\',S4K`\'U7CcE&>/blgZ9BXdPlWN7D*l)Z1[7gDMCs/[Li\\#^m8T<\'?c1a@U$rJ\\=IdB\"WR[]Cd(YkW<$C]\';s+oF--LTHPrr2_4=\\<]j#LTI#k\\S=uQLTIH]ki.otk`:uPcE&>/fYa0T1,@C>WN7D*qQ(ulcbq>ns/[Li\\#^m8S?+$`/YF#2ck]65dB\"WR\\#^m)2e,6:r&dVS.2g0;LTHr(r2_4=42htHLTL*mQFKIsLTDC#!aul6N>R-gcE&>/Hn@\\^kg:3+WN7D*SZF,dZ?mFJs/[Li\\#^m8SZF-aVg[QR0F@T8dB\"WR[&bR&)gK.ZM`,!Gi#1B_LTL!)r2_4=jbT.4LTHZab=Fj/LTJf.Eu#,P?i/_(c`AG0%T\'<fqlD))p]>M=fqC35LTL3/e>stj8s@>-LTE>XCV5a?LTHXF,$_>@<\\U^#c`AG02.Ce,YptKfWN7D*poGcj+5.?ed&\\N*chDp<kPekKdB\"WR[B([\'>.LFi2DI\'kB[I6\"LTHu)hQ/$tnTY^YLTL!jklaprLTKYF;AGqqUsrBfc`AG0;VNSr7\\M2hWN7D*q5blkC4(>ed&\\N*4![[P(4,)%dB\"WRZE,@$L3s[r%DFMudd+>QLTHf$hQ/$t,5X3.LTL<soX_qOLTEB?&kB\"lcm=Snc`AG0*99!Sk),[gWN7D*#-9,\"ga!>gd&\\NLb\\OD2\"\'#D^dB\"WRZ`GI%)S\\p+=&JZn]93M4LTJCQhQ/$tPPA\'fLTFk.)lr:9LTIH]]h$!/rSGsGc`AG0c?po7+=p`VWN7D*#HT5#>33,NgT2^u?jJ*=\"KWnmLTEVIq-i`OK<-@[i<\\FFFBtFIKWG`67745;frQKZ\"fs#!q;45md&\\N:Z`GI%RGQq_dB\"WRYcK.\"00.-8[pqm0%b-eULTG?Pk,]m\'Kh%28LTEYa_a\"]CLTIcfVja%CdZ>Flc`AG0SpDsb]Vo1sWN7D*!j!\\s?@:4]gT2^u!hLWrQE2BULTJ;#ee25I\"0<e0IAdl_X6mY3KWI1_fY#sufrQKZ_lP/5g,\\;Td&\\N:YcK.1!3@J7[d0c=%`1YodB\"WRZ)f7#+MbWN!F(=]rV@:@LTL<2k,]m\'\'n@-4LTJJ?Pm]*RLTL(R&Toht+:th%c`AG0^EVb9hIPo2WN7D*!N[SrcLAW/gT2^u6Z[a:%]gt\"LTFjl((Z1[&$.\'<CfWJsUom#oKWL#Z03\'ZbfrQKZi2e5Rq5t!_d&\\N:]W<E=!3@J701lS#[E%9ddB\"WR^8rW0TmBs)Cb^fLh\'.>[LTFsEk,]m\'\'!OB-LTDuNI7IRSLTJi/7q_Pb1W)gE^T8`fjfBaObcE,-gY#C\"m4D4qWN7D*%\'1b([XJLAd&\\NLYMK#\'BnO$WdB\"WR]W<E.Zu:7OB;Me6XI5qsLTCrEhQ/$tDb)]rLTIE!(4Zd(LTJ&n$\'7C@(:t8(bcE,-cUuO\\pC2)$WN7D*%BLk)`69ZidB\"WR]rWN/J:$iJ`,[#\'C?2!uLTD)I$EPQJ*(sCFLTIr0rEV!dLTKkLOkCK=qZ3E7bcE,-&0Lq3$`kX8*#Ws&)nP]RLTF:2e>stjhrKu4LTGI?9LUCALTHRD>$8l7TcrqLbcE,-!_`.^D\'D0\'`iLJG#co>$-kRnf`2k8E$*5G%dfYIgagk;Oa,\"5:LTCK8(9AhVaTpU4LTK4TCs6U)LTE9<MOft#lLMe8NiXO$+K\'((8uj6?pg<)*bcE),Q\'1b9[,O$(`iLJG(T\\p3Q4a4X`2k8E\'W`U0QjrsSF%qQpeg7\\7LTKWt(9AhV]WI9,LTE&P,`5$%LTDj0Oc&5h`o@rq+^Q;j8uj8I&2sP3KWHJZ\'s&_.mCgQW)e&J#\\u[2=B8hCD08pZXLTF\"*\'!*DRG3JI-LTDB=@#CjnLTKD?K+q_W3GM)GC#[39O^`ElK<-@0iiFHOs1bRnKWHJ9Y756`gb+5=NiXNf]gd9Lg_As`LTD#GJZL0l=!l\"\"LTKger<EL;LTD3sl<M^3/&3p\"M6&#Mm+W>9\'<EM,hIDtjFAs,;]<!;>CT#\'P:o8JKLTK9j\'!*DR%lW0RLTG=;@^(AoLTD6tgXUZ?0s$+h&?I0oSOL_]&Zd;*1u5FG)5DtHK<-@[JghjF?D=t:^X-N\\2THd\\LTDf=HBjKeU?Mi@`iLJG*ipY2NiXPt^`S>+RC6dVP,\'DLHjrQ)d]=bc29\'*QStm[X\\N@Wee#Xid[0j3g!\\::1`2k8E+06c;*\\,s)_Q5&C*3:H8@#qWTj>W\'#JN&X$LTFmCcE&>d`k0N-LTHcdrqlb-LTGk0)ED3p+eTj32=l;b7;2uMdB\"V&!qqR6.:h%48\"=T+P1:!1@b3)cg1^RHl,MeLLTH!3LTDdFR]Ie*Kss!8R4M3_\\>1Fr0+6\\]R]Ico*NUR6MClg<j,*b0;ARN)`M=g*.1GtpR]Ie*WUFYNd%hu5L\'eKO)QY6$.+[%1)lt@47KS.XA_!90(p##EKuU`,kJ[:0LTE(e)6>.YE.nm8LTC^*KohF.LTJ/q.o0OJ^U<41R]IbXS#dn+.5T@G7FJ;cfq]q>l8a,5S#dlp*NUR6%qkb0PHH0*JbCC;ihRmGEs(/?S#dn+ERd^0!2Lpd28hY;)QY6$id,7Sk`$mJ-EJLS5h]UJgQ2nVLTL91)6>.YN/W9uLTJtMInsH`LTJc-43m\'c6S+_t^,8?,!2Lpd?u3T;)QY6$Tbcb,jlW+n-`eUTFI&J\"%#oFALTIP9)6>.Y?I)GZLTIN$(j;N_LTKnMIAsOJ$V-5`S#dkYR]Ic/\\0C5/EElar(o/J\'`L`PBS#dl0gK)hp=o3\\r(o/J\'H6(T\\N3\":a,ci<=-+I#N2j!7oDZS44(o/J\'JjUe,N3\":a,ci<=A1r.d-*/E>(>:Z@qLKAU%!!,2,,?Lenmq4eS9&bXR&hZk)`@;tc$\\q&N3\":a,ci<=4sKHT-*/E>E\"KoJUPVWG@!!BJK<-@0KWHKFDbVpp`N-!^aK-Yr.&PH:R]IbqhE@oAUZE[+*Xu\'34Hu[\'T*?QC]]Q;TK<-@0KrcTGAc\'KV_t=IuQ)l9J56Jc^PcQ1X;-li\'&7RC<R]Ico,-3*;-$Os#,HN3<6iEAqR]Ico,-3*;OqE)$+KQm9k2G;CKrcRcfAl`OR]Ico,-3*;de^Y:+fm!:-VDfJSte>KQIME2%?0K6i9jl3V$aq=)[p\\FK<-@0Jug9D0/\'cC#]=i0bH)tupBS;RS#dkr4&sp83VS^D\\b_9K\'@MCl?RtYKNfm%pK<-@0K<-BE;.+&\\hlJ*4;\'B?kS#dkreZ+O0[B\"-N</QM$i^i&PgT2[0ZEHtGS#dkr@eS_^aVH*-EmKm;%Bl3DfW6@-=N5_3N3\":a,ci<=;T-d?gJcX)fFf#-YOepd!%,c1g8lR/R!c:bKWHJZ,-3*;i]$Eh\'m8\\A0.<1o+=3cOJ;V/dR&hQ--K2pkDPnc_=[nXbj>b=+Jug4@R&h[2bh_!40!$AGZ/kp.LTDcc1.5S494icXIjb_bK<-@0LTDfIcCQMpEOmM@Jug4@R&h[2h[Gj20<?JH5BU3l\'\\Ib7@[l,3K<-@0KWHKFa%CTc6r\"L@afHl!`ffO/Jug4@R&hYYKWHGY,-3*;nO`I9M\\\'r3AUP^.B:PUX?g$9,/^<rj+GmOdK<-@0KrcTGeP$jih)_BlQ)l9JImR.pPcQ1X+\'(k?raHZeKWHGY,-3*;6HtXP,HN3<mQ=p;QE2AUKWHGY,-3*;*CT4Q+fm!:YJ0<`bmiu@;i\"H\\qgNM[6%M+WQ)l9Jj8H!;PcQ1XY<u3si/d.HJug5W,HN3<0-?^DQE2AUJug5W+fm!:YPa/:;2&pjWN+b\\`mI-KNWCQ(r;a\']0!$AGf5R3?0[Ej\'>9L&-K<-@0Jug9D8mH\\%/?C.6`,[r!/Z^8F2UMl@K*\"UfVQ;-gLTDd_1(*YUd?&haX!an9LJa-VVQ;/H`HrqkXK3_GdK+>^U;qb2\"JmCHX3NJ[/?C.6LKkdX.]arC_KpC7RLhq3VQ;,(K<-@[`GgZ9rGJ56rF]^2W((%NJH<1X\"JmERC?E_`N3\"DD`^fV]=kV&%R3uZZLTJd\\/$(&kns\"f=LTGRB=$@sBLTF,T<%_hIr93`5ku*+8803eNK<-@0K<-BET#O;EOK9g(<SEL],,HRf\"T-^mf;p=.b59F,LTDaEJug4@K<-=Z`g:7=,C_NV%2ti6r%KJ(J?1$Th@&lQ.&A3ldg=YMZE,ArLTDaEK<-=d7a$`6Z`GKAUVP2@qaZpXJ?1$TRr-B/UoYkY](B$_.\'+`A_`?nh\\P4LrJ?1%?Z)f;r^8r\\C*5ERslVQ^MTT\'T[\'WBEcJ?1%?hQ/*6O6)rVKWHGY,-3*;1`X:SJ?1%X8eQPSobKh\"I/+$:b+[uAgoMm46(m$WKWHGY,-3*;8)EGQJug4@Jug7AKrcR]0i%1><p`ckeKG.dP:530h5i!5<;344Jug4@LTDdFKWHI\\;\\</7[M7m26JWpV!7;#pfrQR13(b&3Jug4@LTDdFKWHI\\\"P/6.ndP0tj)9bC(d@U9kH$&?%144$KWHGY,-3*;QSPWcJug4@Jug7ZgO/j\"\\?0u^FKV;+)>eb(jK\'`<;lMGoJug7AJ?1%?KrcR]3-Uio>\'joh\\J&rOI)CIXSua;61Hj\'3Ju0grWTt?Dk,]o=Hkn@YJug=\\D0\'Am7s:X6If<XB5,/>@1A!I\'Ju0h;PH6-+JLu=uQDPr1bW>\\GjfBf<l5$okS3jPaT_@:M-r2tpgp_IcjV*ILQDPrONN=L%UQQjL@&G:Q^N82>TtQm<e>t\"+5O-N;K<-F]*9k+<4NMIJNY.ZBccR1fOL<bD1V3:>K<-@0LTDfI1,L/`.)jd]VlV5)Q`MKL6\"XeiPcQ1Xa.U>ZJdq.-K<-AYK<-AYK<-@[[m0^kZ$oa\\c#gu$$(X,\"_.-A(0bb4%qI!-ZK<-@0KWHKFpK\\TE8KTT/LTDfmgk5&iNH4E6\\u$e!dpli1KWHI\\C_jcfO?)<[K<-@0KrcTG`[hcHKrcRp<^&Ehaeg?d_mr$lTWBGU=t.P%mc9Nl\';.*_\'8#-K2!<`kMjG9eY,if*?\\-E\"aegAn.dM>=TWBGUj:q[(`JL]XoYJLK:lZn0h[>27,*X/mY,itG!?,W4[5/\\&rKkB\\K<-@0Jug9D<aT^Qbu4ijJug4@Z)f9@fV*6Ss06E8Ua0i*n\"qDVcC=)BJug4@J?1$^!!Lh5!EnVgjOHb[K<-@0K<-BEE<3VZ\"j(_CTWBGUaHO6FqBO?JPX#UY]q,93c+4#Q)8e-ORB.a2p#K7!YcK1L\'?i^&mqL$K\\K0@_K<-@0J?1\'B!#0gih*HrB^T8bV$&_1AO1k%1!2_\'fE3<+_KrcO\\;2/^c1Us\':K<-@0JZL0CRZo*ASZF/4Kgedb&Z-iVd\"L*rc)`(tjZKh0@CZ8<Fgt6S7?[]?ZLZQ)MgI8Z&Z-itSZF1/:?CG/9P@CQ)l=q,Tni+\\WN7F@=R$9AN2Is(k294JjkN6IJug=CJ?1,X.BFg`N.?oR=NrPj;805.gUMuc.AeE:XH!]4Jug=CZ)f+.2QS2mPgC%36o(Aqs1R)f?3\\Z6K<-@0LTDfI1r%E]LTDclG6%S9I`_P93Mn+JecL[OLTDfmZ)Z\\U$F3TX3Mn+J62,:@J?1\"jS[4]2Ni+0*,4cKleZ9n&>jG6JW-M0@_(g$<V[XO5OeA&#TWBGUL6[t3V)N*L(C+eZ[YZgIW/UHGjq7d&RB.MSb,c_p[po.oLG93>\"cJcT(e^UmQ9kp%[&bC0R]IeY[&bC0R]Ig^X]OYEK<-@aqDGs8#.P`u[&bC0S#dnZ[&bC0S#dp_qKN1\'K<-@a^Hj8s!ILpl[&bC0VQ;\'e[&bC0VQ;)j[e?RA[&bC0R]Ig^oR\'i%K<-Ap,WO=BBE!&tJug:aJ@bq-[&bC0R]Ig^G(YqAMW]#/UYHY/Jug:B[&bC0VlV2k)KL0YV9]!5nr;LRJ>X[q]\\X2C[&bL3VlV0fJug,E\\=-pd$Mju+J>X^P[J1./Ni+2^;[86[@](LqSZF1/WZ>5:6@iNlS#7RXDSW(lWN7F@<&CKC4q6mRE1=ssS#7RXY`+PbLTDfml*K,=f;bWoS#7RX*-;6*Jug8XY,ip\'[*`ed4n4hc\"/dFI%6]i_DgK2BJug=CJ?1,X2ln;ng.nR3V)YpSJ5bN\'d</33WM_&f$gq(>Jug=CZ)f+.1oquk>!p+pC6eo^NI?7XBOfSPK<-@0LTDfIF7o,JLTDfmMr#7EK2Tj>]Vd($imE2uJ?1\"j2@_6b\"fEXKO1\\^@eZ9n&-s5(^hGC=VBIVdE5N[:]aNLNATWBGUp3gtj$Jd-lGg^5,prdFZQ(R.5Wel84RB.MSb,c_pKieO?ju?=BFj^m/cn)6e/K@S1[&bC0R]IeY[&bC0R]Ig^j=Q1IK<-@a;,JNdiWO*A[&bC0S#dnZ[&bC0S#dp_&BZJ^K<-@a;0a12>KUCu[&bC0VQ;\'e[&bC0VQ;)jjljK\'[&bC0R]Ig^H6nT2K<-Ap:7.D:e%pDTJug:aWQmmT[&bC0R]Ig^U!_?R3I]Y1,_:+^Jug:B[&bC0VlV2kOXL#[RUdjAe0j1%#H&jM9YV>d[&bL3VlV0fJug,E\"eoA_mdJ!k#H&m,mN.Gg\"fE[*3/>u^@](LqLTDfmV`^&8.h:Nc\';m/%9\\qWMK<-Bi=L.Hkh;,Vh\';m/%$tiulJ?1\'fVDR(&Zo\\J>\';m/%r-N`5JZL.l1kS;G@](LSa,+COeZ9q\'!]h)X=:tI5VR0>0Zm]PUPfke@TWBGU**\"Q!\\91A(7CCrRf^5gJUc9h!]OM8SRB.PTSZEu/PH$ut1oDW%rT!Yrb,c_p4_\\(\\f^-pd/T1.d7C&cZ8K8E&=\'Q=91oDWC[&bF1R]IeY[&bF1R]Ig^7FlL=K<-@ad,e,R,0^?9[&bF1S#dnZ[&bF1S#dp_6qgpHK<-@a2mrs?!NM&$[&bF1VQ;\'e[&bF1VQ;)jN.^UC[&bF1R]Ig^OEV7qK<-ApWK7WY2ngO\\Jug=b7KmrY[&bF1R]Ig^DEpeXGD.YuF$TaKJug=C[&bF1VlV2k$1@RB7AH5E/X_!6A>^^U2P%,s[&bC0VlV0fJug;J.+^E:5/+B&A>^a4\'::o]@](O2ZKXjX@&G=0KL5qBDPnd(K<-B*VlV-eJug9)R&hQh7PkV3/V2=H#?!dGR]IfpQE2B]N6MfkS#doqQE2B].>__tR&hTnQE2B]ZEHu^RB.]oQE2B]5_h:XVQ;)\'QE2B]\'T#5;VlV2(UoYkYPe_=!V5tui7o[?S0Z>Z(U9#Z#QE2B]Vp`2:UT>c$QE2B]5D\\I.[&bO4TWBGUC99D\'-VqK<C6As,R-I6LRu_\"RM^kF,[B(YNQ,/KeVQ;$dLTDc<Tmg#=HGA*l`iLJG268*Q`\\/<k`2k8E19;dNk4?`T_Q5&C\\u[3,=$1mlQ$_Cj*RA\\9LTJ1KcE&>ddj.(fLTJ89Q8%!\'LTD$nHZfqh$J/aC6/gp&=+OYBLTH\'5LTDdFLTDf.PH6#QjfB`:%l(%EJdqrdgM.u?R_3\\1!;43b1&[KAD!>p_PH6$(b:1A(SGf(-eY\"2j!t\\c^_Q5+ZcC-)-e=\\)i$Y@d1_Q5*$)19.Z1QQ?S\'pI]iLTL*,1TVns*_j[dLTJ&3HVW1(LTK&5\"d&ZO!pSM<5IhN8_Q5*CS!-YIe=\\+Dfbjr:_Q5\"W72JruXDnl#d\\.rhj9ikc0WZR:Ofc0RPcQ1XclK[+$Z+^[0ruZ^Tl?f0Nd[9$;pS#13Xfu6_Q5+._Q5,EWN7D*5--&Zp!*7T_Q5,E5HH.eab,4p@<u<)_Q5,E*NUP1N3\"DDO*`[B4KKhi1]s^Z/=K=FLTK0g4fft(;SRuuLTH9V%9S0mLTDC#B*i/Fc)cVJ<3W:01u81k0WZR:BM&&[PcQ1XaO_KB9\'gtc3ijVg^;n)mn:Qu49+kXrEq=00UX8F24R9#,K<-@0LTDfIm)%\'lLTDe]400`f334EB\"\"6*fPcQ1XfnL$HWrEThQE2Bl3NONdQE2Bl7][msQY/om70\"23$0J_mS$:h\"*Fa:;LTDe],-3)M334EBl`qLiPcQ1X/*LZUO@CRVQE2Bli2e5ajK\'Ye8$\"!tffsCW1u]tko=;4\'pbSdrLb/WNLTDe]7\'%\\oQ`MKLk;nW_PH6(WmGc@!T6`VZm]7^om]7^om]7]q%J?W$`qk5m$+X.5I)WpN_.0SjLTDe]7B@epY,ipuGd0.MLTDe]6EDJmQE2B]b\'GW_LTDe]*NUP1_Q5,6pUa,.RJoR50WZR:WRX=pPcQ1X(Jm9(n4-T?6`_Rp2ish;MhS;?j2]m;*XL^cKeD7bMoDu]K<-@0KWHKFZ,-,WKWHJZ5cc8k6*)AK44b@0PcQ1Xl1_j\"oDB;^QE2Bli2e4c<XhAti&B3nNFFX<\"8D85`IVMBKWHJZ*NUP1LTDeN]&ZPo<Ff\'g0WZR:QWXo[PcQ1XpY<EjXB!l3:95a&\"ZT\"SN[?\"X\\X=T(]ooca\"uE;^lu$?nK<-@0KrcTG&R\'E&KrcS[WN7D*:TPjk`gPd/KrcS[400`f334EBi81l$PcQ1X\\Ke\\p7sjfdK<-AY9WTP\"K<-AY9WTO$)5W$h5igZ+96d!&gbe5D.gHA(KrcS[,-3)M334EBWLONZPcQ1X*.gGbrKg*8QE2Bl_lP/DQE2Bl_lP.FRp,ho!*>]tbHTUohR[fX7N/BPKrcS[7B@epK<-AJeP9TtKrcS[9roY#Q`MKLm\"D!jPH6(WqQUjG0(qYlOK9afOK9afOK9`h4Ica\\rNkhslV[*GF]f!!=KDNHKrcS[8us=u9<9FgNB\\:(KrcS[8?=+s8ZX4Sj?9T(8?=,ae%;T=<idUo2shB0JCAoiKrcS[=0*^-8ZX4S[ODcI=0*^p:J=*7<3.Cm:=h%G*f[fUKrcS[<NIL+8ZX4S]9cZ[<NILn!E2aQ;QM1k0aBagMOBDHKrcS[*NUP1LTDeNX[Wi[7!d/Xd\\.tr$KFf\'[&bO4R]Ig^ietd8QE2C1EF\'UT?GR4Jg>9r!iLqRC1a(3i[&bO4S#dp_+HAu9[&bO4R]Ig^Qh.iR.GCVX\"0<e:24Kj$Cetalm@biOA$M#QQE2An\\GCDO62bASK<-@0LTDfIFO:O@[&bO4U9#Z#TWBGUo7uP=hEH-EkQ7DZ\'g4P`E>9hrUSVHD[B(XLqc=8VUDSKi]OhZtN3\";AZ$.HS7<&3-YEe!VLTI>3/$(&kmNZCVLTL6q<+G?-LTK>=_,n;Fkoji%!3@J7r9H:&135oe0OVn[K<-@0KWHKF@)+\\0VfTNp_Q5$\"!,ER63ijVgCX1O6DR_uDLTKd#)6>.YNBt0fLTKjf<l#&QLTE6;g[*SgG\"s*q!E<Bb:TPj\'@UrtNn8J;;LTCT;)6>.YZ&=TQLTE/SQoL[KLTJ]+<e.(2<K=(?)qbj+*`uj1K<-@0KrcTG5_ulmKrcRp\"/<8PLnZ0tO)+g*F+0K\"WN7K<?DK)G<Z.TY4J=(Haa;^#;lh;9c/b4=32%YD;iXJ0:oks(bP)<F,d/t_K<-@0LTDfII(:!$br-RcNiXW![VREf&)<:p9VEcX+S`1#;62)7i9Nj[8>.?TDMo]u?E>G6PpP<i4D;*]K<-@0KWHKF_51K^KrcPZ?`YQ5>c]5f7_6Qu?*#@!L\"gp_$pVCa>-\'\"nKWHIC[&bX7R]Ig^(1PH1LTDaE[&bX7S#dp_2JVt0[&bX7VQ;)jB;t\\M[&bX7UT>cg,Hc_D[&bX7U9#Zfs1.;9KWHFBeuU7.P8p>Y);?<:e[LtR@EW9YnS6StMQA2rSs$6N?nPo9J\"\\163iTcO>HB.AEJmtIH_Db21/sj)=KEelSZF40+1gH+hZik\'Kq]m=n26ISLTDfmEtu65JYFI9iV_u#=f`o1GOd%^p\\FCe^8Y-.&33:1Goq=jSatD3LnZ2O\\P\'lDC=Ye<LTF1ULTDdFLTDe]!3@L2gYY#t]W<B7dOZJFgNZV]LTE8;LTDdFLTDe]!3@L2ZJ=HGYcK++KM1T9\\d@ScLTH<<LTDdFLTDf.Z`GF.b*O3f&N\"ZrLTF^dLTDdFLTDf.P,opbAC[[XE^K8\\LTEhKLTDdFLTDf.^T8]:Xf$,&<$,&(LTG<uLTDdFLTDf.OK9^`;.d_\'2];X\\LTJ\\*LTDdF\\#^j7SZF+\\LTDeN1A?bO`N1=Z\"#mN5cCuTe6Vc;X`N1GHs/[LiLTDbMg4EYiMu8G2cCuV@%pA^eChLhSLTG^+LTDdF\\#^j7S?+\"[LTDeN]R\"05`2k4Y$WrC9gnH(s6<[,-`2k>GQ`MJVLTDbM2dYS(NW(+#gnH*NoA;,ikKfogLTK.7LTDdF\\#^j7T<\'=^LTDeN7TN2+`iLF[JQ<2,lCoR,iCRr2`iLPIs/[LiLTDbMP^<AgCl6F8lCoS\\J8*M!O^pM<LTE,7LTDdF\\#^j7Sua4]LTDeNA)&kr6eY\"\':;h%8LTL0TLTDdF\\#^j7OfTiPLTDeN[-NMk\\?$rM*16&>$)/^J=p><W\\?%\';s/[N+Aum:pCR]m7PcQ1XnFS]LIR4DcLTDa^_c/<lTWsjj>-$HSf6Ht;*4>Y%F6jY@$)/`%/c($hR@nPbLTK%4LTDdF\\#^j7P,orQLTDeNF8mU2]<!8PFGL0L-__mhF9$;(]<!B>s/[LiLTDbMQhGO[63\'p_-__oC8aQHMcr:=:LTGj/LTDdFLTDf.S?*ulP$TE<ND3$1LTDB\"LTDdFLTDf.T<\';o?^ie(d>Y`\'LTFskLTDdFLTDf.Sua1\\LTDdr>hHbb-c!\'9BqcmU_W9g<K<-AYi2e5aK<-BZM-[k#LTF&GCn`5bo>L[<L?8An)QY6$)P(EUOf>aJB<3C&LTDdm&\"b(-:D+RJ#YPP:LTFgA)6>.Ym^$P;LTHri38-i5LTGk0l4X\'Z%Tj3%]>GLgHUgMaK<-@0KWHKF@![2DKWHIo6tDO0@A5%M2@bEaKWHH9lVG>XHjNhU.(b=ILTD;O1TVns@/@<CLTEqiTRN2<LTH4:V`kX\\,-&rIqaC>\\@A5\'a=`ZL[VW\'W83hdqi%TA;_\'OQ6oUT>j%WS;t&Bqco0DHAtAAeNd^LTJq1LTDdFLTDf.OfTgan&>akGU!BWLTH`HLTDdFLTDf.Q)l6e9qI\\=^G=c5LTEYFLTDdFLTDf.PcQ-dUsehQ*.\'E*LTIP_LTDdFLTDf.Q`MHgpme=kWX,#XLTDr2LTDdFLTDf.QE2?f\\\'CP98kXAnLTKsNLTDdFLTDf.M6%tYdb@gc/;ek@LTJM%LTDdFLTDf.Lo_jFLTDdr95$=[B3/_nTq`n9^K<uLhlJ374)s]dYhM`1GZQ4oA2=Z$m0e4/>aR)$o!ob>Tq`oi^3\\EC-eR.<LTEJALTDdFLTDf.Ml\\0ILTDdr2mNN[K\\@f$_4r:Y?UhLJhQ/*6Vc!e[Q)l9J0IfMNPcQ1X!2k%M.!njOQE2BlQE2BlQE2AnZJtmd!4u/9k:Tg2ncu=WQE2AnpEdXXZ-K*NjkM3P``GdkOc;L&_4r<4BfWJL#),:,LTHE?LTDdFLTDf.^8rT9b8ak3K`2[NLTGX)LTDdFLTDf.Z)f4,l%*YU.1oXHLTDQ\'LTDdFLTDf.ZE,=-2sPDe95B3GLTKmLLTDdFLTDf.\\u[05#b1\"%9D.&)LTG9tLTDdFLTDf.]rWK8X\"QSI[6Kk?LTD&nLTDdFLTDf.SZF([LTDdrh+Gpd1Fb;1n=q93Bq9#q)K3d)WN7KE8o34fX/m]-B:1p^n=q9QLTDc<n1c9e4*)@#`iLJGgoMfNA7mZW`2k7.LTDfmgoZK/:Iot_\"f!Bh^&]\"/A?7*JR<%>8!M^sdDhBm+AZR2,[._Cs_Q5&CXK3^s*p[Au!+Y=shtSI.LTELqcE&>dE4aY3LTL9rik#;(LTJi/>Smn=G\'MSo/6U)5,(4U!LTGU(LTDdFLTDf.MQA\'HLTDdrOJiP7+ep=c+hJ=0d&\\V(4-NW)>dgA/mN0[\\-2AeT:e+LD5-k\"`.AJ0kOlI)udB\"_)KWefFECL7:]s[_Dnr=j^7t9RXpj*,fLTDc<CqK`EDuC$&`iLJGhlJ,Q\';Djn`2k7.LTDfmm0sIuHaIsD3hn\"H8\\[oX@]UmH\'DC.-7\\_9T*_]guAZR2,Ui6[#_Q5&C\\u[3,li[)FI,D\\@BW%e?LTFa?cE&>djFXjPLTG48F\')+ILTFJ^AtWc*\"`>36d/J#SrP925LTIM^LTDdFLTDf.NN=BKLTDc<:Nrf8]d&r)`iLJGeZ:\'G\'rarf`2k7.LTDfmQU$[-\"Qi.#B;6cuk2UNB@]UmH`\'Nd<A\"t?q<@D%1AZR2,_ms$3_Q5&C\\u[3,RRNl10.I91jQ,H7LTF[=cE&>d$S[9GLTKCY1SshWLTIZcpdoi%9soY1\"j!>PT4>s-LTF4VLTDeeKWG9^KWHJbKrk9[KrcRDS?*u1d[cFnWV9nMPIr1D4G[DhTr]V9s\'Uk7P.W(CYMCoVTr]TX#/\\nOll@QXcps[=LTJOU1TVns@+g6FLTG%32^;sHLTH\"4>e\'IrOV>S/l4O0)Tr]U\"-)S?SP.W)saRtW<Tr]M6>$/@1a`\\YO9=uPQjhROK0WZR:e-;_.PcQ1XZ<4lN/=n2JA#pt;J1AWB8P.bFmNMc/)^k<bTr]UbTr]W$WN7D*@&tZ\'n6gqnTr]W$@B:aecjd.,GURk]Tr]W$400`f334EB%Nh^1PcQ1XkuB1AZ0BGkQE2Bl\"0<f.QE2Bl%]gs;7K>JOnr#U:]a=?,i\\nGunA+62Tr]W$DQG.DQ)l9JRPEERPcQ1X?5BHJmm:iMQE2BlXK3_-QE2An9*J[)Tsdl+q6lmj<3<`\\`j_&=VLpU_0WZR:Zu/a#PcQ1XHEKoM=[*FV3ijVgOX(oKYttZ3%\":q7$q!WJXS7cX\'jb^9K<-@0LTDfI,%%l(LTDe]400`f334EB*,d6bPcQ1X,JO&acXehjK<-AYQE2BlK<-AYQE2An*mqf+<Fq!n]iD\'-Q]9[IHrc@QLTDe]7B@epjK\'YV/rHMLLTDe]7\'%\\oQ`MKLNC!l0PH6(W#RTV%#Ucj9QE2BlQE2BlQE2An\\t$Z?qi_6kb+\'7C[hI>AC[C[:LTDe]*NUP1Tr]VjL41eba\\$<-0WZR:7m`K#PcQ1Xf20>nYE1`\':95a&Z:GU1eUB.XZPMZd3.ZB:FY\'%b=BLfIK<-@0KWHKFK+&>8KWHJZWN7D*Dlb76L3WA7KWHJZ400`f334EBqTH=,PcQ1X^1`M8O3+_fK<-AYQE2BlK<-AYQE2An-Q[/-<(V`LrE%&8js:Xh!)lE3KWHJZ7B@epK<-AJ:;ZWHKWHJZ9roY#Q`MKLo[F>0PH6(WYs*fL73jdNOK9afOK9afOK9`hqt!olg1]1HH6\']p;I_h<$&>c/KWHJZ8us=uCoeq3ASnguKWHJZ8?=+s8ZX4S^kP^G8?=,aGBYp(D6,&1@CbrX\\mDrkKWHJZ*NUP1LTDeNQ_W\'h>+f!s9=uPoN3\":a,ci<=)K2;>?OCaHq1f<)?b@]1H,Qm0N3\":a,ci<=\\,ckp-*/E>q\'LD^5&#Lo0\"iP51=XesTr]W$C9/^)N3\"Cd,ci<=k!C/L-*/E>Ah?/pRKIdXTr]W$*NUP1N3\"Cd,ci<=3J?=M-*/E>\\=#R1b/e##31s4oTr]WYXD[]j3ijVgr`VutW/:^hLTJ1K)6>.YX!<I4LTFn/%hK@bLTH\"4a\"Fap8?l44Xt5!\\Dlb6Gmod>+\"KQ]WLTKQr)6>.Y!+;p?LTL<s<Li;bLTJ]+H4?q=+r.dPIp;bOlP?mfK<-@0LTDfIH,;lkLTDdrr-Aj#+MB\'\';)2Ie9E>lfUoYkYjY[1#.\'+`A5oeC`34`oLLTDjHKWHQcb#M,p\"0<e:TVp_-QE2Bl\"0<e0oj5L;+Bk3?I=/`l[,S8MOe#uapVtL<K<-@0LTDfI6[J[>@K)(BCTJgCI&POs;hUKsK<-@0KWHKFgQ(I+T6U\'hQ`MKLKc&-qPH6(W3j=FL=82iVOK9afOK9afOK9`hV;G`a&u/,,#HGc,mB1FiW5fZU=>oZ.K<-@0KrcTGNjD\\.KrcXrQNL37(VM*sA$V4?LTDb\\BWNNG/\'h\\q=3@:4Ehsk*b.T+H[e6\"2LTDb\\BriUL7#=`7_8fo1k.N&C<\\aK2G-!!rKWHP\\Q`MKL;/M,KPH6(W[H-_aFWk[_QE2BlOK9afQE2AnMm;&>V:(M56t3\\%(PPttKrcZ\\S>0s#$,%W.LTDb\\GH<+VAt<#o[lh>u;H1DYm(F^j)LlrSLTDb\\FK?cWS+PK1FDL#dpq7sUGMbZFFfZmqKWHP\\Q`MKL8IZ5jPH6(WTYJg^V,Du+OK9afOK9afQE2An,a^bt]/Gu^Rt\"0.GN7A_KrcZ\\<D%T:$,%VeU?Oh#CTJhgKWHP\\Q`MKL;LS%oPH6(WiuRTtrPP:fOK9af\"0<f.QE2An/$S#8k0h\'PHR@A?kN3)WKrcZ\\RY5qE8\\,$\'(VM+<LTDb\\?`YQ5>c]5f,Z8N>?*#@!p?fQ&^/?\\FEi^Q1KWHICLTDd_=flIA]tMYsZN5.CiN6:40Sbu<LTDb\\9roWaKrcSL2!)I18=N!G+MB)[:!St%0\"iQeL?HW4\'=RS!LTK+6LTDeeKWGloKWHJbKrib0KrcRDT<\';4$XHn0b*9)W9YD_SQIfgoTWBM8b96/!:VA%VORc3kTWBKWkh;.[n(Q,jX%Wq5LTDDR1TVnsk1<\"4LTH$OWcBk+LTK#4F(^s2BIUjse3%$CTWBL!FM\":H:VA\'1i5W#FTWBD5r=dRQ?)&irKt\\i8V_.h+0WZR:mDdV7PcQ1X\"lh\\R$G^)0-`eUTM,UW\\XsdW`6!=]m)Y>GaTWBLaTWBN#WN7D*F0$[:`jPmkTWBN#E3(>t2IV;gR&>9STWBN#ENCHBNjT(?[Rm>>TWBN#I]OiT8ZX4S>oS?SI]OjB`RNn,J#jsCKH8is9aj3/TWBN#I&nWR1or!P%R\\biTWBN#IB4`S8ZX4Ses:T@HE8F>c\']Q2-EJN?:gKT?=!,[1TWBN#*NUQH)QY6$Y\"pKq+\'R=UH(<jmKt\\kB*\\eOlUoYkYc&S!I.\'+`AW:M4BQBj:cK<-@BKrcS[iiFHjXoOfa7WNa5QE2BlK<-@[56k@o+4S\"2>f2oldp%>`bs9KT*:efCK<-@0Jug9D9RUFpTWBDu,-3(6LTDeN$ioZ<TWBDu400`fQ)l9JXcrO>PcQ1X.NnPr+gm5fTr]Q\"Tr]Q\"Tr]P$i]g^Nnf$]uAg9hA:=Djb:D43]TWBDus/[N+Q`MKLW^7_cPH6(W7;@1Yb=A%]OK9`OJug7dX0;)ROK9afK<-@BJug8o_[Ak#1YZ/oQE2An$kEA@p$Kd+:T`sYrt@SFT$_b<c8ZSpU,n!nLTItkLTDe]/?C.6Er#-_/Z^8FE%J\'!ffo9VUT>`#K<-@BLTDd_,1Ug<XA3jD3*U\"aF_\"JqUT>`BqFenhi2e6&`ua\\DI6scXik?]@/L<\'0/?C.6r)*9L.]arC1GTZR>u9]-UT>h(Z>7!Q+o+)(\'u]_5\"pa&E*>nkVik?_JlK>I4H`SN0jk==U5\'IngUT>_%INR]S%tI\"Ri?:DK)G2bGFG[h9*FIbsVRb7VEP<`YK<-Bn\"\"X2RLTDe]\\u[4PkTT`-KWHKFqc2+S8frVnE*Q(r)QY6$U1P:[W3\'WjB<3C&LTDdm$e+o4=OS$fRLG$aLTJ.J)6>.Y\"bGZELTI>t\'BmMKLTEcJ\\!36C\'%IFPMO&3`Sf0ADK<-@0KrcTGi8]Y;KrcRpJ7m8(QSB)\";naO[%hef\"0WZR:)O]<=PcQ1XK_7:5G1*@L-`eUT)\'08ic\\f[J_I%rk5)@.`KrcOCKrcPZWN7D*B<3C&LTDalS>UX]00c-RKrcPZE3(>t\'e/?q&U#3=KrcPZENCHBG\"<$j5td(YKrcPZI]OiT8ZX4Sjg(S>I]OjBj%0!*GcW4<bORlHH$>DpKrcPZIB4`S8ZX4S\"+Yl\\HE8F>?gmiN-EJN?_(&60_%U&sKrcPZ400`fQ)l9J:V=N\'PcQ1X./#j6D!]?)jK\'YejK\'YejK\'Xg\'b\',)M\\\'2$XKI9QY6iF%F8Y/DKrcPZ*NUQH)QY6$9Yq?ir=%oKg>c?8;naP$KrcS[,-3(6KWHJKmjMKcKrcS[I&nWRY,iomLTDe]H)r;[msFFeJG4;;igr@XKrcS[s/[N+Q`MKL\\pJ%KPH6(WaAN_]Pk,fQOK9afOK9`OLTDe]L92aia,J`J0rau.QE2An<n8HsaO*$T<F+qd!Dc.5(pBXL0nFQ-qQ-%_l+SJ5>%7&Yjjjj?.d/=HLTJY)LTDeeKWJgmKWHJbKrc6\"KrcRDOfTg&NoQp0H1G`uSA-?PpF@:.U9#_:qdldTT>)ZS)\\gL>U9#]YTe3$#G[SHlq\'L2pLTDtb1TVnss)E-lLTKR^ci=JcLTD@\"^Nt7r9gh5D8B:\\8U9#^#D\"*MbT>)\\.9T/ckU9#V7$DgZqP0.3\\pV/!VF-Ft10WZR:s%s2aPcQ1X$/2)^m94pt-`eUT?_V\"3<QiJjD_qmu0/VjuU9#^cU9#`%WN7D*LTMkOnB\"<HU9#`%E3(>tcAcUgb9a)1U9#`%ENCHBKo<it,+E?kU9#`%I]OiT8ZX4S?\"dc.I]OjB_eBX@GcW4<MCK`thMe<TU9#`%I&nWRY,ipu+bI$DU9#`%IB4`S8ZX4SAubokHE8F>\\3i\'3-EJN?q7q$\"Lp%pEU9#`%400`fQ)l9J\"\"_0GPcQ1X1Mae8*2^u?\\u[3;\\u[3;\\u[2=]9p$/OP5-iVUgS!MZt,LD*gi<U9#`%s/[N+Q`MKLC;j&0PH6(W$eVYlqc&<0OK9af\"0<f.QE2AnW/W**_.5D0T\">U1prbmNWKtdPU9#`%*NUQH)QY6$=;`B5H\"#gn@R_aEpV/#`kP.K*UoYkYqsj!3KWQQI1SQ)&pn?=`LTDe]+KQm9>1ujtKWHJZi2e6h*o>3,2Q]`6\"KWn1(a92eo#GeXc(Cot.jr(m1,.Wg9.kFJK<-@0Jug9D6u-qSMSGK$LTDdFKrcRDKWHIfN;l3fJug7d-bkp3G*rRrQP=%6EO-%4K<-@0K<-BE?P^*oU9#W\",-3(6K<-AJhR8i.+]44hmo)01LTJe-LTDdFQ)l6*%4?s+gE^lg0u#\":bae\\V`N1F]XL4jO0Y\\n9H9psB`N1E\'Uj-i>oQ-^.ga=@YLTDAQ1TVns:1=?;LTF7r,UJRaLTI6WXm2/?I=_IsQ+%.-`N1EF_3?2D0Y\\oiiYK<Q`N1=ZS0KZWM7QJWIYb:W6baqmJb7J9LTDfmbf>N6]mRtM6baqm9pGAqLTDe]-*/E>2LluG6=7ERNjpA;YW[u*0WZR:fWt(-PcQ1XMY:_mEDTJk-`eUT[*T@d>LsMpK\"!E/j6dVf`N1F1`N1GHWN7D*SZF,dL\"Sd9`N1GHE3(>t\\n(#RU%B*D`N1GHENCHBqUQ+)rK!6f`N1GHI]OiT8ZX4SiDt)\\I]OjB=r,;@J#jsC!CUXNa#YFg`N1GHI&nWR1or!Pn;l*C`N1GH400`fQ)l9J\\bH>fPcQ1XkfNM,.f%#B_lP/D*3:HG_lP.FN2or\\_a&#E64H?Y9,p`VdXj%o`N1GHs/[Li\\#^s:SZF-a!ATR_d%05@`N1GH*NUQH)QY6$T(!5=WP(+HDmeC\"NjpAY`N1?UNmEtb)m#f^PIMparX<ciLTDfmC\'l(Xeqr(-PIMpaZ:bKILTDe]-*/E>cGB3K9\\CnCUpq]Q7$n\'\"`N1GH,-3(6LTDb\\-*/E>Mq(:V,-3*;%>-Hc@&HHP&UQkDUpq_,-6URp+ATk?LTGR\'LTDdFPcQ-)RSQXPW*9m^`jd;sm\\ADX`2k=\\cg`H3\\[WpfbXefY`2k<&cde1>kYnTc!\'gWtLTDb\\1TVns)WPdJLTE8V\"o\"3lLTJW)\"`J#Bcu`pu)+C1(`2k<Eo8$uW\\[WrAG;6\'?`2k4Y\"e5#Ph(TF8Z_*5)_71f:A[IjKLTDdr+H?&A!k9NY_%;Qb0WZR:WtEC3PcQ1Xjp*?E=I\\H4KrlX^aMc8(DB98oiLR.Icb_lP`2k=0`2k>GC9/^)LTDbMP3TM\"`2k>G400_OLTDb\\400aTh=naFQ)l9J2m]uQPcQ1XG86OTnS?4*jK\'YejK\'YejK\'Xgn&WIML\'FCZL)iYWMO[=)\'BK.AERps0`2k>GQ`MJV\\#^s:S?+$`5Vg?.6,I^e`2k>GI&nWRjK\'YVOe[UR`2k>G@B:aeBQ.(&ZPNfh`2k>GJup>Yi2e5RVS\"].`2k>G*NUP1LTDbMO/iWHkQU)I!k9P4Ak,iNf):#^LTL*RLTDdFQ`MH,`ibe*j/Q+,1Un_5L9&8%i(\'N$H`SN0+\"Z`e]3=qPa/gXL7<,Y9YQK=\\-iNf\'_oGJ4`-&dr)83dVIO_8p2n1/nK<-Bnk2c*>LTDe]\\u[4P6@X]qKWHKF*<Gc@B_%9/KWHK:o]e\\&;E5Fnj$>J4LTDe]1TVns,YuZrLTLBuLt8kCLTDI%.;)HG2$au6mdD(Q#3kp^*k3Nc6>GobJVq(Ga/gYE:H.=C,j//(s,#Hhi2e5JLTI&+m]7^XKWM>cr]/;aiiFFe8CWZ%)+Jl]KrhO?DIi?@%tH$eK<-@0KWHKFW=H6Xa/gPfNskP&KWHK$O`nVr(:TH$*!+\',QanCE6ZI\"Qg!bM30WZR:_E68,PcQ1X9P(Q>kll$c-`eUTk(\'mBKOXldYL3sF@_cG6Ff`5XmcB1_K<-@0LTDfIR[hnOLTDe]WN7D*K<6GK[+-fQLTDe]E3(>tc?lgFFD[]pLTDe]ENCHBhpf5d!drE>LTDe]I]OiT8ZX4SNp&fhI]OjB@72N\'GcW4<2H%#5JBn]KLTDe]I&nWRJ?:,HB8I<GLTDe]IB4`S8ZX4ShQMKiHE8F>qY+!LJZU6FRn%aQ/>Wq%LTDe]*NUQH)QY6$\'N6!#Iu%Bi/?C.6I.,aJ/Z^8F%\\Y#SU+N#]a/gX3LTDd_+pi?n*7;t:pD$\'bq-0EK?;uFR6b\"GO[8/lDH`SN0#q*X\"6Z0aaa/gOI:ATcKqX6iZlqV0V^,@/r;A]44,-U?)VF[E[rOF56K<-Bn\\`9ctLTDe]\\u[4PoQoc.KWHKFo\\Z[Xh4IKPJE.\"[KWHFBLTDfKrb2j\'B]aD=6bOn-K<-@0KrcTGQ\'=udKWHJZ400`fQ)l9J*Z&.BPcQ1XH\"=Or(_T;tNiaTNKrcS[\\u[2GisB\'9KrcS[\\u[2GmHoin=76,k<IqRbf)m2lD\"@m\\Y;is6KWHJZO0\'^fO0\'^E1ElRRPcQ1XrtBRbn#J)bLTDa^ZNrZqS$_tt4Y?C\'?MeZ#O0\'^E1#4XFN3+DQFTF8,D*5t#QE2BlQE2BlUoYkYTks7YNNFMRD7IZr9$?1QBriUAa\'Rb-LJ+BKHM15\"*R6l1@r\"kB=boWU[4`Enjl@RQ2nXin/E<WOKWHJZs/[N+Q`MKL1)ef)PH6(W!&\\5pHU)t<QE2BlOK9`OLTDe]%]gsEg9;iu/F0!hOK9`hTP>HK=m(SId;4I2=H*Q7eSWOHE?N0X=SXiRR^ja6W/nQHS@KE1iYp1/LTF\"PLTDeeKWJppKWHJbKrc/uKrcRDQE2?+g#J#cW:b7[(qCppY$LfG`iLO^l+7FQ)n@6sZ%_-[`iLN(l::M.n4G35iB?jFLTJ4L1TVns+56m/LTHN]:,_\'BLTKSD/n-3tkD>o1Mc?FW`iLNG7!K=C)n@8NV0cDi`iLF[M\'<C\'n&%nJ8@^#K?\'E$_0WZR:(cW[uPcQ1XCahZZDFUmj-`eUTS6DLd-\\Fqr]hSM%qP8YJ`iLO2`iLPIWN7D*MQJ1R7Q9l]`iLPIE3(>tpB9Q+Omn&J`iLPIENCHB@cS8Qk\'7+R`iLPII]OiT8ZX4SS-)6?I]OjBp#J2oGcW4<:h$PULD<9%`iLPII&nWRY,ipu7j&`o`iLPI*NUQH)QY6$Y%1FZY^`/$9:dO18@^%UE/-0-UoYkYI;ojY.\'+`A)&6Dc&Z8,BKWHJZi2e6h>F%U8\\u[3;m]7]q(9XN:%Q*__9FkUrfpBfATZSoi$eRM\"K<-@0Jug9D.`!AR`iLGF400`fQ)l9JP4B0DPcQ1XJ(,1AO][X\'jK\'YejK\'XNJug7ZUmM<f8J=#h#5DI!?RJ9kq01jB`iLGFO0\'^fO0\'^E6#6@WMle;ProQYYGo=dKLTDdFLTDdFKrcRcF:6SZ#\'MM!&6ETQ`dphZgAJ+&OYc>I`iLGFs/[Li\\#^j7T<\'?c)%a6*Rb?5I],qWQJHDm;LTEhKLTDeeKWM8]KWHJbKrf7\"KrcScJuf<cJug7AM6%ssDTfUcBd5TbXh#e\\Y9FT&\\Z@/QcD+*]XL]\\[I-E:-\\Z@-p0cO.SUt@8$#uWZmLTL--1TVnsW#((tLTG\"2FpED+LTFeg8HM<L8qe,[]OdD8\\Z@.:F$AFZXL]^6#e(Tn\\Z@&N:*^fRJ8OCqh7=m77cXu;0WZR:,-#gGPcQ1XmS-rq7r->.-`eUTl.#`8?ksLai[lGO#]p!O\\Z@/%\\Z@0<WN7D*Sua5e=jX2m\\Z@0<E3(>tl]?aJ@V6f,\\Z@0<ENCHBf(OH>#?\"AA\\Z@0<I]OiT8ZX4S0Kl.iI]OjBci\\KOGcW4<FmIk4lHj;i\\Z@0<I&nWRjK\'YV0^![(\\Z@0<*NUQH)QY6$n74G+fB[#,nj4`\'h7=oA!n^*gLTDdFKWHIb,-Q!G\\u[4BAEK^Lkt[sTWJc[oK<-@0K<-BEE?M&#\\Z@\'9400`fQ)l9JX.c\\UPcQ1Xk$,I,8%sV8NiaUeNiaTNKrcR]-=)+\'82<gEap$,eB4k1mHVl[E\\Z@\'9O0\'^fO0\'^E0-85pMle;Pm(!2,bj[_<K<-@BKWHI\\\\^uF8\'fC4BqL[i)KqP#d_X9N0\\Z@\'9s/[LiJug9hC?cd5Oq`:k$b@Y0g.[GK\\#^j7Sua6bjVV1l7([\\k)S.6?.E0;dQ`MKLoOC4IPH6(W:g0d+RJ84jOK9afQE2BlQE2Anc39J8f80M7&GqsmYqDf#0@QtX!U\\r&%TdtALTJP&LTDdFLo_jrBm2+&!\'5RV4h;pAEK&9g\\?%&P:M:o!4Lug@/oM%>\\?%$ooN,E]&1f#-MaJ1iLTCc@1TVns\'>LY\\LTJeH8i\\D5LTF5WJ;A@;#D)=@+ES$u\\?%%9GD;ah4LuhpKrGY-\\?$rMao+[!R/(,a@#02X7(O\\iW24SZLTDdrWqgFX$+hJcFa\\Op0WZR:L6<pDPcQ1X@jQ6+$n\"l2OfTiik=`Qlj\\7?6iC5?n>^GP=\\?%&$\\?%\';Loht_jK\'YVI[_T+\\?%\';M6/(`QE2B];:-7)\\?%\';QE;GFFd_NDSh[Ak\\?%\';s/[N+Aum:p._+Q!PcQ1X8k:qNh7jpQ\\#^s:OfTkU9>J>(?TO6M`\'ab8j\\T\"R#s-(TKVD?f\\?%\';I&nWRQ`VQMX$b^&PcQ1X;(CV8nJ@\\l;JR83PcZ6J9iou,PcQ1Xo;\'(/>U2:gQE2BljK\'XgAG/PrH^7;2-4>G$$i_/hLTG^/8XFa_PcZ6JHK\'gAPcQ1X:K\\LC(_K;uK<-AYK<-@[BoS<Y&m3!Wpt_8\"8ct,8[KD=f`?/q,KWGhJj*ZVaP6`cIYe=rMW#n<SW?r`2\\?%\';Q)u?lQ`VQM\'b&<GPcQ1X6hkf5[<&)>9;-\'ZPcZ6Jn-.s6PcQ1X!q!A(eX=gEQE2BlK<-@[^[9!BS-[:Ei]kQ\\\\qrn\"LTIMbe7D73PcZ6JfaKQoPcQ1Xg5[;b^,$4XK<-AYQE2An0F=j`Cs^N8;p-?J1p<$&@0,@ibZYnpKWNifZ:C`nH>okjg;?qdq:Dm#X`uM.D=M4t0WZR:JHo89PcQ1X0ZfThWkPEkP-$#kBDK;E6`+`--*A`]s5T8\'Rh7DX2$)BiK<-@0LTDfI>edrqLTDe],-3)MQ)l9JLXFY3PcQ1X^4aV;Z-A#_QE2BlQE2BlQE2AnE@_Z\'joYDd3n/QQ;>pB@\'r=2>LTDe]*NUP1LTDbMaM<,2=&MqU0WZR:]a#gBPcQ1XbUVMZ=;5A,P-$#k1VH.X?\'>6pr)9$IiOT(O]`h;9lt6igK<-@0KWHKFLB1X\'KWHJZ,-3)MQ)l9JOJMr:PcQ1X[=<\\8\\#B+^QE2BlQE2BlQE2AnG7mnX\\r`9c\'MH==^(X%dX%lqDKWHJZ*NUP1LTDbM_]@;O\\?%\';PH?,SLTDeN/ooGb\\?%\';OKBfPKWHJKoX4Q>\\?%\';*NUP1LTDbMHN=K4;lOg:$+hL>rX8?;dc[g!LTFjhLTDeeKWI8AKWHICMl\\0up.8I_JldMN.D$l.DaG\'[]<!ASUX&IY.(^c-5-b;7]<!?rhrl@Inhncr:0:e5LTJCQ1TVns]qTRZLTIc+P*1*%LTJc-$V:Wnk.r/;g!nHV]<!@<`u)/^.(^d]dW$\'H]<!8P,X%qt\'92C,DS%1s>#3t60WZR:*D7N7PcQ1Xm#]K$.5D^!-`eUTb],F@6+\"oDMnt5F*/3ac]<!A\']<!B>WN7D*Of]pYr\\Z/K]<!B>E3(>tr`UOq[cL.*]<!B>ENCHB3`=UZo;VO/]<!B>I]OiT8ZX4SS\"-dDI]OjB5k/rUJ#jsCI.Llt6KMZ\"]<!B>I&nWR1or!P=R)Y)]<!B>IB4`S8ZX4SSt*TUHE8F>YnSUG-EJN?h,*cnDH\':Q]<!B>*NUQH)QY6$\"O[O(%A#?6/Y*=LDS%2<]<!9;,-3(6LTDeN;R0XQ]<!9;400`fQ)l9J>rt$*PcQ1XaOI`/-<6$KKWHJZ\\u[2Gm[/#<KWHJZ\\u[2GR9$R9KWHJZ\\u[2GN&>3.Is:`kQY%ZQnS+osn?q>+cMogH]<!9;s/[Li\\#^j7P,otV]nc6/A=.Ut5Xe$^N_MSYNiXL#XbqLRYI#SXEu-k\\YH0*GUTW-pVmI`P[G0@XYH0(f7jp5UU$P3MY$<VkLTF(,Suj=5)&]DbLTI8ro\\94RLTJ/q.h7g5\"(<MRg,BVMYH0)0\\1<=5VmI`nd]=h*q72#:V.N>%?d6e$gYI)CV9MQiIX4um\\[3Xb:B;(OUoYq<%*b>j\\?mOa\":-b+UoYo[\"6^7V)Bo2amr&nOLTL!)Suj=5Bfm)@LTFJ#Jn^ceLTE09\"a57^fQ1m,4DaAjUoYp%T,0Hc\\?mR@oS*hQCdl(EV5tqu!.\"c[#\\l(;N3\":a,ci<=Lk!rLTb#TBeemq)f!HaK_dQprN3\":a,ci<=\\#LC,-*/E>_PWbr7/t(tQEh9Rd^1;&\"bQW-ktoU54\'_q3N3\":a,ci<=hnK)L-*/E>0lG5s^es2qmb?l`K<-@0LTDfI-[9R=b8=,#N3\":a,ci<=;!guo]\\k9!T<0D#=93VJ-/kD+LTE=lS?4+3i!m5.LTCj.!I4$DLTE!4EI<l3[B.e;j_Oit()E0pK<-@0KWHKFVfc>iKWHIo/;q&5cJquRr3RaP;#K=/E?C\\oNiXL#c+iCg&[Whde]U3$e#Xq+0YBFiLTDa^eD$<ljq*.O+tB>VnelHkKWHP\\SZO3b?BC8co&ClQ\\?$u;!^/2=q\\W+?LTI2/\'!*DRY&GRrLTL3pbi4%^LTJ2r`3(rmaTCD,YH0,18CTBn0=3#-ML)rZKWHP\\SZO3bhC#GB,PW\'7\\Z@)<9;;5a9hRibLTEUt\'!*DRnhH5;LTEJ\\IY+#\"LTL4V(c>atVuh[ZUoYs&q6\\h2<E,8sN6U=HLTIAZLTDdFMQA.!?eN3bkI2^a6F8&a^lDD<R]Ii1&\"aR,rSTke6F8&arB!7fN3\"@c,ci<=:)%A9a=kF$^S,Uo6F8&ajt1ZuN3\"@c,ci<=\"Kr&i-*/E>_oCD)L:9-:0N%mu::);L)q3u+m0(eFAanh*R]Iiq,-3*;/m;F>;P+J%],[Z,K<-@0KWHKF!9mt%O@n7NN3\"@c,ci<=QT7a!-*/E>QV*$m,-3*;58$:DQWWEQ(aXNgK<-@0KrcTGZ#5-%VpOObQ)l9JBP$%[PcQ1X1+u_<Z<bEmKWHJZ,HN3<TpiiXQE2AUKWHJZ+fm!:8+TD8M7tHAbsl^[1&LY>A,46+Q)l9J:6cl[PcQ1XPp>+omLQ0<KrcS[,HN3<3#2dZQE2AUKrcS[+fm!:qFt*R+FSK:A<FS4h=]k)Bq]I@W\"*6q0!$AGkaj%\\PlbArBYD*=K<-@0Jug9DPqYlTJug7A\\u[6V7)[SLkk^\'^b-`MtG(IH<MDt/NKWHFBKrcPq+iJ>Z0<?JHfhu`L7Xk#47gh26K<-@0LTDfI*QKEKKWHN;]RF+FQ)l9J/*BchPcQ1X,nX@jhV(^JKWHGY,HN3<*cA)\'KrcPZ+KQm9OJmLLKWHGY+fm!:CL\'Lm+T-(YjeH#d=FlOsC#cN\\]W>mN022+OLTERsR]Rn1m3K\\_LTIT&!@<h=LTDg/Z?ZuMVJUK\"V5th7*t/I\'cF\"r#DRg3\"[&bC0UT>ab[&bC0UT>cgBUhpCKrcXFV5tf88@H$f0!$AG\\nOW!Y5r6aN]hFA76^kQcF\"rAKrcQ+V5tj!<Vsi9b-`OO^SDC0(8A!tLTE_HLTDdFMQA.!`+Z+?k!R=>g9i6PIc=u`R]Ii1SKhJ3+7t_Dg9i6P2ur.cLTDjt9R^nSm62)/o<fkH-sQ9dXfN[?G\\Uu@o!KbGLW7L\\XfNY)T<\'>uQ)l9JSI9.kPcQ1X5[*fhqV\\*-QE2BlQE2BlQE2AndnK@8&.O0s.*/glS3N<g/q4,bnUh/Io!Kd\"[!)8Sp/QqmR]Iiq,-3*;4Gp:&FA=o\"T?`CTK<-@0KWHKF2o4afq_U#NLTDk_,-3*;WO/Zd0hO`6.D\"MuK<-@0KrcTG\"dbdh--(_!Q)l9J]B.e,PcQ1X?iN-qEf?k=KWHJZ,HN3<T]P$iQE2AUKWHJZ+fm!:!:shaUBI>ooO=s0/-m!dNgVhcQ)l9J/l:bkPcQ1XYDY-E:%0PSKrcS[,HN3<!nC>2QE2AUKrcS[+fm!:C3Yh$7YbPW]_PD2ach\\ZAN`JXidh#f0!$AGmJ!bE-a>\"#X1l]8K<-@0Jug9D/g?K&Jug7A\\u[6V-a;`-Z=Q.GVR@cQ^-1#UVLlu7KWHFBKrcPq\\5Ip<0<?JHps&Ln/+BK>3kpo=K<-@0LTDfI\\up4cI.jh)Q)l9JaWI7:PcQ1XXMZQtc+g5$LTDe],HN3<c+X1;QE2AULTDe]+fm!:B%2Mqeo7iq+NT\'>9ENT:A3\'IF0<?JHA5BHk(+<Qmb0.__K<-@0KWHKF)1Gm8XfN[?U-J0qA$mTbP%)TXXfNY)T<\'=^KWHFB]rW>EI)Mh0q:Y`*R67VNA$mU+WiR@<G0#GdN4(#7`<,fXWiR>&O0\'^fO0\'^Eg$c,(Mle;PfADRsSt$$/KrcY]Q)l9J@PQf#PcQ1XJQ&ARSbAp(KWHP\\,HN3<Y&!)AKrcY]+KQm9;olTpKWHP\\+fm!:pQ3fa,f23:T1\\Y\\CaX\\q6j#G1i^be+ne/D<\"^WJM]s0hO>Qng\"F=Ui\"N4(#UV5th7aM4KtR^OLE!+e\\E[&bC0UT>ab[&bC0UT>cg(T+S`KrcXFV5tf8<.[`%0!$AGn:j\\\'kKCMe9\\F+<0\\drQR^OLcKrcQ+V5tj!Op)$gZ*kq\\3O,M+XfN[?WgW[1YdPh[VMkR\"XfNY)T<\'>uQ)l9JNcGtrPcQ1X!$S)G.4-a.QE2BlQE2BlQE2An,\\+>dpFs5dm\\b[4?A0JMm(.2qq$C1&YdPk:mQj$m_.S+Go$SVFLTDc-LTDdFd]=_\'73=<HF,g0$H<>J\"J&GLZLIPL-0WZR:\"Q6#6PcQ1XA[]C`iBQC_S#mtt!i+s]eoX@fVr)Rk])A\\9XfNckXfNe-R&qZoQ)l9Jjc,.WPcQ1Xlj\'c(GCdYkRB7cpQE2BlRB7br&j+$6Ro,[^Y7]C^?*j]_J&3QVXfNe-T<\'>uQ)l9J&dY(gPcQ1X>pc#LXpmIPQE2BlQE2BlQE2AnfI`@j@n1nQ#Io*U8cq>-pHeEpXfNe-VQD/(Vl_7oOh&.KXfNe-*NUP1LTDeNG04EV0WZR:K@AS7PcQ1X3J^hIM%mmfUobq(]#+,BNMQ=U6%=ae1c0QcWiRHhWiRJ*V6)&\'Q)l9JT\"l>*PcQ1X@F3*)%Rs0PQE2BlRB7cpQE2AnU$LE7<,9qh5ff&_V.<h[RGnPsWiRJ*VQD/(U9,_jD@l\"TWiRJ*UTGi%TWKMh*eD6QWiRJ**NUP1LTDeNcK2it(2o?f9fT=\"XfNdB]$q\"5.(1E(GXT@kXfNnecc\\R78pte`1h&UZLTGWX1TVns!]hfBLTHT_:?VReLTCghDD`X-mm\'5;5+(ZBXfNo/cl>:L.(1EFWiRI?,X\"JA7(+BDFaSEWWiRSb&Q!p;qKWTRbNPI-LTIkB1TVns[0EdFLTJM@A(6\'@LTD6tm%]^4(e&oO\"!B_4WiRT,SQWE#7(+Ct%]O_Z<M7CA]?*nnN3\":a,ci<=1`toOFkeH@IQP;l?+)\')ao?H+N3\":a,ci<=c[aZbmVs_9TrfV%mb4I=mdHf[LTD/KS?4+3JUtaNLTK[aT^),[LTGP\'.H_NCHa5[n9TgZ\'!@X7nK<-@0LTDfIkS[hQLTDdrT8;H#H?,I%@(%?`3P-#^g.*h?NiXL#[\\DZ,Ejd7r/17ibY,s!d[ZWJV->H:8`iLII!a_s1fcBGd]hI)JFB7,Shln+\"Gd\\n#F0((TY,s!dA3c?f@nS[=a/gRJ<S$24LjZZ<03b%;;[X`,[2Kf(P,op\'K0%D-cF5)%Gj\'F^)tO]%0WZR:a%A4KPcQ1XXK:HkNM>9hYH9*30PM&\"?^Tj[^h3f6M:%VM0qQfqLt3r5K<-@0LTDfIn0V*XLTDe]XK<e.XfWmuZk=/uLTDe]Wi[S,jK\'YV\'\\cJ.LTDe]*NUQH)QY6$9$&K19Z2u8LTDf=]>j5!aA-k[icW:QLTE:kX0!]BktCe_LTL<s;S>##LTH4:ST,82l&<$0KWHJ9B?EBSe##fuW3%@,:C^N0>`8)_LTK\'dJZL0l`\\8KGLTDcHNN\'^)LTF5WoO6bTEYjAFo`k.6LTDe]K<-@[_\'6!`+p3O1LTJ7MWN@K@K)\\qaLTKgep\"q0/LTD$n5US>VX>:7CA3])QcF5*U+KqNZ\\0OclJug<9Z\\[\"gQE2BlQE2BlQE2AE7@D8WKWHJ9V&];jQE2An,s%o*AB$]BLTD;O[]LkMGc%!BLTI/oYU#rSLTK8;1-(`kIOL#3&?I0op@+B-&Zd;*mHk+e[N\"UnYH0$24Y\"f\\0)`p!BXM7;<eqtDJug<9I9@hTQE2BlQE2BlQE2Ag75.u+KWHJ9bJ9^/QE2An9a=Qu\'\\F+2LTK3h[]LkMdngQdLTI`**>OHCLTG+pMRl:HW[JjCl*b7OQ84=@LTDl?OG:S4T6M)Q&pEbULTKa\"\\#gtN,QD:cLTIW\'pJ[SnLTK/8I%6bsf2[9U;;mk\'(1^(\'LTE5:LTDdFLTDe]Q`MKLr3!,\\PcQ1X>Ku??`&/j#K<-AYK<-AYK<-@[K\\kin^I_oA$\"\'.s-F`*ro\"TE1GN:[l(V4\"N8X$`NLTEJALTDeeKWNe3KWHJbKrg<@KrcRDLTDe]QE2BT-39]4.CJ>d.^p]+(_MNHZE,E7`e^H#MN@kJhHnnZKrcS[%]gsES>I;fF\'e38PPCH\'K<-@0Jug9Dg2W@dp/\';!UoYkYS7H8l.\'+`AUmSHs*%gk-LTDe]\"0<g5dMQ#EjK\'Ye\\u[2=446N!DM#P.hMB;;Z^5Mi>JO-=s1s#@K<-@0K<-BE0%s44/NZXcK<-@BKWHJZ\"0<g5qX)QnR^\"q8cS7OaSYJH0K<-@0J?1\'BDtdkQ2Gj/lZE,;pJug7`E4V8WLTDdFZ`GE?ci(\'kK<-@eJ%ha&J?1%bR=Z&:5JTrRD:ADb&PU9*K<-@0JZL0C99aIVUoYkYI`V2A.\'+`A>ASr$]Fai]JZL.@Z)f2o^8rS@aD$$(!*et\"DA%-V+M44+FdrgK)o/@Xq6&<mVQ;&ED]26-\\u[235kbpd3TM\'*Gdet$^PJ\\FQE2An(dG)2JGsPt+bM;)QE2Ann=J$06H]dsK<-@0LTDfIk%+XSK<-AYUoYkYlI!P0[&kY$_G6#u,,8q5XK3]kVQ;&E)P$L^raHXFi+enk[13H;ZOkHBK<-BZ$M).?LTF)HUTc&RX^4[ELTDaEVQ;-gVQ;/H!to)eLTDetcSasHK<-@aR+87a&\"&):)>elhLTDc;!K8&Xr/p=EP-?8%biG`HLTDe]UoYkY\"]IF@[&kY$;YCp9+ATn8XK3]kVQ;&E7!Kk9m4au2k0I0:Z@HoiqF])u[4kcF\"rf6*Jtg@2j6QZ/LTJ+oLTDeeKWLlRKWHJbKrfm4KrcRDKWHIo\'1t)UjpNPa_ltEhCrcH0rCL]a1]ku4$:IOr.H*N8LTDdFKrcSr)E*>00!$AG@csCFl]^a=:lo[VK<-@0Jug9D.!6!.X.^FTKWHICKrcSrVVK(K0!$AG)fa7dGp2-KGGu.5K<-@0K<-BEJSS4.Jug7AK<-@QaeO\\RH4cVU<\'#ZF@]/4NLTI5VLTDdFLTDdr;Yt0&YA4>imB@l=[j=4tQE2AnW_o)lOG+R3UoYkY[#QVq[&kY$R^Ou\\^+oMEUoYkYGd-q%KWQQIcj?b^@81j\'QE2AULTDe]400aT:uJpE,HN3</O\\0L_lP/[f3mf\'f2K+[DYS5Y2KLnS,1]JJm]7^&I@F,oXK3^5Fga\\t\"0<e0eef6+b1u:h[J2063WN,?RnS#8MQGu\'b0?oNLTG\'nLTDdFLTDdr\\Uo3\'&sMC(,d8Qs-j$`7Q`MKL_[Z\'oPcQ1XfY&rI4g(lGK<-AYK<-AYK<-@[SV]g<#*DC^S9Q[Mnf#G-///-p3c-OZ22e=TLTDf=/HSe/[B1`92G\"rl?Pk\\4LTI_>S?4+3kZI=cLTG+5Xs[.ZLTE!4!ALA6[ClQ$M@*0^^<\\BjK<-@0KWHKFRcR-bKWHIo6kU#X33X\\2=,Xs>KWHGYZE5G\"r]h8\\R\\Edk]hPCJLTDf=D>?2O-`eUT$_\'gl%il-kLTDDRZ`PPJa\'\"R:LTH]b5Hf6ALTD*pCUdXFTQ.(()fWSeNIPhn<3R[oYR&l)LTDe]s/[Nn\'Ap\"a\\OM4!B<W]-3])>GQ`MKLjsrWTPcQ1Xi#IK\\HN$-gK<-AYK<-AYK<-@[n+g0i-hVBaR[P`%jl3@&A*QMmX02PJ=f(4\'SZF)2#`\"41PnLZUCp52fd$0NGcft)29<RN=TWBGU\"@/9^%,;a^o3pQZn.Gd/(qe8[B:=--g<s)*eS_1BK<-@0LTDfI<\"4_E/?C.6e]j,6/Z^8F=i75JO7`c%X/mQiLTDd_K7L=2_g58gp!3L)J!\"LiLTDf.W2q6fc)`2\"_\'\"Xso-/Qan^qO^<@jg4q<a?$O[tq@+RS_CSZF)2Gkm+h-SF>)OKg)6*/\"5H8RHqQWN7KENPY(iX/m\\)BOL,7Tarf9TWBGUo<J_4m1kI=W[.pQ;,o.RINBQo12X<XZrb[XrK.tWK<-@0LTDfIpgU\\@a`DS$d.JnM9RpeY&&u8AK<-@0KWHKF]t4ode&@r=H`SN0g$YTD=%1shX/mR-0UPpD.tn?;HdMTPA&TBJ0],,tAXScS.1II\"dBP!WK<-Bn/a0%;LTDe]\\u[4P#Pl!<KWHKFDBl\'gY\".@mLTDaEKWHJqUp)5+_lP0MDOmFp5S-e?d]k)#_P)UA/?C.6Q/#o0/Z^8F&@K0[&)=K7KWHOEKWHF[i7e35_0O?5!0]&)a>_&r$D[Isd]k+7ZHb_oIF6[GZ`thGge1<aKWHK+X/mQiX/mSJ$U?%uYcT3?%`^[%F!M2h3\'OZriisfT@:CT-WN7@>ZZOGd\'JOBO\"gK?UPg_Q\'W/kr)WN7HjLTDc-[]Ci\"LTDl?OASOF!qX*b`iLJGZ)o=$D=:)V`2k8E^9&]1f[PP5_Q5&C\\u[3,R<[1A\\hp!\\q=C:kLTHu)cE&>dJS0^KLTFt1csI>qLTL@Z]5AYYgDZ.3ja#SZ\"gK?sWN7@>8;5<96Eqg=b`5o:ogti#LTDaEW2qAB.WJQOCh.6^Z!\'bZK<-@0LTDfI=H(A2^oR8SLTDaE[]CjPQf+i(ei,?deq:u%K<-@0KWHKFkb^TgLTDe]\\u[2Hi,.`LV_V.EiS.C\\-*\\cAB%hn]KWHJZXK3^:AG<`2fX#+97\'S$?XKpJ7W\"[%SWN7HD:Z[\\EX/mWkLTDi>RJK_VE=I/P`iLJG^TAf2L?m$B`2k8E]WEK/n3tBW_Q5&C\\u[3,VPu^>$#(kkOj^\"9LTL<2cE&>d^9H@\'LTG[E4!RR5LTJl0-:]TU^:4L.Bn/&>7\'S&sU-LI46EqhmMt_mnN3\"=olGH$hp\"3@;kfY9DL9)^\"kJ9EPafHeWmatD%op,rmoZ^:@iPe[bo?L1sj5*8ukh&/mnq\'@(l[r4$o>sN\"ou9W$l%;k5p\"0W8j2tE1m`@lron,g4n%oFYlbc$Qb/Hlp[t5?`JZL/dcIc\"Z_9#QDLTDejL8H8cLAk$Ae]CnZn\'=7fN3\"=o_9#Qrj5*`+jiJg>L9)]DlHNT6o\\UsOL9)]Fn(pq1kJ1p+p=W<pkJBXcj5))JL9)]Hn]=&ge]CnZn\'=7fPcQ1\"f$.(_i5J@gn%qE5j5*`+jiJg+L9)]IouU:akhK#&e]CnZn\'=7fMQA+md_eoWmcdCAjM4%[L8-&`L?Ch^jMOCLios,5jM4%[L8Q>dL>Y]\"kJ266kLDi]LTDejL9)VgL9,\"[lGH]&L9DnlL;H4CL8uVhLAF12o#\"P.L8ZDeLA\"73j/aGnL9*c+l+qT\"`3%a^L9)\\nL9)]HoZ^)\'L8#u_LAY-Qil+CTn&%fLn%q>YNiXOqd)elPji(*WL9DnlL?Wm(L8lPgL?)%rjMP8lMQA+md_erZlMO\'6oYj)[L:nn%LAt*GjiLQfi7U]EkMB;3j52/LL9)]VkJ^$miqu4.oYj)[L8Q>dL>bhjouTMPkJ0[RL8-&`L@%q>oZ]`&_SoRDkJB^gL7fi]L?_1ko#Xr#f$.:[s/[B4L9*rCo#)iGL9)]lo?0CfNN=Fpe]CkVn&%fDn%h8XLo_nk_SoRDkJB^gdEP8Qj2`O<L9)]hn\'=auM6&\"lKp250[@\\56[BCJir(UWWP1LtIL9)\\jY,iq<Kp1Yu[@\\56[B2<TL9)Y`L9)\\iJug8eaN[9UL9r7qL?;qEkL`M?`6CmIbJQX1VY=cS`8t^jgT2QeL9,4el,\"e\";DTY!:cG5>MQA+mb/6XHn%qE:n(:53L:8ItL@7OoiQY$pl&9Q;j3:HlVX?kGlJYA7on!RYL8-&`L>Y]$il+Rhe_*I\\n(:53L57.EL@%h*l&9Z[lGj(5VX74Jl&9c^o\\NiaXc*spVYX!No?Bl,orK:)L9,Ccj2\"!LO/sXrkfHHhg!31Xj/aAlL9,4`o%m!-O/sXrcb`QCl/bD-kc?;\'L9+qXn%hE[n&%fIkh&u0LTVqlL9)qpL9+hIkK@]9kK?,Y`,O8?H0/-GL7fi]L@84DkL`&En%qB`nZ3k%L9,Cdo\"[MZP,osubN!$]VVu:6cenu`_t[Wmdd:JnL8uVhL@7b,o#XPmL5@4FL>u;%n%h]UkK$9,p<?\\9VT;Hqp;9r&o#4Q#oo)FE2;1atj52/GL9)]XoA2n\'n&%efK<-AfL8cJfL?1u\'iQ3G!O1fE.[]CdDJ?1&caMUmHi70-=L9)]J_T>46mYkfUlG.*+inl&eL9)]Cn)%\"BlcfV/l+pBnj4Hu8jhja&\\\"*]hn)$t=lH*)<il+:boZ9boj52/HL9)]DoYjK!n(^>)L8?2bL@84DkL`&FkKYB:L9)]Fn)$t=lH*(qJZL/d`PY:?oZ:.&NiXOqa4`rRr67P#L8cJfLAt-Jo%taZL9)]Cn)%\"BlcfUfo@Q[(Ml\\4n`SNlWo#Z(Tjk*9\"kc?G+L9+qSo\"tXRkMB;#L8?2bL5^T5amNur_so%AL9)\\iMQA+m`S\">Vj2+[;kJ0poL86,aL@7P(lHVfnmAqb*L9,\"Nj3:I$d_eEMlH(?9L9)]Uo@Q[HdEP8QL;,%\'L>bc(l&9TTo%ldDeB(,So#4Q#L8#u_L@7b,i5J%OoZ]ks73>0kP,osud)elPji\'O_if$2\'VXHqIn%qKVL8cJfLAjU5iQ3@VL9)\\iO/sXrcb`08j2\"\"QnuO:/L9,\"Nj3:I$e\\FlXj5))=L9)]Xn)%\">kg)s\"VT;$6f$.:nilrgHAum;IL9)\\iLo_nk_SoRDkJB^[kDX\'NouSJ4L9)\\iQ`ML%_SoRDkJB^[kDX(W/&G!SkH-D+L9)\\ZL9)]Xn)%\">kg)s\"VW$Z!rl%G*LU\\Y!L92>^L9)\\\\L9)]Fn)$t=lG[--iknjtoo*Nd-f7Vnl/*eRL9)]:l,#j\"ilMAHkMB;#L;\"t&LA4jIn%],+j,?S,VYi^Ql.ACmPH6(!b&<+.j37c,j,A-Ej2apiji-@2kc?q9L9,Ifp\";b,n(\'o+l/\"\\iVX7=Zkgi0$l/*eGL9)]Mkf?HnkK$9ZVT;$6d)elPji\'O_iiFl\'L9+qXn%_Nfoo)3:VW^_<o$\'i\'n\'*/9L9)]YebfUMj,?S,VYi^Ql.ACmOK9asd)B&SkJ0dLkK$9ZVT;$6cG`ZUl-q#>L9)]Fn)$t=lG[--iknjtoo*;<o%ld\'QE2C$f%E^al&7q.VWCA6kKd#uL;,%\'L@7P)n%q].ilMAtkDXQ`lGHKrL8-&`LA\"73kDV_,VYi^Qn&nf*L8-&`LA4I:n%qE&ilMAHkMB;#L:8ItLAX=#otsH\"lG[--ji-@2k_qh-VXI.Nl/\"\\iL8cJfL@7b.l/!_EL9)]SoZ9Mhj6oV6l/$RSji9XML8-&`LA4jIn%],+j,A-\\lGHKrL7oo^L?Wm(VT;$6f#^MVo$&J?L9)]Sl,#gZiRq<0ji-@2k_s\'=kJCU\'ilrd,L9)]DkMB;#VYjNqil+CTn(LC&PH6(!eB(\\Yj5*JnVX6kQoZor\"n&\\5jl)ZA\'L9,Rkkf#j\\VT;$6f$.:[s/\\GRL9,(WlI\\eqlGZ6iiknj/ilMAJj1n:_n&RorKp/#/+#U\\5*3U8:+#U\\5+#YF%L9)]Xj1n(CVT;$6f$.:[s,7E]on=[jL9)\\jDQb@TL9r7qLA4IBleG+DilMAFj3:\'hmr+NaVM%M)YH8V0L9)Z/LTDejPH6(!bJRBKoZ^IK_r\">gibsY;o#4)qorK[4L9,V!ouU)2kM?Bao$(%rL7fi]L@84DkL`&Po@Qq5kc?5%L9,4`i58XjkKch)28UYsL9)]Uo@Q[HdEP8QVVt/Bn%_2W6`_T&_nlTVn)%.<ou0f\"nAA;<lYi*Un%_3QWf04:VX74Jl&9Z[lGj(sp!![/k_rR6p\"2P(kDV[jp;oeqkJ.8sl,!VVl,[,Rj1n:_n(:mVs,:U`imhMuoYUjtkMAV<lbcZmlbu-]o\"tXroZ9Sootq0!N)%+iBb[SYf%E=fj51%;m+GG-kM?C9kDW@>lGH*_ilsd#s,9PHVT;Hqo$\'i\'n\')%8j,@\"8oZ]]!VTDKBj1kiDkKX7RoYjK!n(^>)W2qJ;L9,\"Nj3:I$f$.:niSHufm]876L9,(=_W(gOanfi)VX8!@ch_CF5cc9#_r\">kVVal,n(^dOm`bq7j4HWmo$\'JnVVP)KVTDm,71E;/j2(ugk_qh!p\"W1(n(:>#l&8/92;1atVUYk@kDVh)o#4Q)ikkrmp=N(5n(\'o&n&%fuoo)0#p;oeqkJ0@IVVFT\'kDVt3m))o9oZ9c*n%h]tkh&M7N2FW\"\'oZ\\lo\"tXUkJ0j(l.f/-lc!6.ikmEo)F\"D[o@Q[Hf$.:[s,9AFkM/r3ikmEo)F\"DYl,$<]l+fRKVV(#mjk*9#j52/LL9)]Bj2++^o`%egp=qq4L8uVhL@7b,kfH<^L:nn%L@7k6oZ]knj5,\"[lbcZmkfY9DL9)]hkMK%\'Jug8en]abqL:JV!L?;qEkL`M?`6CmIbJQX1VVk/4o\"uc]L9)]Uo@Q[HdEP8QVU,M$o@Q[Hf$.:[s,:*l\\\"*]Hn)$t=lH*)<_SnnBoZ9boj52,PL9)\\iJ?1&cf$.:rkh%2FL9)]gl/#2\"p<?),L9;hkL?a2UN3\"=o`6CmIe\\jlTl.[MKL9)]Vn%qBGn(q+5`PbIDiiF;lL9,%blG+^;L9)]DkMB()O/sXr`Pb1.kKd$*oW0[6L9,O]n%hEUs85:KnuOF3L9,Ojou0f\"l,\"a9L9)]<L92bjL@lj^L9)]:L8?2bL>bQ!kf$EfilNL<L9)]Ikf$DfK<-Afo$\'\\uj/aJoL9+)@ouU;\'L8lPgL>G2il.SCkLo_nk_9#R(j4I9&oZ)+GkfY9EL9)]slHMlbKp19o+#U\\5*3U9+[@\\56[@\\eBI]OiaL9)\\h\\Oo6ei6\"FbL:eh$LAt-Jo%sVlj53,ij39meorL9EL9+eIo$\'I\'/)O4qjipi;oZ9f!n\'=])iltMmJZL/d_T>jHoYXq&NiXOqcb``NkJB^gL8?2bLAsa,j2jsMo>N#AL9)]Co$(%r_SoR@lHNS&MQA+meB(bko&EBbp<?M-L8?2bLAXX?s2e?uo>N#AL9)]GkJ^<Rl/$%Cn%_5XK<-Af^tqKRj/aDmL9,Rir5g7WL9)]I_So\'ELK5^iL99j3L9)d%L9)\\iQE2C$`6CdAiSI2qkf@B/lGH]&L:S\\\"L@.J*mE8T(o>3f=oZ^%np<?\\=kg*M&M6&\"l`5>[Uj5+tNr5j*QrlIa#NiXOqe)b37oYNlWL7fi]L@7aukfHoIkK$?corK=*L9,@Nn%g<6L9)]Hj4$rWkKZ?dL8?2bLAt-Jo&\"Hern&T[L9)\\iN3\"=od`Ge_`PY:?oUdFmL9)]Hj4$rJn(\'anMl\\4nL8ZDeL?_D\'nuO\"\'L9+eTo>)`CL9)]Wl.A`-l`;V*L9,Cprn)YRlGZ*^lcDffL8ZDeL>Y>pnuO@1L9,Cprn)VQlGZ*^lcDffL9DnlLA4C+L8lPgLAk`+cff,4J?1&caQ%Kra5A89L9)]Qanfi)L9;hkLAYYPJug8ed`Ge_L8lPgL>Pkln%qD[J?1&ci58XjkL_\'^L9)]DlHN3\'i58XjkEZ:doqlm/o\\N:Aop,crif\">]W1?;jUP1AYrl%b-otsh\'VMRU#_SoRDW/Pl_l+nIQUOj3XN9Et\"nq%%ukJ9jakK$&aVMP\\]i21Mcj2\"ag]Slit[`VX4f#:;\\]Slit[`V/*N;>g5W/Pl_l+nIQUOj3XN9sI0l&9Z[lGk!XUYd`Vl,ZJiVMS?BKWHJgal4V7L9)]O_!35.L9)]X_uF9#dcGQ)_W)r/L9)]Sl+fpTe]CeZj2+:cL8?2bLAXI-mef]Kkh%2:L9)]Ujk*8nkK$9,X,M5np\"2P(kDVh.kM/r3o#4Q#L8Q>dL?LnekKd#snBF8lL86,aL@%Iun(L2/l)Z>&L9,%ZlG,p_kMAM\\o>N#@L9)]Hn%h]iiT3`3n\'=Dil/!_KL9)]UlJ\"_ep#A]jl.dSIL9)]Co%?=nai[!8j4GZML9)]PkKZ?dLV>(\'L9*%sL9+kWo#*rj`5>1GL8uVhL@%;\"oYNlnL8?2bL?Wm(_u=2r_W)p6L9)\\jgoMfjL8?2bLAYH#_!,IVac.P_L9)\\j^oSiNL8cJfL@0$<aQ\"S1L9)]9oqh_r\\&n]cL8H8cL?M%tiQ50:l,#]SNiXOqa21=:l/\"])L8H8cL@7P&`PY:@n&Rb_NiXOqbKWoaoYj5lL8H8cL?_CpjiM$(j1msLMQA+mdb[Cap\"Vt!j2+:GL8cJfLAt!Fp;nVDL9)]DkMB(]s4fl.J?1&cn(^>&o\\UsdL9)]Nj24NX\\K/s;QkXXcLUAFsL9*\"rL9,4cp<?(pf#(2RnuO1,L9*rCriA&IL9,%\\ro?K>ikRh6iknjilcDffL8lPgLA#HUilPJpMQA+m_SoRDkJB^geAY)ZKp0^_+#U\\5*3:`\\L9,\"IlGZEqj5),Z:Goce+#Ug%J?1&c`TgP%lcCHCL9)]UkfZQtorKL/L9+JRiiFPsL9,IrlGH*_o$q:7oYXRqJ?1&clGH6aa4M]$L9)]Pn&do`n%h8XO/sXrbJd-*j2+.Nm]8(1L9+n^jiM-3lcE6*L8#u_L>l&(jN1KFj5!Q3kg)M_OK9asaOs,Zj5+tZpXqh(jiME?s4g6<kh%2CL9)]Gn&SAse^$YWj/ao&L9+qRo$\'YplcDffL8Q>dL@%k+kKclsj2+ZnL8Q>dL@%k+kKclsj2+ZoL8?2bLAXI\'o[SHakfG-4L9)]Xn)$V-ke]U\\nuOF3L9,7\\lci)qn&Qf9L9)]Vn%qBGn(q+5`PbIDio<DZlHNAoL8?2bL?(Vso[l\\6kL_)NL9)]Ql.SDJl)Z>&L9,%\\imi,MlGH*_o$o%LL9)]QkL=#7oZodleo)k\'L92bjLAW;0Q)l:#NiXOq`5=n$_:;W[L8?2bL>bP[d_f/Po>r7%NN=FpLTDej_QD4TL9)\\mL9)]Hl,-)]K<-Afp<Q/#lDu+sL9,Rko>3e^JZL/de\\b5UioNIpPH6(!oZgb>p\"r%&n&QTYWLXj([%/2<Z)f1=L9,IhlIe`.L8ZDeLAXX?s/[H6L9+h`jPESpL8uVhL@%;+ce(MWL:AOuLAsO2io*MuouUk8o%6S,_qIBJnuOF3L9+q]o#4Q)o#W2GL9)]qn%pB7L9)]Ln&nH!n&nGnL8?2bL?_J+lL.@=l/!_SL9)]Mp$F#rL9)\\iP,osubN!$]VZ(,Kcff,Ta7\"#sd-Y8lL5@4FLAXI\'oYj)[VThU1lH*-)ikng.p;9tCkJ0slVThTun(LJ7kK\"s3L9)]Ql,ZK.aMV*RkJ/C!L9)]Fj1n:_n&RorVT;$6p<?\\&s,:%Zp\"2\\$oZ]]!Sqa<mq<lL/Rte!jp6p`;-(fpn-2-???0[r7X<m?!gdLu*"local N=p(V,0x0)local K={}H=setmetatable({},{__index=K,__metatable=nil})function C(i)local O=K if not O[i]then local p=i+0x1 local V=((a(N[p],R[0x1])+a(N[p+0x1],R[0x2])*0x100)+a(N[p+0x2],R[0x3])*0x10000)+a(N[p+0x3],R[0x4])*0x1000000 p=p+0x4 local K={}for i=0x1,V,0x1 do local O=(i-0x1)%0x4+0x1 K[i]=u(a(N[(p+i)-0x1],R[O]))end O[i]=table.concat(K)end return i end end if _PZ1Nfcb~=H[C(0x0)]then return end local i,u,O,a,R,p,V,N,K,S,T,B,l,D,Q,X,x,v,r,L,b,f l=0x4 K={}B=function(i,u)local O=0x0 local a=0x1 for u=0x0,u-0x1,0x1 do O=O+b[i+u]*a a=a*0x100 end return O end Q={}X=math[H[C(0x32)]]f=string[H[C(0x3B)]]V=getfenv or function()return _ENV end b=H[C(0x43)]v=string[H[C(0x911C)]]O={}D=function(i,u,a,R)local V={[0x0]=R}local S={}local D=0x0 local X,r,L,f,y,w r=l+(i-0x1)*0x4 X=b[r]while true do L=true while X==0x99 do V={[0x0]=V}i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x3D do D=D-0x1 S[D],S[D+0x1]=S[D]>S[D+0x1],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x4A do D=D-0x1 S[D],S[D+0x1]=S[D][S[D+0x1]],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x6D do S[D]=S[D-0x1][S[D]]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xA0 do f={}for i,u in ipairs(S)do f[i]=u end D=0x1 S={[0x0]=S[0x0];[0x1]=f}i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x68 do S[D+0x1]=S[D]D=D+0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x7B do V=V[0x0]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xEC do D=D-0x1 S[D][B(r+0x1,0x2)]=S[D+0x1]S[D+0x1]=nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xBB do f=V for i=0x1,b[r+0x3],0x1 do f=f[0x0]end S[D+0x1]=f[B(r+0x1,0x2)]D=D+0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x6A do S={[0x0]=S[0x0]}D=0x0 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xDA do S[D-0x1]=S[D-0x1]+S[D]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xE4 do D=D-0x2 S[D][S[D+0x1]]=S[D+0x2]S[D+0x1],S[D+0x2]=nil,nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x12 do return{}end while X==0x71 do D=D-0x1 S[D],S[D+0x1]=S[D]<=S[D+0x1],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x78 do D=D-0x1 S[D],S[D+0x1]=S[D]~=S[D+0x1],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xDF do D=D-0x1 S[D],S[D+0x1]=S[D]>=S[D+0x1],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x63 do S[D]=S[D][0x1]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x64 do i=B(r+0x1,0x3)-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x73 do S[D-0x1]=S[D-0x1]/S[D]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x36 do S[D]=#S[D]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xAA do D=D-0x1 S[D],S[D+0x1]=S[D]<S[D+0x1],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xF do D=D+0x1 S[D]=u[B(r+0x1,0x2)]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xEF do D=D-0x1 S[D],S[D+0x1]=S[D]==S[D+0x1],nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x61 do D=D+0x1 S[D]={}i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xFF do f=B(r+0x1,0x2)S[D],S[D-f]=S[D-f],S[D]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xA2 do D=D+0x1 S[D]=N(Q[B(r+0x1,0x3)],a,V)i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xF6 do S[D]=a[S[D]]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x97 do return S[D]end while X==0x58 do S[H[C(0x9124)]]=D S={[0x0]=S;[0x1]=S[D]}D=0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xD2 do S[D-0x1]=S[D-0x1]..S[D]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x66 do S[D+0x1]=nil D=D+0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x3E do S[D-0x1]=S[D-0x1]-S[D]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x72 do f,S[D]=S[D],nil for i,u in ipairs(f)do S[D]=u D=D+0x1 end D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xD7 do S[D]=not S[D]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x2D do S[H[C(0x9124)]]=D D=0x0 S={[0x0]=S}i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x5B do S=S[0x0]D=S[H[C(0x9124)]]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xDE do S[D-0x1]=S[D-0x1]*S[D]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xD3 do f=S[D]y={f[0x1](f[0x2],f[0x3])}if y[0x1]~=nil then f[0x3]=y[0x1]D=D+0x1 S[D]=y V={[0x0]=V}i=i+0x1 end i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x79 do S[D-0x2]=S[D-0x2]-S[D]i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x29 do f=V for i=0x1,b[r+0x3],0x1 do f=f[0x0]end f[B(r+0x1,0x2)]=S[D]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xE6 do if S[D]then i=B(r+0x1,0x3)-0x1 end S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xC2 do if D>0x0 then f=S[D]else f=nil end S=S[0x0]D=S[H[C(0x9124)]]+0x1 S[D]=f i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x54 do D=D-0x1 S[D+0x1]=nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0xA9 do S[D+0x1]=false D=D+0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x95 do f=V for i=0x1,b[r+0x3],0x1 do f=f[0x0]end f[B(r+0x1,0x2)]=S[D-0x1][S[D]]S[D]=nil D=D-0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x93 do D=D-0x1 S[D],S[D+0x1]={S[D](T(S[D+0x1]))},nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x94 do D=D-0x1 f=S[D+0x1]y=B(r+0x1,0x2)-0x1 for i,u in ipairs(f)do S[D][i+y]=u end S[D+0x1]=nil i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x9C do S[D-0x2]=S[D-0x2]+S[D]if S[D]<0x0 and S[D-0x2]>=S[D-0x1]or S[D]>0x0 and S[D-0x2]<=S[D-0x1]then i=i+0x1 V={[0x0]=V,[B(r+0x1,0x2)]=S[D-0x2]}end i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x17 do w=B(r+0x1,0x3)D=D+0x1 S[D]=K[w]if not S[D]then f=O[w]+x y=b[f]if y==0x0 then y=B(f+0x1,0x4)S[D]=H[C(0x9129)]for i=0x1,y,0x1 do S[D]=S[D]..v(b[(f+i)+0x4])end elseif y==0x3 then S[D]=p(f+0x1)elseif y==0x1 then S[D]=B(f+0x1,0x4)elseif y==0x2 then S[D]=-B(f+0x1,0x4)end K[w]=S[D]end i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end while X==0x8B do S[D+0x1]=true D=D+0x1 i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]L=false end if L then i=i+0x1 r=l+(i-0x1)*0x4 X=b[r]end end end r=function()b=u(b)S()return(N(Q[0x1],V()))()end i=math[H[C(0x912D)]]T=table and table[H[C(0x9136)]]or unpack u=function(i)local u={}for O=0x1,#i,0x1 do u[O]=f(i,O)end return u end N=function(i,u,O)return function(...)return T(D(i,{...},u,O))end end S=function()L=B(0x1,0x3)Q={}for i=0x0,L-0x1,0x1 do Q[i+0x1]=B(l+i*0x3,0x3)end l=l+L*0x3 a=B(l,0x3)for i=0x0,a-0x1,0x1 do O[i+0x1]=B((l+0x3)+i*0x4,0x4)end l=(l+a*0x4)+0x6 R=B(l-0x3,0x3)x=l+R*0x4 end p=function(u)local O={}for i=0x0,0x7,0x1 do O[i+0x1]=b[u+i]end local a=0x1 local R=O[0x2]%0x10 for i=0x3,0x8,0x1 do R=R*0x100+O[i]end if O[0x1]>0x7F then a=0xFFFFFFFFFFFFFFFF end local p=(O[0x1]%0x80)*0x10+X(O[0x2]/0x10)if p==0x0 then return 0x0 end R=(i(R,0xFFFFFFFFFFFFFFCC)+0x1)*a return i(R,p-0x3FF)end return r()end)()
+-- Servicios
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
+local PathfindingService = game:GetService("PathfindingService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Variables del jugador
+local Player = Players.LocalPlayer
+
+-- Variables del sistema de parry mejorado
+local AutoParryEnabled = false
+local AutoWalkEnabled = false
+local ShowVisualizer = false
+local ShowBallTrail = false
+local ShowPredictionLine = false
+local ShowVelocityIndicator = false
+local ShowDistanceRings = false
+local ShowBallESP = false
+local ShowHitbox = false
+local PlayParrySound = false
+local ShowStatistics = false
+local PredictiveParry = true
+local ShowImpactPoint = false
+local ShowBallPath = false
+local ShowDangerZone = false
+local ShowParryTiming = false
+local UltraReactiveMode = false
+
+local BallShadow = nil
+local BallObject = nil
+local PreviousPosition = nil
+local LastParry = 0
+local BallVelocityHistory = {}
+local LastBallColor = Color3.new(1, 1, 1)
+local WalkConnection = nil
+local LastWalkPosition = nil
+local ImpactPointPart = nil
+local BallPathParts = {}
+local DangerZonePart = nil
+local TimingIndicator = nil
+local LastActivationTime = 0
+
+-- Sistema adaptativo de velocidad
+local ParryHistory = {}
+local LastParryCheckTime = 0
+local IsInRapidMode = false
+local RapidModeActivatedTime = 0
+
+-- Colores personalizables
+local Colors = {
+    Zone = Color3.fromRGB(0, 255, 255),
+    Trail = Color3.fromRGB(255, 0, 255),
+    PredictionLine = Color3.fromRGB(0, 255, 0),
+    Velocity = Color3.fromRGB(255, 255, 0),
+    ESP = Color3.fromRGB(255, 0, 255),
+    Hitbox = Color3.fromRGB(0, 255, 0)
+}
+
+-- Estadísticas
+local Stats = {
+    TotalParries = 0,
+    SuccessfulParries = 0,
+    FailedParries = 0,
+    MissedBalls = 0,
+    AverageDistance = 0,
+    FastestParry = math.huge,
+    SessionTime = 0,
+    DistanceWalked = 0
+}
+local SessionStart = tick()
+
+-- Variables ajustables mejoradas
+local BaseDistance = 15
+local VelocityMultiplier = 0.3
+local ParryDelay = 0.01
+local MinimumDistance = 3
+local MaximumDistance = 40
+local RequireApproaching = true
+local ReactionTime = 0.15
+local WalkSpeed = 16
+local StopDistance = 8
+
+-- Visualizadores
+local VisualizerPart = nil
+local BallTrail = nil
+local PredictionLine = nil
+local VelocityArrow = nil
+local DistanceRings = {}
+local BallESPBox = nil
+local HitboxVisualizer = nil
+local StatsGui = nil
+
+-- Crear la ventana principal
+local Window = JmodsLib:CreateWindow({
+    Name = "JDeath BallMods",
+    Icon = 90692784970350,
+    LoadingTitle = "Cargando JDeath BallMods...",
+    LoadingSubtitle = "Auto Walk + Auto Parry + 11 Visuales",
+    Theme = "neon_blue",
+    Intro = true,
+    IntroIcon = 90692784970350,
+    AnimationIntro = 2,
+    DragImage = 127271155083726
+})
+
+JmodsLib:Notify({
+    Title = "JDeath BallMods",
+    Content = "Sistema completo con 11 visuales diferentes",
+    Duration = 5,
+    Image = 13458017478
+})
+
+-- Crear Tabs
+local MainTab = Window:CreateTab("Principal")
+local VisualsTab = Window:CreateTab("Visuales")
+local ColorsTab = Window:CreateTab("Colores")
+local AdvancedTab = Window:CreateTab("Avanzado")
+local StatsTab = Window:CreateTab("Stats")
+
+-- ========================================
+-- SISTEMA ADAPTATIVO DE VELOCIDAD
+-- ========================================
+
+local function UpdateAdaptiveSpeed()
+    if not UltraReactiveMode then
+        IsInRapidMode = false
+        ParryHistory = {}
+        return
+    end
+    
+    local currentTime = tick()
+    
+    -- Limpiar historial antiguo (más de 5 segundos)
+    local cleanedHistory = {}
+    for _, parryTime in ipairs(ParryHistory) do
+        if currentTime - parryTime <= 5 then
+            table.insert(cleanedHistory, parryTime)
+        end
+    end
+    ParryHistory = cleanedHistory
+    
+    -- Verificar si hay 4+ parries exitosos en los últimos 5 segundos
+    if #ParryHistory >= 4 and not IsInRapidMode then
+        IsInRapidMode = true
+        RapidModeActivatedTime = currentTime
+        JmodsLib:Notify({
+            Title = "MODO RAPIDO ACTIVADO",
+            Content = "Parries acelerados por alta actividad",
+            Duration = 2
+        })
+    end
+    
+    -- Si está en modo rápido, verificar si debe desactivarse
+    if IsInRapidMode then
+        local timeSinceLastParry = currentTime - LastParryCheckTime
+        local timeSinceActivation = currentTime - RapidModeActivatedTime
+        
+        -- Desactivar si han pasado 2 segundos sin parry Y han pasado al menos 3 segundos desde activación
+        if timeSinceLastParry >= 2 and timeSinceActivation >= 3 then
+            IsInRapidMode = false
+            ParryHistory = {}
+            JmodsLib:Notify({
+                Title = "Modo Normal",
+                Content = "Velocidad de parry restaurada",
+                Duration = 2
+            })
+        end
+    end
+end
+
+local function RegisterSuccessfulParry()
+    if not UltraReactiveMode then return end
+    
+    local currentTime = tick()
+    table.insert(ParryHistory, currentTime)
+    LastParryCheckTime = currentTime
+    
+    UpdateAdaptiveSpeed()
+end
+
+-- ========================================
+-- FUNCIONES MEJORADAS
+-- ========================================
+
+local function GetBallColor(target)
+    if not target then return Color3.new(1, 1, 1) end
+    local highlight = target:FindFirstChildOfClass("Highlight")
+    if highlight then return highlight.FillColor end
+    return target:IsA("Part") and target.Color or Color3.new(1, 1, 1)
+end
+
+local function GetVisualHeight(shadow)
+    if not shadow then return 0 end
+    return math.min(((math.max(0, shadow.Size.X - 5)) * 20) + 3, 100)
+end
+
+local function IsBallApproaching(currentPos, previousPos, playerPos)
+    if not previousPos then return false end
+    local currentDist = (currentPos - playerPos).Magnitude
+    local previousDist = (previousPos - playerPos).Magnitude
+    return currentDist < previousDist
+end
+
+local function GetAverageBallVelocity()
+    if #BallVelocityHistory < 2 then return 0 end
+    local sum = 0
+    for i = 1, math.min(3, #BallVelocityHistory) do
+        sum = sum + BallVelocityHistory[#BallVelocityHistory - i + 1]
+    end
+    return sum / math.min(3, #BallVelocityHistory)
+end
+
+local function CalculatePredictiveDistance(velocity, distance, ping)
+    if velocity == 0 then return BaseDistance end
+    
+    local pingCompensation = ping * 50
+    local velocityFactor = math.clamp(velocity / 100, 0.5, 2)
+    local distanceFactor = 1 + (distance / 100)
+    
+    local dynamicDistance = BaseDistance + pingCompensation + (velocity * VelocityMultiplier * velocityFactor * distanceFactor)
+    return math.clamp(dynamicDistance, MinimumDistance, MaximumDistance)
+end
+
+local function IsBallActive(color)
+    return color ~= Color3.new(1, 1, 1)
+end
+
+-- ========================================
+-- SISTEMA DE PARRY (ORIGINAL + SOPORTE MOVIL)
+-- ========================================
+
+local function TriggerParry()
+    -- METODO 1: Tecla F (funciona en PC y algunos móviles)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+        task.wait(0.01)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+    end)
+    
+    -- METODO 2: Activar tool directamente (funciona en móvil)
+    task.spawn(function()
+        local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            pcall(function()
+                tool:Activate()
+            end)
+        end
+    end)
+    
+    if PlayParrySound then
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://6723516732"
+        sound.Volume = 0.5
+        sound.Parent = game:GetService("SoundService")
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 1)
+    end
+end
+
+-- ========================================
+-- FUNCIÓN AUTO WALK (ORIGINAL)
+-- ========================================
+
+local function WalkToBall()
+    if not AutoWalkEnabled then
+        if WalkConnection then
+            WalkConnection:Disconnect()
+            WalkConnection = nil
+        end
+        -- Detener el personaje
+        local character = Player.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = 16
+            character.Humanoid:MoveTo(character.HumanoidRootPart.Position)
+        end
+        return
+    end
+    
+    if WalkConnection then return end
+    
+    WalkConnection = RunService.Heartbeat:Connect(function(dt)
+        if not AutoWalkEnabled or not Player.Character or not Player.Character.PrimaryPart then return end
+        if not BallShadow or not BallShadow.Parent then return end
+        
+        local character = Player.Character
+        local humanoid = character:FindFirstChild("Humanoid")
+        local rootPart = character.PrimaryPart
+        
+        if not humanoid then return end
+        
+        local ballPos = BallShadow.Position
+        local playerPos = rootPart.Position
+        
+        local flatBallPos = Vector3.new(ballPos.X, playerPos.Y, ballPos.Z)
+        local distance = (flatBallPos - playerPos).Magnitude
+        
+        if distance > StopDistance then
+            humanoid.WalkSpeed = WalkSpeed
+            humanoid:MoveTo(flatBallPos)
+            
+            if LastWalkPosition then
+                Stats.DistanceWalked = Stats.DistanceWalked + (playerPos - LastWalkPosition).Magnitude
+            end
+            LastWalkPosition = playerPos
+        else
+            humanoid:MoveTo(playerPos)
+        end
+    end)
+end
+
+-- ========================================
+-- VISUALIZADORES
+-- ========================================
+
+local function UpdateVisualizer(position, distance)
+    if not ShowVisualizer then
+        if VisualizerPart then
+            VisualizerPart:Destroy()
+            VisualizerPart = nil
+        end
+        return
+    end
+    
+    if not VisualizerPart then
+        VisualizerPart = Instance.new("Part")
+        VisualizerPart.Name = "ParryZone"
+        VisualizerPart.Anchored = true
+        VisualizerPart.CanCollide = false
+        VisualizerPart.Material = Enum.Material.ForceField
+        VisualizerPart.Transparency = 0.7
+        VisualizerPart.Shape = Enum.PartType.Ball
+        VisualizerPart.Parent = workspace
+    end
+    
+    VisualizerPart.Position = position
+    VisualizerPart.Size = Vector3.new(distance * 2, distance * 2, distance * 2)
+    VisualizerPart.Color = Colors.Zone
+end
+
+local function UpdateBallTrail(ball)
+    if not ShowBallTrail then
+        if BallTrail then
+            BallTrail:Destroy()
+            BallTrail = nil
+        end
+        return
+    end
+    
+    if not BallTrail and ball then
+        BallTrail = Instance.new("Trail")
+        BallTrail.Lifetime = 0.5
+        BallTrail.MinLength = 0
+        BallTrail.FaceCamera = true
+        BallTrail.Color = ColorSequence.new(Colors.Trail)
+        BallTrail.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.5),
+            NumberSequenceKeypoint.new(1, 1)
+        })
+        BallTrail.WidthScale = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0)
+        })
+        
+        local a0 = Instance.new("Attachment")
+        a0.Position = Vector3.new(0, 0, 0)
+        a0.Parent = ball
+        
+        local a1 = Instance.new("Attachment")
+        a1.Position = Vector3.new(0, 0, 0)
+        a1.Parent = ball
+        
+        BallTrail.Attachment0 = a0
+        BallTrail.Attachment1 = a1
+        BallTrail.Parent = ball
+    end
+end
+
+local function UpdatePredictionLine(playerPos, ballPos, distance, isApproaching)
+    if not ShowPredictionLine then
+        if PredictionLine then
+            PredictionLine:Destroy()
+            PredictionLine = nil
+        end
+        return
+    end
+    
+    if not PredictionLine then
+        PredictionLine = Instance.new("Part")
+        PredictionLine.Name = "PredictionLine"
+        PredictionLine.Anchored = true
+        PredictionLine.CanCollide = false
+        PredictionLine.Material = Enum.Material.Neon
+        PredictionLine.Transparency = 0.5
+        PredictionLine.Parent = workspace
+    end
+    
+    local midPoint = (playerPos + ballPos) / 2
+    PredictionLine.Size = Vector3.new(0.2, 0.2, distance)
+    PredictionLine.CFrame = CFrame.lookAt(midPoint, ballPos)
+    PredictionLine.Color = isApproaching and Colors.PredictionLine or Color3.fromRGB(255, 0, 0)
+end
+
+local function UpdateVelocityIndicator(position, velocity, direction)
+    if not ShowVelocityIndicator then
+        if VelocityArrow then
+            VelocityArrow:Destroy()
+            VelocityArrow = nil
+        end
+        return
+    end
+    
+    if not VelocityArrow then
+        VelocityArrow = Instance.new("Part")
+        VelocityArrow.Name = "VelocityArrow"
+        VelocityArrow.Anchored = true
+        VelocityArrow.CanCollide = false
+        VelocityArrow.Material = Enum.Material.Neon
+        VelocityArrow.Transparency = 0.3
+        VelocityArrow.Parent = workspace
+    end
+    
+    local arrowLength = math.clamp(velocity / 10, 2, 20)
+    VelocityArrow.Size = Vector3.new(0.5, 0.5, arrowLength)
+    VelocityArrow.CFrame = CFrame.lookAt(position, position + direction)
+    VelocityArrow.Color = Colors.Velocity
+end
+
+local function UpdateDistanceRings(position)
+    if not ShowDistanceRings then
+        for _, ring in ipairs(DistanceRings) do
+            ring:Destroy()
+        end
+        DistanceRings = {}
+        return
+    end
+    
+    local distances = {10, 20, 30}
+    
+    while #DistanceRings < #distances do
+        local ring = Instance.new("Part")
+        ring.Name = "DistanceRing"
+        ring.Anchored = true
+        ring.CanCollide = false
+        ring.Material = Enum.Material.Neon
+        ring.Transparency = 0.8
+        ring.Shape = Enum.PartType.Cylinder
+        ring.Parent = workspace
+        table.insert(DistanceRings, ring)
+    end
+    
+    for i, ring in ipairs(DistanceRings) do
+        local dist = distances[i]
+        ring.Size = Vector3.new(0.2, dist * 2, dist * 2)
+        ring.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+        ring.Color = Color3.fromRGB(0, 255 - (i * 50), 255)
+    end
+end
+
+local function UpdateBallESP(ball)
+    if not ShowBallESP then
+        if BallESPBox then
+            BallESPBox:Destroy()
+            BallESPBox = nil
+        end
+        return
+    end
+    
+    if not BallESPBox and ball then
+        BallESPBox = Instance.new("BoxHandleAdornment")
+        BallESPBox.Adornee = ball
+        BallESPBox.Size = ball.Size + Vector3.new(0.5, 0.5, 0.5)
+        BallESPBox.Color3 = Colors.ESP
+        BallESPBox.Transparency = 0.5
+        BallESPBox.AlwaysOnTop = true
+        BallESPBox.ZIndex = 10
+        BallESPBox.Parent = ball
+    end
+end
+
+local function UpdateHitbox(character)
+    if not ShowHitbox then
+        if HitboxVisualizer then
+            HitboxVisualizer:Destroy()
+            HitboxVisualizer = nil
+        end
+        return
+    end
+    
+    if not HitboxVisualizer and character and character.PrimaryPart then
+        HitboxVisualizer = Instance.new("Part")
+        HitboxVisualizer.Name = "Hitbox"
+        HitboxVisualizer.Anchored = true
+        HitboxVisualizer.CanCollide = false
+        HitboxVisualizer.Material = Enum.Material.ForceField
+        HitboxVisualizer.Transparency = 0.7
+        HitboxVisualizer.Size = Vector3.new(5, 6, 5)
+        HitboxVisualizer.Color = Colors.Hitbox
+        HitboxVisualizer.Parent = workspace
+    end
+    
+    if HitboxVisualizer and character and character.PrimaryPart then
+        HitboxVisualizer.Position = character.PrimaryPart.Position
+    end
+end
+
+local function UpdateImpactPoint(ballPos, velocity, direction)
+    if not ShowImpactPoint then
+        if ImpactPointPart then
+            ImpactPointPart:Destroy()
+            ImpactPointPart = nil
+        end
+        return
+    end
+    
+    if not ImpactPointPart then
+        ImpactPointPart = Instance.new("Part")
+        ImpactPointPart.Name = "ImpactPoint"
+        ImpactPointPart.Anchored = true
+        ImpactPointPart.CanCollide = false
+        ImpactPointPart.Material = Enum.Material.Neon
+        ImpactPointPart.Transparency = 0.3
+        ImpactPointPart.Shape = Enum.PartType.Ball
+        ImpactPointPart.Size = Vector3.new(2, 2, 2)
+        ImpactPointPart.Color = Color3.fromRGB(255, 100, 0)
+        ImpactPointPart.Parent = workspace
+    end
+    
+    local timeToGround = math.max(ballPos.Y / (velocity / 10), 0.1)
+    local impactPos = ballPos + (direction * velocity * timeToGround)
+    ImpactPointPart.Position = impactPos
+end
+
+local function UpdateBallPath(currentPos)
+    table.insert(BallPathParts, 1, currentPos)
+    
+    if #BallPathParts > 10 then
+        table.remove(BallPathParts)
+    end
+    
+    for i, pos in ipairs(BallPathParts) do
+        local part = workspace:FindFirstChild("PathPoint" .. i)
+        if not part then
+            part = Instance.new("Part")
+            part.Name = "PathPoint" .. i
+            part.Anchored = true
+            part.CanCollide = false
+            part.Material = Enum.Material.Neon
+            part.Shape = Enum.PartType.Ball
+            part.Size = Vector3.new(0.5, 0.5, 0.5)
+            part.Parent = workspace
+        end
+        
+        part.Position = pos
+        part.Transparency = 0.3 + (i * 0.07)
+        part.Color = Color3.fromRGB(255, 255 - (i * 25), 0)
+    end
+end
+
+local function UpdateDangerZone(playerPos, ballPos, distance)
+    if not ShowDangerZone then
+        if DangerZonePart then
+            DangerZonePart:Destroy()
+            DangerZonePart = nil
+        end
+        return
+    end
+    
+    if not DangerZonePart then
+        DangerZonePart = Instance.new("Part")
+        DangerZonePart.Name = "DangerZone"
+        DangerZonePart.Anchored = true
+        DangerZonePart.CanCollide = false
+        DangerZonePart.Material = Enum.Material.ForceField
+        DangerZonePart.Transparency = 0.7
+        DangerZonePart.Shape = Enum.PartType.Ball
+        DangerZonePart.Parent = workspace
+    end
+    
+    local dangerLevel = math.clamp(1 - (distance / 30), 0, 1)
+    DangerZonePart.Position = playerPos
+    DangerZonePart.Size = Vector3.new(15, 15, 15)
+    DangerZonePart.Color = Color3.fromRGB(255 * dangerLevel, 255 * (1 - dangerLevel), 0)
+end
+
+local function UpdateParryTiming(currentDist, targetDist, isApproaching)
+    if not ShowParryTiming then
+        if TimingIndicator then
+            TimingIndicator:Destroy()
+            TimingIndicator = nil
+        end
+        return
+    end
+    
+    if not TimingIndicator then
+        TimingIndicator = Instance.new("BillboardGui")
+        TimingIndicator.Name = "TimingIndicator"
+        TimingIndicator.AlwaysOnTop = true
+        TimingIndicator.Size = UDim2.new(0, 100, 0, 50)
+        TimingIndicator.StudsOffset = Vector3.new(0, 3, 0)
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundTransparency = 0.5
+        frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        frame.Parent = TimingIndicator
+        
+        local label = Instance.new("TextLabel")
+        label.Name = "Label"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextSize = 18
+        label.Font = Enum.Font.GothamBold
+        label.Parent = frame
+    end
+    
+    if Player.Character and Player.Character.PrimaryPart then
+        TimingIndicator.Adornee = Player.Character.PrimaryPart
+        TimingIndicator.Parent = Player.Character.PrimaryPart
+        
+        local label = TimingIndicator:FindFirstChild("Frame"):FindFirstChild("Label")
+        if label then
+            local percentage = math.clamp((currentDist / targetDist) * 100, 0, 100)
+            local status = "ESPERANDO"
+            local color = Color3.fromRGB(255, 255, 255)
+            
+            if isApproaching then
+                if percentage <= 110 and percentage >= 90 then
+                    status = "PERFECTO!"
+                    color = Color3.fromRGB(0, 255, 0)
+                elseif percentage <= 130 and percentage >= 70 then
+                    status = "BUENO"
+                    color = Color3.fromRGB(255, 255, 0)
+                else
+                    status = "ESPERANDO"
+                    color = Color3.fromRGB(255, 100, 0)
+                end
+            end
+            
+            label.Text = string.format("%s\n%.1f%%", status, percentage)
+            label.TextColor3 = color
+        end
+    end
+end
+
+-- ========================================
+-- INTERFAZ PRINCIPAL
+-- ========================================
+
+MainTab:CreateSection("Sistema Auto")
+
+MainTab:CreateToggle({
+    Name = "Auto Parry",
+    CurrentValue = false,
+    Callback = function(state)
+        AutoParryEnabled = state
+        JmodsLib:Notify({
+            Title = "Auto Parry",
+            Content = state and "Activado" or "Desactivado",
+            Duration = 2
+        })
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Walk",
+    CurrentValue = false,
+    Callback = function(state)
+        AutoWalkEnabled = state
+        WalkToBall()
+        JmodsLib:Notify({
+            Title = "Auto Walk",
+            Content = state and "Activado" or "Desactivado",
+            Duration = 2
+        })
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Modo Ultra-Reactivo",
+    CurrentValue = false,
+    Callback = function(state)
+        UltraReactiveMode = state
+        if not state then
+            IsInRapidMode = false
+            ParryHistory = {}
+        end
+        JmodsLib:Notify({
+            Title = "Modo Ultra-Reactivo",
+            Content = state and "Activado - Sistema adaptativo" or "Desactivado",
+            Duration = 3
+        })
+    end
+})
+
+MainTab:CreateSection("Configuración")
+
+MainTab:CreateSlider({
+    Name = "Velocidad de Caminar",
+    Range = {8, 32},
+    Increment = 1,
+    CurrentValue = WalkSpeed,
+    Callback = function(value)
+        WalkSpeed = value
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "Distancia de Parada",
+    Range = {3, 15},
+    Increment = 0.5,
+    CurrentValue = StopDistance,
+    Callback = function(value)
+        StopDistance = value
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "Distancia Base",
+    Range = {5, 30},
+    Increment = 1,
+    CurrentValue = BaseDistance,
+    Callback = function(value)
+        BaseDistance = value
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "Distancia Mínima",
+    Range = {1, 10},
+    Increment = 0.5,
+    CurrentValue = MinimumDistance,
+    Callback = function(value)
+        MinimumDistance = value
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "Distancia Máxima",
+    Range = {20, 60},
+    Increment = 2,
+    CurrentValue = MaximumDistance,
+    Callback = function(value)
+        MaximumDistance = value
+    end
+})
+
+-- ========================================
+-- TAB DE VISUALES
+-- ========================================
+
+VisualsTab:CreateSection("Visualizadores Básicos")
+
+VisualsTab:CreateToggle({
+    Name = "Zona de Parry",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowVisualizer = state
+        if not state then
+            UpdateVisualizer(Vector3.new(0, 0, 0), 0)
+        end
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Trail de la Pelota",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowBallTrail = state
+        if not state then
+            UpdateBallTrail(nil)
+        end
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Línea de Predicción",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowPredictionLine = state
+    end
+})
+
+VisualsTab:CreateSection("Visualizadores Avanzados")
+
+VisualsTab:CreateToggle({
+    Name = "Indicador de Velocidad",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowVelocityIndicator = state
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Anillos de Distancia",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowDistanceRings = state
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "ESP de la Pelota",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowBallESP = state
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Visualizador de Hitbox",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowHitbox = state
+    end
+})
+
+VisualsTab:CreateSection("Visualizadores Extra")
+
+VisualsTab:CreateToggle({
+    Name = "Punto de Impacto",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowImpactPoint = state
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Camino de la Pelota",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowBallPath = state
+        if not state then
+            for i = 1, 10 do
+                local part = workspace:FindFirstChild("PathPoint" .. i)
+                if part then
+                    part:Destroy()
+                end
+            end
+            BallPathParts = {}
+        end
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Zona de Peligro",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowDangerZone = state
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Timing de Parry",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowParryTiming = state
+    end
+})
+
+-- ========================================
+-- TAB DE COLORES
+-- ========================================
+
+ColorsTab:CreateSection("Personalización de Colores")
+
+ColorsTab:CreateColorPicker({
+    Name = "Zona de Parry",
+    Color = Colors.Zone,
+    Callback = function(color)
+        Colors.Zone = color
+        if VisualizerPart then
+            VisualizerPart.Color = color
+        end
+    end
+})
+
+ColorsTab:CreateColorPicker({
+    Name = "Trail de Pelota",
+    Color = Colors.Trail,
+    Callback = function(color)
+        Colors.Trail = color
+        if BallTrail then
+            BallTrail.Color = ColorSequence.new(color)
+        end
+    end
+})
+
+ColorsTab:CreateColorPicker({
+    Name = "Línea de Predicción",
+    Color = Colors.PredictionLine,
+    Callback = function(color)
+        Colors.PredictionLine = color
+    end
+})
+
+ColorsTab:CreateColorPicker({
+    Name = "Indicador de Velocidad",
+    Color = Colors.Velocity,
+    Callback = function(color)
+        Colors.Velocity = color
+        if VelocityArrow then
+            VelocityArrow.Color = color
+        end
+    end
+})
+
+ColorsTab:CreateColorPicker({
+    Name = "ESP de Pelota",
+    Color = Colors.ESP,
+    Callback = function(color)
+        Colors.ESP = color
+        if BallESPBox then
+            BallESPBox.Color3 = color
+        end
+    end
+})
+
+ColorsTab:CreateColorPicker({
+    Name = "Hitbox",
+    Color = Colors.Hitbox,
+    Callback = function(color)
+        Colors.Hitbox = color
+        if HitboxVisualizer then
+            HitboxVisualizer.Color = color
+        end
+    end
+})
+
+-- ========================================
+-- TAB AVANZADO
+-- ========================================
+
+AdvancedTab:CreateSection("Configuración Avanzada")
+
+AdvancedTab:CreateToggle({
+    Name = "Parry Predictivo",
+    CurrentValue = true,
+    Callback = function(state)
+        PredictiveParry = state
+    end
+})
+
+AdvancedTab:CreateToggle({
+    Name = "Requerir Acercamiento",
+    CurrentValue = true,
+    Callback = function(state)
+        RequireApproaching = state
+    end
+})
+
+AdvancedTab:CreateToggle({
+    Name = "Sonido de Parry",
+    CurrentValue = false,
+    Callback = function(state)
+        PlayParrySound = state
+    end
+})
+
+AdvancedTab:CreateSlider({
+    Name = "Multiplicador de Velocidad",
+    Range = {0.1, 1.0},
+    Increment = 0.05,
+    CurrentValue = VelocityMultiplier,
+    Callback = function(value)
+        VelocityMultiplier = value
+    end
+})
+
+AdvancedTab:CreateSlider({
+    Name = "Delay de Parry (ms)",
+    Range = {0, 100},
+    Increment = 5,
+    CurrentValue = ParryDelay * 1000,
+    Callback = function(value)
+        ParryDelay = value / 1000
+    end
+})
+
+AdvancedTab:CreateSlider({
+    Name = "Tiempo de Reacción (ms)",
+    Range = {50, 300},
+    Increment = 10,
+    CurrentValue = ReactionTime * 1000,
+    Callback = function(value)
+        ReactionTime = value / 1000
+    end
+})
+
+-- ========================================
+-- TAB DE ESTADISTICAS
+-- ========================================
+
+local function UpdateStatsDisplay()
+    if not ShowStatistics then
+        if StatsGui then
+            StatsGui:Destroy()
+            StatsGui = nil
+        end
+        return
+    end
+    
+    if not StatsGui then
+        StatsGui = Instance.new("ScreenGui")
+        StatsGui.Name = "StatsDisplay"
+        StatsGui.ResetOnSpawn = false
+        StatsGui.Parent = Player:WaitForChild("PlayerGui")
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 250, 0, 200)
+        frame.Position = UDim2.new(0, 10, 0.5, -100)
+        frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        frame.BackgroundTransparency = 0.3
+        frame.BorderSizePixel = 0
+        frame.Parent = StatsGui
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 10)
+        corner.Parent = frame
+        
+        local statsText = Instance.new("TextLabel")
+        statsText.Name = "StatsText"
+        statsText.Size = UDim2.new(1, -10, 1, -10)
+        statsText.Position = UDim2.new(0, 5, 0, 5)
+        statsText.BackgroundTransparency = 1
+        statsText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        statsText.TextSize = 13
+        statsText.Font = Enum.Font.Gotham
+        statsText.TextXAlignment = Enum.TextXAlignment.Left
+        statsText.TextYAlignment = Enum.TextYAlignment.Top
+        statsText.Parent = frame
+    end
+    
+    local successRate = Stats.TotalParries > 0 and (Stats.SuccessfulParries / Stats.TotalParries * 100) or 0
+    Stats.SessionTime = tick() - SessionStart
+    local ping = Player:GetNetworkPing() * 1000
+    
+    local statsText = StatsGui:FindFirstChild("Frame"):FindFirstChild("StatsText")
+    if statsText then
+        local modeText = IsInRapidMode and "RAPIDO" or "NORMAL"
+        statsText.Text = string.format(
+            "Parries: %d (%.1f%%)\nExitosos: %d\nDist. Prom: %.1f\nDist. Caminada: %.1f\nTiempo: %.0fs\nPing: %.0fms\nVel. Prom: %.1f\nAuto Walk: %s\nModo: %s",
+            Stats.TotalParries,
+            successRate,
+            Stats.SuccessfulParries,
+            Stats.AverageDistance,
+            Stats.DistanceWalked,
+            Stats.SessionTime,
+            ping,
+            GetAverageBallVelocity(),
+            AutoWalkEnabled and "ON" or "OFF",
+            UltraReactiveMode and modeText or "DESACTIVADO"
+        )
+    end
+end
+
+StatsTab:CreateToggle({
+    Name = "Mostrar Estadísticas",
+    CurrentValue = false,
+    Callback = function(state)
+        ShowStatistics = state
+        UpdateStatsDisplay()
+    end
+})
+
+StatsTab:CreateButton({
+    Name = "Resetear Stats",
+    Callback = function()
+        Stats = {
+            TotalParries = 0,
+            SuccessfulParries = 0,
+            FailedParries = 0,
+            MissedBalls = 0,
+            AverageDistance = 0,
+            FastestParry = math.huge,
+            SessionTime = 0,
+            DistanceWalked = 0
+        }
+        SessionStart = tick()
+        BallVelocityHistory = {}
+        
+        JmodsLib:Notify({
+            Title = "Stats Reseteadas",
+            Content = "Estadísticas reiniciadas",
+            Duration = 2
+        })
+    end
+})
+
+StatsTab:CreateSection("Información")
+
+StatsTab:CreateParagraph({
+    Title = "Auto Walk",
+    Content = "El Auto Walk hace que tu personaje camine automáticamente hacia la pelota manteniendo contacto con el suelo.\n\n⚙️ Puedes ajustar la velocidad y la distancia de parada en el Tab Principal."
+})
+
+-- ========================================
+-- LOOP PRINCIPAL MEJORADO
+-- ========================================
+local ParryConnection = RunService.RenderStepped:Connect(function(dt)
+    BallShadow = (BallShadow and BallShadow.Parent) and BallShadow or workspace.FX:FindFirstChild("BallShadow")
+    BallObject = (BallObject and BallObject.Parent) and BallObject or (workspace:FindFirstChild("Ball") or workspace:FindFirstChild("Part"))
+    
+    if not BallShadow or not BallObject or not Player.Character or not Player.Character.PrimaryPart then
+        PreviousPosition = nil
+        return
+    end
+    
+    local rootPart = Player.Character.PrimaryPart
+    local height = GetVisualHeight(BallShadow)
+    local currentPos = Vector3.new(BallShadow.Position.X, BallShadow.Position.Y + height, BallShadow.Position.Z)
+    local ballColor = GetBallColor(BallObject)
+    
+    -- Actualizar visuales
+    UpdateBallTrail(BallObject)
+    UpdateBallESP(BallObject)
+    UpdateHitbox(Player.Character)
+    UpdateDistanceRings(rootPart.Position)
+    
+    if PreviousPosition then
+        local velocity = (currentPos - PreviousPosition).Magnitude / dt
+        local direction = (currentPos - PreviousPosition).Unit
+        local isApproaching = IsBallApproaching(currentPos, PreviousPosition, rootPart.Position)
+        local flatDistance = (Vector3.new(rootPart.Position.X, 0, rootPart.Position.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
+        
+        table.insert(BallVelocityHistory, velocity)
+        if #BallVelocityHistory > 3 then
+            table.remove(BallVelocityHistory, 1)
+        end
+        
+        local ping = Player:GetNetworkPing()
+        local dynamicDistance
+        
+        if PredictiveParry then
+            dynamicDistance = CalculatePredictiveDistance(velocity, flatDistance, ping)
+        else
+            dynamicDistance = BaseDistance + (velocity * ping * VelocityMultiplier)
+        end
+        
+        dynamicDistance = math.clamp(dynamicDistance, MinimumDistance, MaximumDistance)
+        
+        UpdateVisualizer(rootPart.Position, dynamicDistance)
+        UpdatePredictionLine(rootPart.Position, currentPos, flatDistance, isApproaching)
+        UpdateVelocityIndicator(currentPos, velocity, direction)
+        UpdateImpactPoint(currentPos, velocity, direction)
+        UpdateDangerZone(rootPart.Position, currentPos, flatDistance)
+        UpdateParryTiming(flatDistance, dynamicDistance, isApproaching)
+        
+        if ShowBallPath then
+            UpdateBallPath(currentPos)
+        end
+        
+        if ShowStatistics then
+            UpdateStatsDisplay()
+        end
+        
+        -- Auto Parry logic mejorado con sistema adaptativo
+        if AutoParryEnabled then
+            local ballIsActive = IsBallActive(ballColor)
+            local wasInactive = LastBallColor == Color3.new(1, 1, 1)
+            local justActivated = ballIsActive and wasInactive
+            
+            -- Registrar tiempo de activación
+            if justActivated then
+                LastActivationTime = tick()
+            end
+            
+            local timeSinceActivation = tick() - LastActivationTime
+            local inRange = flatDistance >= MinimumDistance and flatDistance <= dynamicDistance
+            local cooldownOk = (tick() - LastParry) > ParryDelay
+            local directionOk = not RequireApproaching or isApproaching
+            
+            -- Actualizar sistema adaptativo
+            if UltraReactiveMode then
+                UpdateAdaptiveSpeed()
+            end
+            
+            -- MODO RAPIDO ADAPTATIVO: Activado cuando hay alta actividad
+            if UltraReactiveMode and IsInRapidMode then
+                -- En modo rápido, aumentar el rango y reducir requisitos
+                local extendedRange = flatDistance <= (dynamicDistance * 1.6) and flatDistance >= (MinimumDistance * 0.6)
+                
+                if ballIsActive and extendedRange and cooldownOk then
+                    TriggerParry()
+                    LastParry = tick()
+                    RegisterSuccessfulParry()
+                    
+                    Stats.TotalParries = Stats.TotalParries + 1
+                    Stats.SuccessfulParries = Stats.SuccessfulParries + 1
+                    Stats.AverageDistance = ((Stats.AverageDistance * (Stats.TotalParries - 1)) + flatDistance) / Stats.TotalParries
+                    
+                    if flatDistance < Stats.FastestParry then
+                        Stats.FastestParry = flatDistance
+                    end
+                end
+            -- MODO ULTRA-REACTIVO INICIAL: Primeros 0.3s después de activación (solo si no está en modo rápido)
+            elseif UltraReactiveMode and not IsInRapidMode and ballIsActive and timeSinceActivation < 0.3 then
+                local extendedRange = flatDistance <= (dynamicDistance * 1.5) and flatDistance >= (MinimumDistance * 0.7)
+                
+                if extendedRange and cooldownOk then
+                    TriggerParry()
+                    LastParry = tick()
+                    RegisterSuccessfulParry()
+                    
+                    Stats.TotalParries = Stats.TotalParries + 1
+                    Stats.SuccessfulParries = Stats.SuccessfulParries + 1
+                    Stats.AverageDistance = ((Stats.AverageDistance * (Stats.TotalParries - 1)) + flatDistance) / Stats.TotalParries
+                    
+                    if flatDistance < Stats.FastestParry then
+                        Stats.FastestParry = flatDistance
+                    end
+                end
+            -- PARRY NORMAL: Lógica estándar
+            elseif ballIsActive and inRange and cooldownOk and directionOk then
+                TriggerParry()
+                LastParry = tick()
+                
+                if UltraReactiveMode then
+                    RegisterSuccessfulParry()
+                end
+                
+                Stats.TotalParries = Stats.TotalParries + 1
+                Stats.SuccessfulParries = Stats.SuccessfulParries + 1
+                Stats.AverageDistance = ((Stats.AverageDistance * (Stats.TotalParries - 1)) + flatDistance) / Stats.TotalParries
+                
+                if flatDistance < Stats.FastestParry then
+                    Stats.FastestParry = flatDistance
+                end
+            end
+        end
+    end
+    
+    LastBallColor = ballColor
+    PreviousPosition = currentPos
+end)
+
+task.wait(1)
+JmodsLib:Notify({
+    Title = "JDeath BallMods Listo",
+    Content = "Auto Walk | Auto Parry | 11 Visuales Diferentes",
+    Duration = 6
+})
