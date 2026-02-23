@@ -1,0 +1,436 @@
+--- Sistema de Items del Mapa con JmodsLib
+local JmodsLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/pruebasjoao/test/refs/heads/main/JmodsLibV1.0'))()
+
+local Window = JmodsLib:CreateWindow({
+    Name = "JSurviveMegaMods",
+    Icon = 90692784970350,
+    LoadingTitle = "Cargando...",
+    LoadingSubtitle = "Iniciando sistema...",
+    Theme = "neon_blue",
+    Intro = true,
+    IntroIcon = 90692784970350,
+    AnimationIntro = 0,
+    DragImage = 127271155083726
+})
+
+local ItemsTab = Window:CreateTab("Items")
+local EnviarTab = Window:CreateTab("Jugadores")
+
+local itemSeleccionado = nil
+local itemEnviar = nil
+local jugadorDestino = nil
+local radioCirculo = 4
+local radioCirculoEnviar = 4
+
+local function getCarpeta()
+    local map = workspace:FindFirstChild("Map")
+    if not map then warn("No existe workspace.Map") return nil end
+    local util = map:FindFirstChild("Util")
+    if not util then warn("No existe workspace.Map.Util") return nil end
+    local items = util:FindFirstChild("Items")
+    if not items then warn("No existe workspace.Map.Util.Items") return nil end
+    return items
+end
+
+local function getCFrame(obj)
+    if obj:IsA("BasePart") then
+        return obj.CFrame
+    elseif obj:IsA("Tool") then
+        local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+        if handle then return handle.CFrame end
+    elseif obj:IsA("Model") then
+        if obj.PrimaryPart then return obj.PrimaryPart.CFrame end
+        local parte = obj:FindFirstChildWhichIsA("BasePart")
+        if parte then return parte.CFrame end
+    end
+    return nil
+end
+
+local function moverA(obj, targetCFrame)
+    if obj:IsA("BasePart") then
+        obj.CFrame = targetCFrame
+    elseif obj:IsA("Tool") then
+        local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+        if handle then
+            handle.CFrame = targetCFrame
+            for _, parte in pairs(obj:GetDescendants()) do
+                if parte:IsA("BasePart") and parte ~= handle then
+                    parte.CFrame = targetCFrame
+                end
+            end
+        end
+    elseif obj:IsA("Model") then
+        if obj.PrimaryPart then
+            obj:SetPrimaryPartCFrame(targetCFrame)
+        else
+            local parte = obj:FindFirstChildWhichIsA("BasePart")
+            if parte then parte.CFrame = targetCFrame end
+        end
+    end
+end
+
+--- Círculo genérico, recibe el radio como parámetro
+local function moverEnCirculo(itemsList, centroCFrame, radio)
+    local total = #itemsList
+    for i, item in ipairs(itemsList) do
+        local angulo = (2 * math.pi / total) * (i - 1)
+        local offsetX = math.cos(angulo) * radio
+        local offsetZ = math.sin(angulo) * radio
+        local nuevaPos = centroCFrame.Position + Vector3.new(offsetX, 3, offsetZ)
+        moverA(item, CFrame.new(nuevaPos))
+    end
+end
+
+--- Traer ABSOLUTAMENTE todos los items de la carpeta en círculo
+local function traerTodosLosItems(centroCFrame, radio)
+    local carpeta = getCarpeta()
+    if not carpeta then return 0 end
+    local lista = {}
+    for _, item in pairs(carpeta:GetChildren()) do
+        table.insert(lista, item)
+    end
+    if #lista == 0 then return 0 end
+    if #lista == 1 then
+        moverA(lista[1], centroCFrame + Vector3.new(0, 3, 3))
+    else
+        moverEnCirculo(lista, centroCFrame, radio)
+    end
+    return #lista
+end
+
+local function obtenerItems()
+    local carpeta = getCarpeta()
+    if not carpeta then return {"(Ruta no encontrada)"} end
+    local items = {}
+    local nombresVistos = {}
+    for _, item in pairs(carpeta:GetChildren()) do
+        if not nombresVistos[item.Name] then
+            nombresVistos[item.Name] = true
+            table.insert(items, item.Name)
+        end
+    end
+    if #items == 0 then return {"(Carpeta vacia)"} end
+    return items
+end
+
+local function obtenerJugadores()
+    local lista = {}
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            table.insert(lista, p.Name)
+        end
+    end
+    if #lista == 0 then return {"(No hay jugadores)"} end
+    return lista
+end
+
+--- ═══════════════════════════════════════
+---        TAB: ITEMS
+--- ═══════════════════════════════════════
+ItemsTab:CreateSection("Seleccionar Item")
+
+local ItemsDropdown = ItemsTab:CreateDropdown({
+    Name = "Item del Mapa",
+    Options = obtenerItems(),
+    Callback = function(itemName)
+        itemSeleccionado = itemName
+        JmodsLib:Notify({ Title = "Item Seleccionado", Content = itemName, Duration = 2 })
+    end
+})
+
+spawn(function()
+    while true do
+        wait(3)
+        ItemsDropdown:UpdateOnClose(obtenerItems())
+    end
+end)
+
+ItemsTab:CreateSection("Acciones")
+
+ItemsTab:CreateButton({
+    Name = "Ir al Item",
+    Callback = function()
+        if not itemSeleccionado then
+            JmodsLib:Notify({ Title = "Sin Seleccion", Content = "Selecciona un item primero.", Duration = 3 })
+            return
+        end
+        local carpeta = getCarpeta() if not carpeta then return end
+        local target = carpeta:FindFirstChild(itemSeleccionado)
+        if not target then
+            JmodsLib:Notify({ Title = "Error", Content = "No se encontro: " .. itemSeleccionado, Duration = 3 })
+            return
+        end
+        local targetCFrame = getCFrame(target)
+        if not targetCFrame then return end
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = targetCFrame + Vector3.new(0, 5, 0)
+            JmodsLib:Notify({ Title = "Teleport", Content = "Fuiste a: " .. itemSeleccionado, Duration = 3 })
+        end
+    end
+})
+
+ItemsTab:CreateButton({
+    Name = "Traer Item",
+    Callback = function()
+        if not itemSeleccionado then
+            JmodsLib:Notify({ Title = "Sin Seleccion", Content = "Selecciona un item primero.", Duration = 3 })
+            return
+        end
+        local carpeta = getCarpeta() if not carpeta then return end
+        local char = game.Players.LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local target = carpeta:FindFirstChild(itemSeleccionado)
+        if not target then
+            JmodsLib:Notify({ Title = "Error", Content = "No se encontro: " .. itemSeleccionado, Duration = 3 })
+            return
+        end
+        moverA(target, char.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0))
+        JmodsLib:Notify({ Title = "Item Traido", Content = "Trajiste: " .. itemSeleccionado, Duration = 3 })
+    end
+})
+
+ItemsTab:CreateButton({
+    Name = "Traer Todos del mismo (en circulo)",
+    Callback = function()
+        if not itemSeleccionado then
+            JmodsLib:Notify({ Title = "Sin Seleccion", Content = "Selecciona un item primero.", Duration = 3 })
+            return
+        end
+        local carpeta = getCarpeta() if not carpeta then return end
+        local char = game.Players.LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local listaItems = {}
+        for _, item in pairs(carpeta:GetChildren()) do
+            if item.Name == itemSeleccionado then
+                table.insert(listaItems, item)
+            end
+        end
+        if #listaItems == 0 then
+            JmodsLib:Notify({ Title = "Error", Content = "No se encontraron items.", Duration = 3 })
+            return
+        end
+        if #listaItems == 1 then
+            moverA(listaItems[1], char.HumanoidRootPart.CFrame + Vector3.new(0, 3, 3))
+        else
+            moverEnCirculo(listaItems, char.HumanoidRootPart.CFrame, radioCirculo)
+        end
+        JmodsLib:Notify({
+            Title = "Items Traidos",
+            Content = string.format("Trajiste %d x '%s'", #listaItems, itemSeleccionado),
+            Duration = 4
+        })
+    end
+})
+
+--- BOTON NUEVO: Traer absolutamente todos los items
+ItemsTab:CreateButton({
+    Name = "Traer TODOS los Items",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local total = traerTodosLosItems(char.HumanoidRootPart.CFrame, radioCirculo)
+        if total == 0 then
+            JmodsLib:Notify({ Title = "Error", Content = "No hay items en la carpeta.", Duration = 3 })
+        else
+            JmodsLib:Notify({
+                Title = "Todos Traidos",
+                Content = string.format("Trajiste %d items al rededor tuyo", total),
+                Duration = 4
+            })
+        end
+    end
+})
+
+ItemsTab:CreateSection("Configuracion del Circulo")
+
+ItemsTab:CreateSlider({
+    Name = "Radio del Circulo",
+    Range = {2, 20},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = 4,
+    Callback = function(value)
+        radioCirculo = value
+    end
+})
+
+--- ═══════════════════════════════════════
+---        TAB: JUGADORES
+--- ═══════════════════════════════════════
+EnviarTab:CreateSection("Seleccionar Jugador")
+
+local JugadorDropdown = EnviarTab:CreateDropdown({
+    Name = "Jugador Destino",
+    Options = obtenerJugadores(),
+    Callback = function(nombre)
+        jugadorDestino = nombre
+        JmodsLib:Notify({ Title = "Jugador Seleccionado", Content = "Destino: " .. nombre, Duration = 2 })
+    end
+})
+
+spawn(function()
+    while true do
+        wait(5)
+        JugadorDropdown:UpdateOnClose(obtenerJugadores())
+    end
+end)
+
+EnviarTab:CreateButton({
+    Name = "Ir hacia el Jugador",
+    Callback = function()
+        if not jugadorDestino then
+            JmodsLib:Notify({ Title = "Sin Seleccion", Content = "Selecciona un jugador primero.", Duration = 3 })
+            return
+        end
+        local targetPlayer = game.Players:FindFirstChild(jugadorDestino)
+        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            JmodsLib:Notify({ Title = "Error", Content = "No se encontro a: " .. jugadorDestino, Duration = 3 })
+            return
+        end
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+            JmodsLib:Notify({ Title = "Teleport", Content = "Fuiste hacia: " .. jugadorDestino, Duration = 3 })
+        end
+    end
+})
+
+EnviarTab:CreateSection("Seleccionar Item a Enviar")
+
+local EnviarDropdown = EnviarTab:CreateDropdown({
+    Name = "Item a Enviar",
+    Options = obtenerItems(),
+    Callback = function(itemName)
+        itemEnviar = itemName
+        JmodsLib:Notify({ Title = "Item Seleccionado", Content = "Enviaras: " .. itemName, Duration = 2 })
+    end
+})
+
+spawn(function()
+    while true do
+        wait(3)
+        EnviarDropdown:UpdateOnClose(obtenerItems())
+    end
+end)
+
+EnviarTab:CreateSection("Acciones de Envio")
+
+EnviarTab:CreateButton({
+    Name = "Enviar 1 Item",
+    Callback = function()
+        if not jugadorDestino then
+            JmodsLib:Notify({ Title = "Error", Content = "Selecciona un jugador destino.", Duration = 3 })
+            return
+        end
+        if not itemEnviar then
+            JmodsLib:Notify({ Title = "Error", Content = "Selecciona un item a enviar.", Duration = 3 })
+            return
+        end
+        local targetPlayer = game.Players:FindFirstChild(jugadorDestino)
+        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            JmodsLib:Notify({ Title = "Error", Content = "Jugador no disponible: " .. jugadorDestino, Duration = 3 })
+            return
+        end
+        local carpeta = getCarpeta() if not carpeta then return end
+        local target = carpeta:FindFirstChild(itemEnviar)
+        if not target then
+            JmodsLib:Notify({ Title = "Error", Content = "Item no encontrado: " .. itemEnviar, Duration = 3 })
+            return
+        end
+        local destPos = targetPlayer.Character.HumanoidRootPart.CFrame
+        moverA(target, destPos + Vector3.new(0, 3, 0))
+        JmodsLib:Notify({
+            Title = "Item Enviado",
+            Content = string.format("Enviaste '%s' a %s", itemEnviar, jugadorDestino),
+            Duration = 4
+        })
+    end
+})
+
+EnviarTab:CreateButton({
+    Name = "Enviar Todos del mismo (en circulo)",
+    Callback = function()
+        if not jugadorDestino then
+            JmodsLib:Notify({ Title = "Error", Content = "Selecciona un jugador destino.", Duration = 3 })
+            return
+        end
+        if not itemEnviar then
+            JmodsLib:Notify({ Title = "Error", Content = "Selecciona un item a enviar.", Duration = 3 })
+            return
+        end
+        local targetPlayer = game.Players:FindFirstChild(jugadorDestino)
+        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            JmodsLib:Notify({ Title = "Error", Content = "Jugador no disponible: " .. jugadorDestino, Duration = 3 })
+            return
+        end
+        local carpeta = getCarpeta() if not carpeta then return end
+        local listaItems = {}
+        for _, item in pairs(carpeta:GetChildren()) do
+            if item.Name == itemEnviar then
+                table.insert(listaItems, item)
+            end
+        end
+        if #listaItems == 0 then
+            JmodsLib:Notify({ Title = "Error", Content = "No se encontraron items.", Duration = 3 })
+            return
+        end
+        local destCFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+        if #listaItems == 1 then
+            moverA(listaItems[1], destCFrame + Vector3.new(0, 3, 3))
+        else
+            moverEnCirculo(listaItems, destCFrame, radioCirculoEnviar)
+        end
+        JmodsLib:Notify({
+            Title = "Items Enviados",
+            Content = string.format("Enviaste %d x '%s' a %s", #listaItems, itemEnviar, jugadorDestino),
+            Duration = 4
+        })
+    end
+})
+
+--- BOTON NUEVO: Enviar absolutamente todos los items al jugador
+EnviarTab:CreateButton({
+    Name = "Enviar TODOS los Items al Jugador",
+    Callback = function()
+        if not jugadorDestino then
+            JmodsLib:Notify({ Title = "Error", Content = "Selecciona un jugador destino.", Duration = 3 })
+            return
+        end
+        local targetPlayer = game.Players:FindFirstChild(jugadorDestino)
+        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            JmodsLib:Notify({ Title = "Error", Content = "Jugador no disponible: " .. jugadorDestino, Duration = 3 })
+            return
+        end
+        local total = traerTodosLosItems(targetPlayer.Character.HumanoidRootPart.CFrame, radioCirculoEnviar)
+        if total == 0 then
+            JmodsLib:Notify({ Title = "Error", Content = "No hay items en la carpeta.", Duration = 3 })
+        else
+            JmodsLib:Notify({
+                Title = "Todos Enviados",
+                Content = string.format("Enviaste %d items a %s", total, jugadorDestino),
+                Duration = 4
+            })
+        end
+    end
+})
+
+EnviarTab:CreateSection("Configuracion del Circulo")
+
+EnviarTab:CreateSlider({
+    Name = "Radio del Circulo",
+    Range = {2, 20},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = 4,
+    Callback = function(value)
+        radioCirculoEnviar = value
+    end
+})
+
+wait(1)
+JmodsLib:Notify({
+    Title = "JSurviveMegaMods",
+    Content = "Sistema cargado correctamente.",
+    Duration = 4
+})
