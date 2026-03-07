@@ -1,9 +1,12 @@
 --[[
 ╔══════════════════════════════════════════════════════╗
-║  JRemotesMods                                        ║
+║  JRemotesMods v2                                     ║
 ╠══════════════════════════════════════════════════════╣
-║  FIXES                                               ║
-║  + sexo para tods uwu                                ║
+║  + Tab Posición (Vector3 + CFrame)                   ║
+║  + Grabación de ruta con lista y copia individual    ║
+║  + Toggle de detección activa                        ║
+║  + Selector de objetos (Tool)                        ║
+║  + Editor de código con scroll arreglado             ║
 ╚══════════════════════════════════════════════════════╝
 ]]
 
@@ -15,6 +18,7 @@ local CoreGui    = CS(game:GetService("CoreGui"))
 local RunService = CS(game:GetService("RunService"))
 local UIS        = CS(game:GetService("UserInputService"))
 local TweenSvc   = CS(game:GetService("TweenService"))
+local Players    = CS(game:GetService("Players"))
 local isMobile   = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 local _Env = getfenv and getfenv() or _ENV or {}
@@ -439,7 +443,7 @@ AddConn(game.DescendantAdded:Connect(function(d)
 end))
 task.spawn(function() for _,d in ipairs(game:GetDescendants()) do HandleInst(d) end end)
 
- 
+-- ─── UI CONFIG ─────────────────────────────────────────────────
 local M      = isMobile
 local BASE_W = M and 345 or 680
 local BASE_H = M and 295 or 460
@@ -451,7 +455,6 @@ local SBSC   = 0.28
 local MINW   = M and 265 or 420
 local MINH   = M and 205 or 270
 local BTH    = M and 36  or 44
-
 local ROW_H  = M and 46  or 52
 
 Screen=N("ScreenGui",{Name="JRemotesMods",ResetOnSpawn=false,
@@ -469,10 +472,10 @@ N("Frame",{Name="BordeSuperiorCyan",Size=UDim2.new(0.28,0,0,2),Position=UDim2.ne
 N("Frame",{Name="BordeSuperiorMagenta",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.50,0,0,0),BackgroundColor3=C.MAG,ZIndex=10,Parent=Main})
 
 TopBar=N("Frame",{Name="BarraSuperior",Size=UDim2.new(1,0,0,TOP_H),Position=UDim2.new(0,0,0,2),
-    BackgroundColor3=C.TOP,BackgroundTransparency= 1,ZIndex=5,Parent=Main})
+    BackgroundColor3=C.TOP,BackgroundTransparency=1,ZIndex=5,Parent=Main})
 
 N("TextLabel",{Name="LogoTitulo",Size=UDim2.new(0.5,0,1,0),Position=UDim2.new(0,10,0,0),
-    BackgroundTransparency=1,Text="🔥  JRemotesMods",
+    BackgroundTransparency=1,Text="JRemotesMods",
     Font=Enum.Font.GothamBold,TextSize=M and 11 or 13,
     TextColor3=C.CYAN,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=6,Parent=TopBar})
 
@@ -567,7 +570,7 @@ TabBar=N("Frame",{Name="BarraTabs",Size=UDim2.new(1,0,0,TH2+6),
     {Cor(9),Str(C.BORDER,1),Lst(Enum.FillDirection.Horizontal,3),Pad(4,4,3,3)})
 
 MkTab=function(lbl,bname)
-    return N("TextButton",{Name=bname or "TabBoton",Size=UDim2.new(0.315,0,1,-4),
+    return N("TextButton",{Name=bname or "TabBoton",Size=UDim2.new(0.232,0,1,-4),
         BackgroundColor3=C.BTN,Text=lbl,
         Font=Enum.Font.GothamBold,TextSize=FSS,
         TextColor3=C.DIM,AutoButtonColor=false,Parent=TabBar},{Cor(7)})
@@ -575,9 +578,11 @@ end
 TabCalls=MkTab("📋 Llamadas","TabLlamadas")
 TabCode =MkTab("{ } Código","TabCodigo")
 TabScan =MkTab("🔍 Scan","TabScan")
+TabPos  =MkTab("📍 Posición","TabPosicion")
 
 TOFF=TH2+10
 
+-- ─── CALLS VIEW ───────────────────────────────────────────────
 CallsView=N("Frame",{Name="VistaLlamadas",
     Size=UDim2.new(1,0,1,-(TOFF+BTH+8)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -596,6 +601,7 @@ CallsScroll=N("ScrollingFrame",{Name="ScrollLlamadas",
     Parent=CallsView},
     {Lst(nil,2),Pad(4,4,4,4)})
 
+-- ─── CODE VIEW ────────────────────────────────────────────────
 CodeView=N("Frame",{Name="VistaCodigo",
     Size=UDim2.new(1,0,1,-(TOFF+BTH+8)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -637,6 +643,7 @@ CodeLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
     end
 end)
 
+-- ─── CODE EDITOR (ARREGLADO: ScrollingFrame en vez de TextBox directo) ────
 CodeEditorWrap=N("Frame",{Name="ContenedorEditor",
     Size=UDim2.new(1,0,1,0),
     BackgroundColor3=C.CODE,
@@ -662,9 +669,21 @@ N("TextLabel",{Name="TituloEditor",
     TextXAlignment=Enum.TextXAlignment.Left,
     ZIndex=4,Parent=edTop})
 
-CodeEditor=N("TextBox",{Name="EditorCodigo",
+-- Scroll wrapper para el editor — permite scroll DENTRO del TextBox
+local CodeEditorScroll=N("ScrollingFrame",{Name="ScrollEditor",
     Size=UDim2.new(1,-10,1,-28),
     Position=UDim2.new(0,5,0,26),
+    BackgroundTransparency=1,
+    ScrollBarThickness=4,ScrollBarImageColor3=C.ORANGE,
+    ScrollBarImageTransparency=0.2,
+    CanvasSize=UDim2.new(0,0,0,600),
+    ScrollingDirection=Enum.ScrollingDirection.Y,
+    ElasticBehavior=Enum.ElasticBehavior.Never,
+    ZIndex=4,Parent=CodeEditorWrap})
+
+CodeEditor=N("TextBox",{Name="EditorCodigo",
+    Size=UDim2.new(1,0,0,600),
+    Position=UDim2.new(0,0,0,0),
     BackgroundTransparency=1,
     Text="",
     Font=Enum.Font.Code,TextSize=FS,
@@ -676,9 +695,21 @@ CodeEditor=N("TextBox",{Name="EditorCodigo",
     TextWrapped=true,
     MultiLine=true,
     ClearTextOnFocus=false,
-    ZIndex=4,Parent=CodeEditorWrap})
+    ZIndex=5,Parent=CodeEditorScroll})
 
+-- Ajusta el canvas del scroll del editor al contenido
 CodeEditor:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    local h = math.max(600, CodeEditor.AbsoluteSize.Y + 40)
+    CodeEditorScroll.CanvasSize = UDim2.new(0,0,0,h)
+    CodeEditor.Size = UDim2.new(1,0,0,h)
+end)
+CodeEditor:GetPropertyChangedSignal("Text"):Connect(function()
+    -- Actualiza altura segun contenido
+    local lines = select(2, CodeEditor.Text:gsub("\n","")) + 1
+    local lineH = FS + 4
+    local h = math.max(600, lines * lineH + 40)
+    CodeEditorScroll.CanvasSize = UDim2.new(0,0,0,h)
+    CodeEditor.Size = UDim2.new(1,0,0,h)
 end)
 
 _EditMode = false
@@ -699,6 +730,7 @@ ToggleEditor=function(on)
     end
 end
 
+-- ─── SCAN VIEW ────────────────────────────────────────────────
 ScanView=N("Frame",{Name="VistaScan",
     Size=UDim2.new(1,0,1,-(TOFF+4)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -714,13 +746,23 @@ ScanInput=N("TextBox",{Size=UDim2.new(1,-90,1,-4),Position=UDim2.new(0,6,0,2),
     Text="",Font=Enum.Font.Gotham,TextSize=FS,TextColor3=C.TEXT,
     PlaceholderColor3=C.DIM,TextXAlignment=Enum.TextXAlignment.Left,
     ClearTextOnFocus=false,Parent=ScanBar})
-BtnSearch=N("TextButton",{Name="BotonBuscarScan",Size=UDim2.new(0,56,1,-4),Position=UDim2.new(1,-82,0,2),
+BtnSearch=N("TextButton",{Name="BotonBuscarScan",Size=UDim2.new(0,52,1,-4),Position=UDim2.new(1,-82,0,2),
     BackgroundColor3=C.PURP,Text="Buscar",Font=Enum.Font.GothamBold,TextSize=FSS,
     TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=ScanBar},{Cor(5)})
 Hvr(BtnSearch,C.PURP,C.PURP:Lerp(Color3.new(1,1,1),0.2))
 BtnClear2=N("TextButton",{Name="BotonLimpiarScan",Size=UDim2.new(0,22,1,-4),Position=UDim2.new(1,-24,0,2),
     BackgroundColor3=C.BTN,Text="X",Font=Enum.Font.GothamBold,TextSize=FSS,
     TextColor3=C.DIM,AutoButtonColor=false,Parent=ScanBar},{Cor(5)})
+Hvr(BtnClear2,C.BTN,C.ITEMH)
+
+-- Botón manual para iniciar el escaneo/descompilación
+BtnStartScan=N("TextButton",{Name="BotonIniciarScan",
+    Size=UDim2.new(1,-8,0,SBH2),Position=UDim2.new(0,4,0,SBH2+5),
+    BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),
+    Text="Iniciar Escaneo / Descompilar",
+    Font=Enum.Font.GothamBold,TextSize=FSS,
+    TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=ScanView},{Cor(6)})
+Hvr(BtnStartScan,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
 Hvr(BtnClear2,C.BTN,C.ITEMH)
 
 HistPanel=N("Frame",{Name="PanelHistorial",Size=UDim2.new(1,-8,0,0),Position=UDim2.new(0,4,0,SBH2+8),
@@ -752,7 +794,7 @@ end
 ScanInput.Focused:Connect(function() ShowHistory(true) end)
 ScanInput.FocusLost:Connect(function() task.delay(0.15,function() ShowHistory(false) end) end)
 
-FR1Y=SBH2+10
+FR1Y=SBH2*2+14
 FRow1=N("Frame",{Name="FilaFiltroTipo",Size=UDim2.new(1,-8,0,M and 20 or 22),Position=UDim2.new(0,4,0,FR1Y),
     BackgroundTransparency=1,Parent=ScanView},{Lst(Enum.FillDirection.Horizontal,3)})
 N("TextLabel",{Name="EtiquetaTipo",Size=UDim2.new(0,30,1,0),BackgroundTransparency=1,Text="Tipo:",
@@ -802,7 +844,7 @@ for _,p in ipairs(allSF3) do local b,k=p[1],p[2]; b.MouseButton1Click:Connect(fu
 
 STY=FR3Y+(M and 24 or 28)
 ScanStatus=N("TextLabel",{Name="EstadoScan",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,STY),
-    BackgroundTransparency=1,Text="▸ Abre este tab para iniciar descompilación",
+    BackgroundTransparency=1,Text="▸ Presiona 'Iniciar Escaneo' para descompilar",
     Font=Enum.Font.Gotham,TextSize=FSX,TextColor3=C.DIM,
     TextXAlignment=Enum.TextXAlignment.Left,Parent=ScanView})
 
@@ -819,9 +861,357 @@ ScanResults=N("ScrollingFrame",{Name="ResultadosScan",
     Parent=ScanView},
     {Lst(nil,4),Pad(2,2,2,2)})
 
+-- ─── POSITION VIEW ───────────────────────────────────────────
+PosView=N("Frame",{Name="VistaPosicion",
+    Size=UDim2.new(1,0,1,-(TOFF+4)),
+    Position=UDim2.new(0,0,0,TOFF),
+    BackgroundColor3=C.PANEL,
+    Visible=false,Parent=RightPanel},
+    {Cor(9),Str(C.BORDER,1)})
+
+-- ══ FILA 1: Live toggle | Obtener | Copiar V3 | Copiar CF  (Y=6, H=22) ══
+local PosRow1=N("Frame",{Name="FilaPosRow1",Size=UDim2.new(1,-8,0,22),Position=UDim2.new(0,4,0,6),
+    BackgroundTransparency=1,Parent=PosView},{Lst(Enum.FillDirection.Horizontal,4)})
+_posActive=false
+PosToggleBtn=N("TextButton",{Name="BotonTogglePosicion",Size=UDim2.new(0,48,1,0),
+    BackgroundColor3=C.BTN,Text="Live OFF",Font=Enum.Font.GothamBold,TextSize=FSX,
+    TextColor3=C.DIM,AutoButtonColor=false,Parent=PosRow1},{Cor(5)})
+BtnGetOnce=N("TextButton",{Name="BotonGetOnce",Size=UDim2.new(0.25,-3,1,0),
+    BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.40),Text="📌 Obtener",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=PosRow1},{Cor(5)})
+BtnCopyV3=N("TextButton",{Name="BotonCopiarV3",Size=UDim2.new(0.27,-3,1,0),
+    BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.42),Text="Copiar V3",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=PosRow1},{Cor(5)})
+BtnCopyCF=N("TextButton",{Name="BotonCopiarCF",Size=UDim2.new(0.27,-3,1,0),
+    BackgroundColor3=C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.47),Text="Copiar CF",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=PosRow1},{Cor(5)})
+Hvr(BtnGetOnce,C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.40),C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.15))
+Hvr(BtnCopyV3,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.42),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.15))
+Hvr(BtnCopyCF,C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.47),C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.20))
+
+-- ══ FILA 2: Labels V3/CF + delay live  (Y=31, H=22) ══
+local PosRow2=N("Frame",{Name="FilaPosRow2",Size=UDim2.new(1,-8,0,22),Position=UDim2.new(0,4,0,31),
+    BackgroundTransparency=1,Parent=PosView},{Lst(Enum.FillDirection.Horizontal,4)})
+PosV3Label=N("TextLabel",{Name="LblV3",Size=UDim2.new(0.42,-3,1,0),BackgroundTransparency=1,
+    Text="V3: —",Font=Enum.Font.Code,TextSize=FSX,TextColor3=C.GREEN,
+    TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=PosRow2})
+PosCFLabel=N("TextLabel",{Name="LblCF",Size=UDim2.new(0.32,-3,1,0),BackgroundTransparency=1,
+    Text="CF: —",Font=Enum.Font.Code,TextSize=FSX,TextColor3=C.YELLOW,
+    TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=PosRow2})
+-- delay para obtención live / 1 vez
+N("TextLabel",{Name="LblLiveDelay",Size=UDim2.new(0,14,1,0),BackgroundTransparency=1,
+    Text="⏱",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Center,Parent=PosRow2})
+LiveDelayBox=N("TextBox",{Name="InputLiveDelay",Size=UDim2.new(0.22,-3,1,0),
+    BackgroundColor3=C.CODE,Text="0.1",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.CYAN,
+    PlaceholderText="seg",PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Center,
+    ClearTextOnFocus=false,Parent=PosRow2},{Cor(4),Str(C.BORDER,1)})
+
+-- ══ SEP (Y=56) ══
+N("Frame",{Name="SepGrabacion",Size=UDim2.new(1,-8,0,1),Position=UDim2.new(0,4,0,56),
+    BackgroundColor3=C.BORDER,Parent=PosView})
+
+-- ══ FILA 3: Ruta | ▶ Grabar | ■ Stop | delay grabación | ✕  (Y=60, H=22) ══
+local RouteRow1=N("Frame",{Name="FilaGrabacion1",Size=UDim2.new(1,-8,0,22),Position=UDim2.new(0,4,0,60),
+    BackgroundTransparency=1,Parent=PosView},{Lst(Enum.FillDirection.Horizontal,4)})
+N("TextLabel",{Name="LblRuta",Size=UDim2.new(0,42,1,0),BackgroundTransparency=1,
+    Text="Ruta",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.MAG,
+    TextXAlignment=Enum.TextXAlignment.Left,Parent=RouteRow1})
+BtnRecStart=N("TextButton",{Name="BotonIniciarGrab",Size=UDim2.new(0.20,-3,1,0),
+    BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.38),Text="▶ Grabar",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=RouteRow1},{Cor(5)})
+BtnRecStop=N("TextButton",{Name="BotonDetenerGrab",Size=UDim2.new(0.20,-3,1,0),
+    BackgroundColor3=C.RED:Lerp(Color3.fromRGB(0,0,0),0.38),Text="■ Stop",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=RouteRow1},{Cor(5)})
+N("TextLabel",{Name="LblRecDelay",Size=UDim2.new(0,14,1,0),BackgroundTransparency=1,
+    Text="⏱",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Center,Parent=RouteRow1})
+RecDelayBox=N("TextBox",{Name="InputRecDelay",Size=UDim2.new(0.18,-3,1,0),
+    BackgroundColor3=C.CODE,Text="0.25",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.ORANGE,
+    PlaceholderText="seg",PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Center,
+    ClearTextOnFocus=false,Parent=RouteRow1},{Cor(4),Str(C.BORDER,1)})
+BtnRecClear=N("TextButton",{Name="BotonLimpiarRuta",Size=UDim2.new(0.13,-3,1,0),
+    BackgroundColor3=C.BTN,Text="Limpiar",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,AutoButtonColor=false,Parent=RouteRow1},{Cor(5)})
+
+-- ══ FILA 4: CopiarTodo V3 | CF | Reproducir Todo | Stop play  (Y=85, H=22) ══
+local RouteRow2=N("Frame",{Name="FilaGrabacion2",Size=UDim2.new(1,-8,0,22),Position=UDim2.new(0,4,0,85),
+    BackgroundTransparency=1,Parent=PosView},{Lst(Enum.FillDirection.Horizontal,4)})
+BtnRecCopyAllV3=N("TextButton",{Name="BotonCopiarTodoV3",Size=UDim2.new(0.22,-3,1,0),
+    BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.52),Text="Todo V3",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=RouteRow2},{Cor(5)})
+BtnRecCopyAllCF=N("TextButton",{Name="BotonCopiarTodoCF",Size=UDim2.new(0.22,-3,1,0),
+    BackgroundColor3=C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.52),Text="Todo CF",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=RouteRow2},{Cor(5)})
+BtnPlayAll=N("TextButton",{Name="BotonReproducirTodo",Size=UDim2.new(0.28,-3,1,0),
+    BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),Text="▶▶ Reproducir",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=RouteRow2},{Cor(5)})
+BtnStopPlay=N("TextButton",{Name="BotonDetenerPlay",Size=UDim2.new(0.18,-3,1,0),
+    BackgroundColor3=C.RED:Lerp(Color3.fromRGB(0,0,0),0.45),Text="■ Stop",
+    Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,Parent=RouteRow2},{Cor(5)})
+RecStatusLbl=N("TextLabel",{Name="EstadoGrabacion",Size=UDim2.new(0.10,-3,1,0),BackgroundTransparency=1,
+    Text="0pts",Font=Enum.Font.Gotham,TextSize=FSX,TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,Parent=RouteRow2})
+
+Hvr(BtnRecStart,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.38),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.10))
+Hvr(BtnRecStop,C.RED:Lerp(Color3.fromRGB(0,0,0),0.38),C.RED:Lerp(Color3.fromRGB(0,0,0),0.10))
+Hvr(BtnRecCopyAllV3,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.52),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.25))
+Hvr(BtnRecCopyAllCF,C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.52),C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.25))
+Hvr(BtnRecClear,C.BTN,C.RED:Lerp(C.BTN,0.5))
+Hvr(BtnPlayAll,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
+Hvr(BtnStopPlay,C.RED:Lerp(Color3.fromRGB(0,0,0),0.45),C.RED:Lerp(Color3.fromRGB(0,0,0),0.15))
+
+-- ══ SEP (Y=110) ══
+N("Frame",{Name="SepLista",Size=UDim2.new(1,-8,0,1),Position=UDim2.new(0,4,0,110),
+    BackgroundColor3=C.BORDER,Parent=PosView})
+
+-- Lista de puntos grabados — ocupa el resto (Y=114)
+RouteScroll=N("ScrollingFrame",{Name="ScrollRuta",
+    Size=UDim2.new(1,-8,1,-114),Position=UDim2.new(0,4,0,114),
+    BackgroundColor3=C.CODE,
+    ScrollBarThickness=3,ScrollBarImageColor3=C.MAG,
+    ScrollBarImageTransparency=0.3,
+    CanvasSize=UDim2.new(0,0,0,0),
+    AutomaticCanvasSize=Enum.AutomaticSize.Y,
+    ScrollingDirection=Enum.ScrollingDirection.Y,
+    ElasticBehavior=Enum.ElasticBehavior.Never,
+    Parent=PosView},
+    {Cor(6),Str(C.BORDER,1),Lst(nil,2),Pad(3,3,3,3)})
+
+-- ─── POSITION LOGIC ──────────────────────────────────────────
+_posRecording   = false
+_routePoints    = {}
+_routeConn      = nil
+_posLiveConn    = nil
+_lastV3Str      = "Vector3: —"
+_lastCFStr      = "CFrame: —"
+_playbackActive = false
+
+GetCharPos=function()
+    local lp=Players.LocalPlayer
+    if not lp then return nil,nil end
+    local ch=lp.Character
+    if not ch then return nil,nil end
+    local hrp=ch:FindFirstChild("HumanoidRootPart") or ch:FindFirstChildWhichIsA("BasePart")
+    if not hrp then return nil,nil end
+    return hrp.Position, hrp.CFrame
+end
+
+TeleportTo=function(cf)
+    local lp=Players.LocalPlayer
+    if not lp then return end
+    local ch=lp.Character
+    if not ch then return end
+    local hrp=ch:FindFirstChild("HumanoidRootPart")
+    if hrp then hrp.CFrame=cf end
+end
+
+UpdatePosLabels=function()
+    local v3,cf=GetCharPos()
+    if not v3 then
+        PosV3Label.Text="V3: sin personaje"
+        PosCFLabel.Text="CF: sin personaje"
+        return
+    end
+    local v3s=("Vector3.new(%.3f, %.3f, %.3f)"):format(v3.X,v3.Y,v3.Z)
+    local cfc={cf:GetComponents()}
+    local cfs=("CFrame.new(%.3f,%.3f,%.3f, %.4f,%.4f,%.4f, %.4f,%.4f,%.4f, %.4f,%.4f,%.4f)"):format(table.unpack(cfc))
+    PosV3Label.Text="V3: "..("%.2f, %.2f, %.2f"):format(v3.X,v3.Y,v3.Z)
+    PosCFLabel.Text="CF: "..("%.2f, %.2f, %.2f"):format(v3.X,v3.Y,v3.Z)
+    _lastV3Str=v3s; _lastCFStr=cfs
+end
+
+GetLiveDelay=function()
+    local v=tonumber(LiveDelayBox and LiveDelayBox.Text) or 0.1
+    return math.max(0.05,math.min(v,60))
+end
+GetRecDelay=function()
+    local v=tonumber(RecDelayBox and RecDelayBox.Text) or 0.25
+    return math.max(0.05,math.min(v,60))
+end
+
+PosToggleBtn.MouseButton1Click:Connect(function()
+    _posActive=not _posActive
+    if _posActive then
+        PosToggleBtn.Text="Live ON"
+        PosToggleBtn.BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.35)
+        PosToggleBtn.TextColor3=Color3.new(1,1,1)
+        local lastLiveT=tick()
+        _posLiveConn=RunService.Heartbeat:Connect(function()
+            if not _JRM_Alive or not _posActive then return end
+            local now=tick()
+            if now-lastLiveT >= GetLiveDelay() then
+                lastLiveT=now
+                UpdatePosLabels()
+            end
+        end)
+    else
+        PosToggleBtn.Text="Live OFF"
+        PosToggleBtn.BackgroundColor3=C.BTN
+        PosToggleBtn.TextColor3=C.DIM
+        if _posLiveConn then _posLiveConn:Disconnect(); _posLiveConn=nil end
+    end
+end)
+
+BtnGetOnce.MouseButton1Click:Connect(function()
+    UpdatePosLabels(); Flash(BtnGetOnce,"✓ Listo!")
+end)
+BtnCopyV3.MouseButton1Click:Connect(function()
+    if E.sclip then setclipboard(_lastV3Str); Flash(BtnCopyV3,"✓ Copiado!") end
+end)
+BtnCopyCF.MouseButton1Click:Connect(function()
+    if E.sclip then setclipboard(_lastCFStr); Flash(BtnCopyCF,"✓ Copiado!") end
+end)
+
+AddRoutePoint=function()
+    local v3,cf=GetCharPos()
+    if not v3 then return end
+    local idx=#_routePoints+1
+    local v3s=("Vector3.new(%.3f, %.3f, %.3f)"):format(v3.X,v3.Y,v3.Z)
+    local cfc={cf:GetComponents()}
+    local cfs=("CFrame.new(%.3f,%.3f,%.3f, %.4f,%.4f,%.4f, %.4f,%.4f,%.4f, %.4f,%.4f,%.4f)"):format(table.unpack(cfc))
+    local entry={v3=v3,cf=cf,idx=idx,v3s=v3s,cfs=cfs}
+    table.insert(_routePoints,entry)
+
+    local rowH = 28
+    local row=N("Frame",{Name="PuntoRuta_"..idx,Size=UDim2.new(1,-2,0,rowH),
+        BackgroundColor3=C.ITEM,Parent=RouteScroll},{Cor(4),Str(C.BORDER,1)})
+    -- #idx
+    N("TextLabel",{Name="IdxP",Size=UDim2.new(0,18,1,0),Position=UDim2.new(0,2,0,0),
+        BackgroundTransparency=1,Text=tostring(idx),Font=Enum.Font.GothamBold,TextSize=8,
+        TextColor3=C.DIM,TextXAlignment=Enum.TextXAlignment.Center,Parent=row})
+    -- coords compactas
+    N("TextLabel",{Name="CoordsP",Size=UDim2.new(1,-128,1,0),Position=UDim2.new(0,22,0,0),
+        BackgroundTransparency=1,
+        Text=("%.1f, %.1f, %.1f"):format(v3.X,v3.Y,v3.Z),
+        Font=Enum.Font.Code,TextSize=FSX,TextColor3=C.GREEN,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,Parent=row})
+    -- ▶ Ir
+    local bGo=N("TextButton",{Size=UDim2.new(0,24,0,rowH-6),Position=UDim2.new(1,-124,0,3),
+        BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.38),Text="▶",
+        Font=Enum.Font.GothamBold,TextSize=9,TextColor3=Color3.new(1,1,1),
+        AutoButtonColor=false,ZIndex=3,Parent=row},{Cor(3)})
+    -- V3
+    local bv=N("TextButton",{Size=UDim2.new(0,28,0,rowH-6),Position=UDim2.new(1,-96,0,3),
+        BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.45),Text="V3",
+        Font=Enum.Font.GothamBold,TextSize=8,TextColor3=Color3.new(1,1,1),
+        AutoButtonColor=false,ZIndex=3,Parent=row},{Cor(3)})
+    -- CF
+    local bc=N("TextButton",{Size=UDim2.new(0,28,0,rowH-6),Position=UDim2.new(1,-64,0,3),
+        BackgroundColor3=C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.45),Text="CF",
+        Font=Enum.Font.GothamBold,TextSize=8,TextColor3=Color3.new(1,1,1),
+        AutoButtonColor=false,ZIndex=3,Parent=row},{Cor(3)})
+    -- ×
+    local bDel=N("TextButton",{Size=UDim2.new(0,20,0,rowH-6),Position=UDim2.new(1,-32,0,3),
+        BackgroundColor3=C.BTN,Text="×",Font=Enum.Font.GothamBold,TextSize=11,
+        TextColor3=C.DIM,AutoButtonColor=false,ZIndex=3,Parent=row},{Cor(3)})
+
+    Hvr(bGo,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.38),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
+    Hvr(bv,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.45),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.18))
+    Hvr(bc,C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.45),C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.18))
+    Hvr(bDel,C.BTN,C.RED:Lerp(C.BTN,0.5))
+
+    local capCF=cf; local capV3s=v3s; local capCFs=cfs
+    bGo.MouseButton1Click:Connect(function() TeleportTo(capCF) end)
+    bv.MouseButton1Click:Connect(function() if E.sclip then setclipboard(capV3s); Flash(bv,"✓") end end)
+    bc.MouseButton1Click:Connect(function() if E.sclip then setclipboard(capCFs); Flash(bc,"✓") end end)
+    bDel.MouseButton1Click:Connect(function() row:Destroy() end)
+
+    task.defer(function()
+        if RouteScroll and RouteScroll.Parent then
+            RouteScroll.CanvasPosition=Vector2.new(0,math.huge)
+        end
+    end)
+    RecStatusLbl.Text=tostring(#_routePoints).."pts"
+end
+
+BtnRecStart.MouseButton1Click:Connect(function()
+    if _posRecording then return end
+    _posRecording=true
+    RecStatusLbl.TextColor3=C.GREEN
+    task.spawn(function()
+        local lastT=tick()
+        while _posRecording and _JRM_Alive do
+            local now=tick()
+            if now-lastT >= GetRecDelay() then
+                lastT=now; AddRoutePoint()
+            end
+            task.wait(0.05)
+        end
+    end)
+end)
+
+BtnRecStop.MouseButton1Click:Connect(function()
+    _posRecording=false
+    RecStatusLbl.Text=tostring(#_routePoints).."pts"
+    RecStatusLbl.TextColor3=C.DIM
+end)
+
+BtnRecCopyAllV3.MouseButton1Click:Connect(function()
+    if not E.sclip then return end
+    local lines={}
+    for i,pt in ipairs(_routePoints) do table.insert(lines,("-- [%d]\n%s"):format(i,pt.v3s or "")) end
+    if #lines>0 then setclipboard(table.concat(lines,"\n")); Flash(BtnRecCopyAllV3,"✓ Copiado!") end
+end)
+
+BtnRecCopyAllCF.MouseButton1Click:Connect(function()
+    if not E.sclip then return end
+    local lines={}
+    for i,pt in ipairs(_routePoints) do table.insert(lines,("-- [%d]\n%s"):format(i,pt.cfs or "")) end
+    if #lines>0 then setclipboard(table.concat(lines,"\n")); Flash(BtnRecCopyAllCF,"✓ Copiado!") end
+end)
+
+-- ▶▶ Reproducir toda la ruta (teleport por punto con el delay de grabación)
+BtnPlayAll.MouseButton1Click:Connect(function()
+    if _playbackActive then return end
+    if #_routePoints==0 then Flash(BtnPlayAll,"Sin puntos!"); return end
+    _playbackActive=true
+    BtnPlayAll.Text="⏳"
+    BtnPlayAll.BackgroundColor3=C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.40)
+    task.spawn(function()
+        for i,pt in ipairs(_routePoints) do
+            if not _playbackActive or not _JRM_Alive then break end
+            TeleportTo(pt.cf)
+            RecStatusLbl.Text=("▶"..i.."/"..#_routePoints)
+            task.wait(GetRecDelay())
+        end
+        if _JRM_Alive then
+            _playbackActive=false
+            BtnPlayAll.Text="▶▶ Play"
+            BtnPlayAll.BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35)
+            RecStatusLbl.Text=tostring(#_routePoints).."pts"
+        end
+    end)
+end)
+
+BtnStopPlay.MouseButton1Click:Connect(function()
+    _playbackActive=false
+    BtnPlayAll.Text="▶▶ Play"
+    BtnPlayAll.BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35)
+    RecStatusLbl.Text=tostring(#_routePoints).."pts"
+end)
+
+BtnRecClear.MouseButton1Click:Connect(function()
+    _posRecording=false; _playbackActive=false
+    if _routeConn then _routeConn:Disconnect(); _routeConn=nil end
+    _routePoints={}
+    BtnPlayAll.Text="▶▶ Play"
+    BtnPlayAll.BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35)
+    for _,v in ipairs(RouteScroll:GetChildren()) do
+        if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
+    end
+    RecStatusLbl.Text="0pts"; RecStatusLbl.TextColor3=C.DIM
+end)
+
+-- ─── DETAIL VIEW ─────────────────────────────────────────────
 DetailView=N("Frame",{Name="VistaDetalleScript",
     Size=UDim2.new(1,0,1,-(TOFF+4)),
-    Position=UDim2.new(SBSC,10,0,TOP_H+4+TOFF),  
+    Position=UDim2.new(SBSC,10,0,TOP_H+4+TOFF),
     BackgroundColor3=C.PANEL,
     Visible=false,ZIndex=200,Parent=Main},{Cor(9)})
 DTopBar=N("Frame",{Name="BarraDetalleScript",Size=UDim2.new(1,0,0,M and 33 or 40),
@@ -874,6 +1264,222 @@ BtnDPath.MouseButton1Click:Connect(function()
     if E.sclip and _DetailPath then setclipboard(_DetailPath); Flash(BtnDPath,"✓ OK!") end
 end)
 
+-- ─── OBJECT SELECTOR TOOL ────────────────────────────────────
+-- Panel flotante que muestra datos del objeto seleccionado
+ObjPanel=N("Frame",{Name="PanelSelectorObjeto",
+    Size=UDim2.new(0,260,0,220),
+    Position=UDim2.new(0,10,0.5,-110),
+    BackgroundColor3=C.BG,
+    Visible=false,ZIndex=300,Parent=Screen},
+    {Cor(10),Str(C.BORDER,1)})
+
+N("Frame",{Name="BordeCyanObj",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.22,0,0,0),BackgroundColor3=C.CYAN,ZIndex=310,Parent=ObjPanel})
+N("Frame",{Name="BordeMagObj",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.50,0,0,0),BackgroundColor3=C.MAG,ZIndex=310,Parent=ObjPanel})
+
+local ObjTopBar=N("Frame",{Name="BarraTopObj",Size=UDim2.new(1,0,0,30),Position=UDim2.new(0,0,0,2),
+    BackgroundColor3=C.TOP,ZIndex=301,Parent=ObjPanel},{Cor(8)})
+N("TextLabel",{Name="TituloObj",Size=UDim2.new(1,-70,1,0),Position=UDim2.new(0,8,0,0),
+    BackgroundTransparency=1,Text="Selector de Objetos",
+    Font=Enum.Font.GothamBold,TextSize=10,TextColor3=C.CYAN,
+    TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=ObjTopBar})
+
+ObjToggleBtn=N("TextButton",{Name="BotonToggleSelector",Size=UDim2.new(0,40,0,18),Position=UDim2.new(1,-44,0.5,-9),
+    BackgroundColor3=C.BTN,Text="OFF",Font=Enum.Font.GothamBold,TextSize=9,
+    TextColor3=C.DIM,AutoButtonColor=false,ZIndex=302,Parent=ObjTopBar},{Cor(8)})
+
+-- Contenido del panel
+local ObjContent=N("Frame",{Name="ContenidoObj",Size=UDim2.new(1,-8,1,-38),Position=UDim2.new(0,4,0,36),
+    BackgroundColor3=C.CODE,ZIndex=301,Parent=ObjPanel},{Cor(6),Str(C.BORDER,1)})
+
+ObjNameLbl=N("TextLabel",{Name="NombreObj",Size=UDim2.new(1,-8,0,16),Position=UDim2.new(0,4,0,4),
+    BackgroundTransparency=1,Text="Nombre: —",
+    Font=Enum.Font.GothamBold,TextSize=FSS,TextColor3=C.CYAN,
+    TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=ObjContent})
+ObjClassLbl=N("TextLabel",{Name="ClaseObj",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,22),
+    BackgroundTransparency=1,Text="Clase: —",
+    Font=Enum.Font.Gotham,TextSize=FSX,TextColor3=C.MAG,
+    TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=ObjContent})
+ObjPathLbl=N("TextLabel",{Name="RutaObj",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,38),
+    BackgroundTransparency=1,Text="Ruta: —",
+    Font=Enum.Font.Gotham,TextSize=FSX,TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=302,Parent=ObjContent})
+ObjPosLbl=N("TextLabel",{Name="PosObj",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,54),
+    BackgroundTransparency=1,Text="Pos: —",
+    Font=Enum.Font.Code,TextSize=FSX,TextColor3=C.GREEN,
+    TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=ObjContent})
+ObjCFLbl=N("TextLabel",{Name="CFObj",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,70),
+    BackgroundTransparency=1,Text="CF: —",
+    Font=Enum.Font.Code,TextSize=FSX,TextColor3=C.YELLOW,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=302,Parent=ObjContent})
+ObjSizeLbl=N("TextLabel",{Name="TamObj",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,86),
+    BackgroundTransparency=1,Text="Size: —",
+    Font=Enum.Font.Code,TextSize=FSX,TextColor3=C.ORANGE,
+    TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=ObjContent})
+ObjParentLbl=N("TextLabel",{Name="PadreObj",Size=UDim2.new(1,-8,0,14),Position=UDim2.new(0,4,0,102),
+    BackgroundTransparency=1,Text="Parent: —",
+    Font=Enum.Font.Gotham,TextSize=FSX,TextColor3=C.TEXT,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=302,Parent=ObjContent})
+
+-- Fila botones copiar objeto
+local ObjBtnRow=N("Frame",{Name="FilaBotonesObj",Size=UDim2.new(1,-8,0,22),Position=UDim2.new(0,4,0,120),
+    BackgroundTransparency=1,ZIndex=301,Parent=ObjContent},{Lst(Enum.FillDirection.Horizontal,3)})
+BtnObjCopyName=N("TextButton",{Size=UDim2.new(0.25,-2,1,0),BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.42),
+    Text="Nombre",Font=Enum.Font.GothamBold,TextSize=8,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=302,Parent=ObjBtnRow},{Cor(4)})
+BtnObjCopyPath=N("TextButton",{Size=UDim2.new(0.25,-2,1,0),BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.42),
+    Text="Ruta",Font=Enum.Font.GothamBold,TextSize=8,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=302,Parent=ObjBtnRow},{Cor(4)})
+BtnObjCopyPos=N("TextButton",{Size=UDim2.new(0.25,-2,1,0),BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.42),
+    Text="Pos V3",Font=Enum.Font.GothamBold,TextSize=8,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=302,Parent=ObjBtnRow},{Cor(4)})
+BtnObjCopyCF=N("TextButton",{Size=UDim2.new(0.25,-2,1,0),BackgroundColor3=C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.50),
+    Text="CF",Font=Enum.Font.GothamBold,TextSize=8,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=302,Parent=ObjBtnRow},{Cor(4)})
+Hvr(BtnObjCopyName,C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.42),C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.10))
+Hvr(BtnObjCopyPath,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.42),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
+Hvr(BtnObjCopyPos,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.42),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.10))
+Hvr(BtnObjCopyCF,C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.50),C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.20))
+
+-- Drag para ObjPanel
+local _objDTgt=nil; local _objDStart=nil; local _objDPos=nil
+ObjTopBar.InputBegan:Connect(function(inp)
+    local ut=inp.UserInputType
+    if ut==Enum.UserInputType.MouseButton1 or ut==Enum.UserInputType.Touch then
+        _objDTgt=ObjPanel; _objDStart=inp.Position; _objDPos=ObjPanel.Position
+    end
+end)
+UIS.InputChanged:Connect(function(inp)
+    if not _objDTgt then return end
+    local ut=inp.UserInputType
+    if ut==Enum.UserInputType.MouseMovement or ut==Enum.UserInputType.Touch then
+        local d=inp.Position-_objDStart
+        _objDTgt.Position=UDim2.new(_objDPos.X.Scale,_objDPos.X.Offset+d.X,_objDPos.Y.Scale,_objDPos.Y.Offset+d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(inp)
+    local ut=inp.UserInputType
+    if ut==Enum.UserInputType.MouseButton1 or ut==Enum.UserInputType.Touch then _objDTgt=nil end
+end)
+
+-- Lógica selector
+_selectorActive=false
+_selectedObjData={name="",path="",posV3="",posCF="",size="",parent=""}
+
+UpdateObjPanel=function(inst)
+    if not inst or typeof(inst)~="Instance" then return end
+    local name=inst.Name
+    local cls=inst.ClassName
+    local path=GetPath(inst)
+    local posV3s,cfs,sizeS="—","—","—"
+    local parentName=inst.Parent and inst.Parent.Name or "nil"
+    -- Intentar obtener posicion / size
+    local ok1,pos=pcall(function() return inst.Position end)
+    local ok2,cf=pcall(function() return inst.CFrame end)
+    local ok3,sz=pcall(function() return inst.Size end)
+    if ok1 and typeof(pos)=="Vector3" then
+        posV3s=("Vector3.new(%.3f, %.3f, %.3f)"):format(pos.X,pos.Y,pos.Z)
+    end
+    if ok2 and typeof(cf)=="CFrame" then
+        local c={cf:GetComponents()}
+        cfs=("CFrame.new(%.3f,%.3f,%.3f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f)"):format(table.unpack(c))
+    end
+    if ok3 and typeof(sz)=="Vector3" then
+        sizeS=("Vector3.new(%.3f, %.3f, %.3f)"):format(sz.X,sz.Y,sz.Z)
+    end
+    ObjNameLbl.Text="Nombre: "..name
+    ObjClassLbl.Text="Clase: "..cls
+    ObjPathLbl.Text="Ruta: "..path
+    ObjPosLbl.Text="Pos: "..posV3s
+    ObjCFLbl.Text="CF: "..cfs:sub(1,55)
+    ObjSizeLbl.Text="Size: "..sizeS
+    ObjParentLbl.Text="Parent: "..parentName
+    _selectedObjData={name=name,path=path,posV3=posV3s,posCF=cfs,size=sizeS,parent=parentName}
+end
+
+BtnObjCopyName.MouseButton1Click:Connect(function()
+    if E.sclip then setclipboard(_selectedObjData.name); Flash(BtnObjCopyName,"✓") end
+end)
+BtnObjCopyPath.MouseButton1Click:Connect(function()
+    if E.sclip then setclipboard(_selectedObjData.path); Flash(BtnObjCopyPath,"✓") end
+end)
+BtnObjCopyPos.MouseButton1Click:Connect(function()
+    if E.sclip then setclipboard(_selectedObjData.posV3); Flash(BtnObjCopyPos,"✓") end
+end)
+BtnObjCopyCF.MouseButton1Click:Connect(function()
+    if E.sclip then setclipboard(_selectedObjData.posCF); Flash(BtnObjCopyCF,"✓") end
+end)
+
+-- Crear Tool selector en el personaje
+_selectorTool=nil
+_selectorToolConn=nil
+
+CreateSelectorTool=function()
+    local lp=Players.LocalPlayer
+    if not lp then return end
+    local ch=lp.Character
+    if not ch then return end
+    -- Limpiar tool previa
+    if _selectorTool and _selectorTool.Parent then
+        _selectorTool:Destroy(); _selectorTool=nil
+    end
+    local tool=Instance.new("Tool")
+    tool.Name="JRM"
+    tool.RequiresHandle=false
+    tool.ToolTip="JRM Selector — Click para inspeccionar"
+    tool.CanBeDropped=false
+
+    -- Al activar (click)
+    _selectorToolConn=tool.Activated:Connect(function()
+        if not _selectorActive then return end
+        local cam=workspace.CurrentCamera
+        local mp=UIS:GetMouseLocation()
+        local ray=cam:ScreenPointToRay(mp.X,mp.Y)
+        local params=RaycastParams.new()
+        params.FilterDescendantsInstances={ch}
+        params.FilterType=Enum.RaycastFilterType.Exclude
+        local result=workspace:Raycast(ray.Origin,ray.Direction*500,params)
+        if result and result.Instance then
+            UpdateObjPanel(result.Instance)
+        end
+    end)
+
+    tool.Parent=lp.Backpack
+    _selectorTool=tool
+
+    -- Poner en mano automáticamente si se quiere
+    -- ch.Humanoid:EquipTool(tool)  -- comentado, el jugador lo equipa manualmente
+end
+
+RemoveSelectorTool=function()
+    if _selectorTool then
+        if _selectorToolConn then _selectorToolConn:Disconnect(); _selectorToolConn=nil end
+        pcall(function() _selectorTool:Destroy() end)
+        _selectorTool=nil
+    end
+end
+
+ObjToggleBtn.MouseButton1Click:Connect(function()
+    _selectorActive=not _selectorActive
+    if _selectorActive then
+        ObjToggleBtn.Text="ON"
+        ObjToggleBtn.BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.35)
+        ObjToggleBtn.TextColor3=Color3.new(1,1,1)
+        CreateSelectorTool()
+        ObjPanel.Visible=true
+    else
+        ObjToggleBtn.Text="OFF"
+        ObjToggleBtn.BackgroundColor3=C.BTN
+        ObjToggleBtn.TextColor3=C.DIM
+        RemoveSelectorTool()
+    end
+end)
+
+-- Botón para abrir/cerrar el panel del selector desde cualquier tab
+local BtnObjSelector=TBtn("🎯",C.MAG,-GAP*3-4,"BotonAbrirSelector")
+BtnObjSelector.MouseButton1Click:Connect(function()
+    ObjPanel.Visible=not ObjPanel.Visible
+end)
+
+-- ─── ACTION BAR ──────────────────────────────────────────────
 ActionBar=N("Frame",{Name="BarraAcciones",Size=UDim2.new(1,0,0,BTH),
     Position=UDim2.new(0,0,1,-(BTH+2)),
     BackgroundColor3=C.PANEL,Parent=RightPanel},
@@ -888,8 +1494,8 @@ ABtn=function(lbl,bg,bname)
 end
 BtnCopy  =ABtn("Copiar",C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.42),"BotonCopiar")
 BtnRun   =ABtn("▶ Ejecutar",C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.40),"BotonEjecutar")
-BtnBlock =ABtn("⛔ Bloquear",Color3.fromRGB(55,12,20),"BotonBloquear")
-BtnIgnore=ABtn("👁 Ignorar",Color3.fromRGB(42,36,8),"BotonIgnorar")
+BtnBlock =ABtn("Bloquear",Color3.fromRGB(55,12,20),"BotonBloquear")
+BtnIgnore=ABtn("Ignorar",Color3.fromRGB(42,36,8),"BotonIgnorar")
 BtnClear =ABtn("X Limpiar",Color3.fromRGB(33,14,20),"BotonLimpiar")
 BtnEdit  =ABtn("Editar",Color3.fromRGB(30,22,55),"BotonEditar")
 
@@ -905,24 +1511,22 @@ MiniBar=N("Frame",{Name="BarraMinimizada",Size=UDim2.new(0,185,0,TOP_H),Position
     BackgroundColor3=C.TOP,Visible=false,ZIndex=50,Parent=Screen},
     {Cor(9),Str(C.BORDER,1)})
 N("TextLabel",{Name="TituloMinimizado",Size=UDim2.new(1,-32,1,0),BackgroundTransparency=1,
-    Text="🔥 JRemotesMods",Font=Enum.Font.GothamBold,TextSize=11,
+    Text="JRemotesMods",Font=Enum.Font.GothamBold,TextSize=11,
     TextColor3=C.MAG,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=51,Parent=MiniBar},
     {Pad(8,0,0,0)})
 BtnRestore=N("TextButton",{Name="BotonRestaurar",Size=UDim2.new(0,22,0,18),Position=UDim2.new(1,-26,0.5,-9),
     BackgroundColor3=C.MAG,Text="-",Font=Enum.Font.GothamBold,TextSize=11,
     TextColor3=Color3.fromRGB(0,0,0),AutoButtonColor=false,ZIndex=52,Parent=MiniBar},{Cor(5)})
 
-
+-- ─── DELAY POPUP ─────────────────────────────────────────────
 DelayPopup=nil
 
 ShowDelayPopup=function(inst, anchorBtn)
     if DelayPopup then DelayPopup:Destroy(); DelayPopup=nil end
     local current=Delayed[inst] or 0
-
     local absPos  = anchorBtn.AbsolutePosition
     local absSize = anchorBtn.AbsoluteSize
     local popW, popH = 178, 148
-
     local px = absPos.X - popW - 6
     local py = absPos.Y + absSize.Y/2 - popH/2
     local vpSize = workspace.CurrentCamera.ViewportSize
@@ -938,86 +1542,23 @@ ShowDelayPopup=function(inst, anchorBtn)
         {Cor(10),Str(C.BORDER,1)})
     DelayPopup=pop
 
-    N("Frame",{Name="BordeSuperiorCyan",
-        Size=UDim2.new(0.28,0,0,2),
-        Position=UDim2.new(0.22,0,0,0),
-        BackgroundColor3=C.CYAN,ZIndex=510,Parent=pop})
-    N("Frame",{Name="BordeSuperiorMagenta",
-        Size=UDim2.new(0.28,0,0,2),
-        Position=UDim2.new(0.50,0,0,0),
-        BackgroundColor3=C.MAG,ZIndex=510,Parent=pop})
-
-    local pTop=N("Frame",{Name="BarraTopDelay",
-        Size=UDim2.new(1,0,0,28),
-        Position=UDim2.new(0,0,0,2),
-        BackgroundColor3=C.TOP,
-        ZIndex=501,Parent=pop},{Cor(8)})
-    N("TextLabel",{Name="TituloDelay",
-        Size=UDim2.new(1,-8,1,0),Position=UDim2.new(0,10,0,0),
-        BackgroundTransparency=1,
-        Text="Configurar Delay",
-        Font=Enum.Font.GothamBold,TextSize=10,
-        TextColor3=C.CYAN,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        ZIndex=502,Parent=pTop})
-
-    N("Frame",{Name="SeparadorDelay",
-        Size=UDim2.new(1,0,0,1),
-        Position=UDim2.new(0,0,0,30),
-        BackgroundColor3=C.BORDER,
-        ZIndex=501,Parent=pop})
-
-    N("TextLabel",{Name="SubtituloDelay",
-        Size=UDim2.new(1,-16,0,13),Position=UDim2.new(0,8,0,36),
-        BackgroundTransparency=1,
-        Text="Segundos entre llamadas (0 = libre)",
-        Font=Enum.Font.Gotham,TextSize=8,
-        TextColor3=C.DIM,ZIndex=501,Parent=pop})
-
-    local box=N("TextBox",{Name="InputDelay",
-        Size=UDim2.new(1,-16,0,32),
-        Position=UDim2.new(0,8,0,52),
-        BackgroundColor3=C.CODE,
-        Text=tostring(current),
-        Font=Enum.Font.GothamBold,TextSize=18,
-        TextColor3=C.CYAN,
-        PlaceholderText="0.0",
-        PlaceholderColor3=C.DIM,
-        TextXAlignment=Enum.TextXAlignment.Center,
-        ZIndex=501,Parent=pop},{Cor(6),Str(C.BORDER,1)})
-
-    N("TextLabel",{Name="AyudaDelay",
-        Size=UDim2.new(1,-16,0,12),Position=UDim2.new(0,8,0,87),
-        BackgroundTransparency=1,
-        Text="Ej: 0.5 → 500ms  |  máx 60s",
-        Font=Enum.Font.Gotham,TextSize=8,
-        TextColor3=C.DIM,ZIndex=501,Parent=pop})
-
-    local bRow=N("Frame",{Name="FilaBotonesDelay",
-        Size=UDim2.new(1,-16,0,28),
-        Position=UDim2.new(0,8,0,104),
-        BackgroundTransparency=1,ZIndex=501,Parent=pop},
-        {Lst(Enum.FillDirection.Horizontal,6)})
-
-    local bOK=N("TextButton",{Name="BotonConfirmarDelay",
-        Size=UDim2.new(0.58,0,1,0),
-        BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.38),
-        Text="✓  Aplicar",Font=Enum.Font.GothamBold,TextSize=10,
-        TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=502,Parent=bRow},{Cor(6)})
-    local bCan=N("TextButton",{Name="BotonCancelarDelay",
-        Size=UDim2.new(0.38,0,1,0),
-        BackgroundColor3=C.BTN,Text="X",Font=Enum.Font.GothamBold,TextSize=10,
-        TextColor3=C.DIM,AutoButtonColor=false,ZIndex=502,Parent=bRow},{Cor(6)})
-
+    N("Frame",{Name="BordeSuperiorCyan",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.22,0,0,0),BackgroundColor3=C.CYAN,ZIndex=510,Parent=pop})
+    N("Frame",{Name="BordeSuperiorMagenta",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.50,0,0,0),BackgroundColor3=C.MAG,ZIndex=510,Parent=pop})
+    local pTop=N("Frame",{Name="BarraTopDelay",Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,2),BackgroundColor3=C.TOP,ZIndex=501,Parent=pop},{Cor(8)})
+    N("TextLabel",{Name="TituloDelay",Size=UDim2.new(1,-8,1,0),Position=UDim2.new(0,10,0,0),BackgroundTransparency=1,Text="Configurar Delay",Font=Enum.Font.GothamBold,TextSize=10,TextColor3=C.CYAN,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=502,Parent=pTop})
+    N("Frame",{Name="SeparadorDelay",Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,0,30),BackgroundColor3=C.BORDER,ZIndex=501,Parent=pop})
+    N("TextLabel",{Name="SubtituloDelay",Size=UDim2.new(1,-16,0,13),Position=UDim2.new(0,8,0,36),BackgroundTransparency=1,Text="Segundos entre llamadas (0 = libre)",Font=Enum.Font.Gotham,TextSize=8,TextColor3=C.DIM,ZIndex=501,Parent=pop})
+    local box=N("TextBox",{Name="InputDelay",Size=UDim2.new(1,-16,0,32),Position=UDim2.new(0,8,0,52),BackgroundColor3=C.CODE,Text=tostring(current),Font=Enum.Font.GothamBold,TextSize=18,TextColor3=C.CYAN,PlaceholderText="0.0",PlaceholderColor3=C.DIM,TextXAlignment=Enum.TextXAlignment.Center,ZIndex=501,Parent=pop},{Cor(6),Str(C.BORDER,1)})
+    N("TextLabel",{Name="AyudaDelay",Size=UDim2.new(1,-16,0,12),Position=UDim2.new(0,8,0,87),BackgroundTransparency=1,Text="Ej: 0.5 → 500ms  |  máx 60s",Font=Enum.Font.Gotham,TextSize=8,TextColor3=C.DIM,ZIndex=501,Parent=pop})
+    local bRow=N("Frame",{Name="FilaBotonesDelay",Size=UDim2.new(1,-16,0,28),Position=UDim2.new(0,8,0,104),BackgroundTransparency=1,ZIndex=501,Parent=pop},{Lst(Enum.FillDirection.Horizontal,6)})
+    local bOK=N("TextButton",{Name="BotonConfirmarDelay",Size=UDim2.new(0.58,0,1,0),BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.38),Text="✓  Aplicar",Font=Enum.Font.GothamBold,TextSize=10,TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=502,Parent=bRow},{Cor(6)})
+    local bCan=N("TextButton",{Name="BotonCancelarDelay",Size=UDim2.new(0.38,0,1,0),BackgroundColor3=C.BTN,Text="X",Font=Enum.Font.GothamBold,TextSize=10,TextColor3=C.DIM,AutoButtonColor=false,ZIndex=502,Parent=bRow},{Cor(6)})
     Hvr(bOK,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.38),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.15))
     Hvr(bCan,C.BTN,C.ITEMH)
-
     local capInst=inst
     bOK.MouseButton1Click:Connect(function()
-        local val=tonumber(box.Text) or 0
-        val=math.max(0,math.min(val,60))
-        Delayed[capInst]=val>0 and val or nil
-        LastCall[capInst]=nil
+        local val=tonumber(box.Text) or 0; val=math.max(0,math.min(val,60))
+        Delayed[capInst]=val>0 and val or nil; LastCall[capInst]=nil
         local function updDelayLbl(logT)
             if logT[capInst] and logT[capInst].Button then
                 local lblD=logT[capInst].Button.DelayLbl
@@ -1030,13 +1571,11 @@ ShowDelayPopup=function(inst, anchorBtn)
     bCan.MouseButton1Click:Connect(function()
         if pop and pop.Parent then pop:Destroy(); DelayPopup=nil end
     end)
-
     local closeConn
     task.delay(0.08,function()
         if not pop or not pop.Parent then return end
         closeConn=AddConn(UIS.InputBegan:Connect(function(inp)
-            if inp.UserInputType~=Enum.UserInputType.MouseButton1 and
-               inp.UserInputType~=Enum.UserInputType.Touch then return end
+            if inp.UserInputType~=Enum.UserInputType.MouseButton1 and inp.UserInputType~=Enum.UserInputType.Touch then return end
             task.defer(function()
                 if pop and pop.Parent then pop:Destroy(); DelayPopup=nil end
             end)
@@ -1044,7 +1583,7 @@ ShowDelayPopup=function(inst, anchorBtn)
     end)
 end
 
-
+-- ─── TAB / STATE LOGIC ───────────────────────────────────────
 SelLog=nil; SelCall=nil; SelBtn=nil; CurTab="calls"
 _EditMode=false
 
@@ -1152,12 +1691,8 @@ _OnCall=function(item)
             Position=UDim2.new(1,-64,0.5,-5.5),
             BackgroundTransparency=1,Text="1",
             Font=Enum.Font.GothamBold,TextSize=7,TextColor3=C.DIM,Parent=row})
-        local BTN_W = 20
-        local BTN_H = 18
-        local BTN_GAP = 3
-        local BTN_RIGHT = 4 
 
-
+        local BTN_W=20; local BTN_H=18; local BTN_GAP=3; local BTN_RIGHT=4
         local isBlocked=Blocked[inst] or false
         local bBlk=N("TextButton",{Name="BotonBloquearRemote",
             Size=UDim2.new(0,BTN_W,0,BTN_H),
@@ -1167,26 +1702,20 @@ _OnCall=function(item)
             Font=Enum.Font.GothamBold,TextSize=8,
             TextColor3=isBlocked and Color3.new(1,1,1) or C.DIM,
             AutoButtonColor=false,ZIndex=4,Parent=row},{Cor(3)})
-
- 
         local bDly=N("TextButton",{Name="BotonDelay",
             Size=UDim2.new(0,BTN_W,0,BTN_H),
             Position=UDim2.new(1,-(BTN_RIGHT+BTN_W),0.5,BTN_GAP/2),
-            BackgroundColor3=C.BTN,
-            Text="⏱",Font=Enum.Font.GothamBold,TextSize=8,
+            BackgroundColor3=C.BTN,Text="⏱",Font=Enum.Font.GothamBold,TextSize=8,
             TextColor3=C.DIM,AutoButtonColor=false,ZIndex=4,Parent=row},{Cor(3)})
-
         local delayLbl=N("TextLabel",{Name="ValorDelay",
             Size=UDim2.new(0,BTN_W+2,0,9),
             Position=UDim2.new(1,-(BTN_RIGHT+BTN_W+1),1,-10),
             BackgroundTransparency=1,
             Text=((Delayed[inst] or 0)>0) and (tostring(Delayed[inst]).."s") or "",
             Font=Enum.Font.Gotham,TextSize=7,TextColor3=C.ORANGE,
-            TextXAlignment=Enum.TextXAlignment.Center,
-            ZIndex=4,Parent=row})
+            TextXAlignment=Enum.TextXAlignment.Center,ZIndex=4,Parent=row})
 
-        Hvr(bBlk, isBlocked and C.RED or C.BTN,
-            isBlocked and C.RED:Lerp(Color3.new(1,1,1),0.2) or C.ITEMH)
+        Hvr(bBlk, isBlocked and C.RED or C.BTN, isBlocked and C.RED:Lerp(Color3.new(1,1,1),0.2) or C.ITEMH)
         Hvr(bDly, C.BTN, C.ORANGE:Lerp(C.BTN,0.4))
 
         local capInst=inst
@@ -1198,15 +1727,11 @@ _OnCall=function(item)
             bBlk.Text=blk and "⛔" or "✅"
             Tw(dotFr,{BackgroundColor3=blk and C.RED or dotC})
         end)
-
-        bDly.MouseButton1Click:Connect(function()
-            ShowDelayPopup(capInst, bDly)
-        end)
+        bDly.MouseButton1Click:Connect(function() ShowDelayPopup(capInst, bDly) end)
 
         local cb=N("TextButton",{Name="AreaClickRemote",
             Size=UDim2.new(1,-(BTN_W+BTN_RIGHT+8),1,0),
-            BackgroundTransparency=1,
-            Text="",AutoButtonColor=false,ZIndex=3,Parent=row})
+            BackgroundTransparency=1,Text="",AutoButtonColor=false,ZIndex=3,Parent=row})
         cb.MouseEnter:Connect(function() if SelLog~=log then row.BackgroundColor3=C.ITEMH end end)
         cb.MouseLeave:Connect(function() if SelLog~=log then row.BackgroundColor3=C.ITEM end end)
 
@@ -1283,22 +1808,26 @@ _scanStarted=false
 StartScan=nil
 
 SetTab=function(tab)
-    if _EditMode and tab~="code" then ToggleEditor(false) end
+    if _editMode and tab~="code" then ToggleEditor(false) end
     CurTab=tab
     CallsView.Visible=tab=="calls"
     CodeView.Visible=tab=="code"
     ScanView.Visible=tab=="scan"
-    ActionBar.Visible=tab~="scan"
+    PosView.Visible=tab=="pos"
+    ActionBar.Visible=(tab~="scan" and tab~="pos")
     TabCalls.BackgroundColor3=tab=="calls" and C.CYAN or C.BTN
     TabCalls.TextColor3=tab=="calls" and Color3.fromRGB(0,0,0) or C.DIM
     TabCode.BackgroundColor3=tab=="code" and C.CYAN or C.BTN
     TabCode.TextColor3=tab=="code" and Color3.fromRGB(0,0,0) or C.DIM
     TabScan.BackgroundColor3=tab=="scan" and C.PURP or C.BTN
     TabScan.TextColor3=tab=="scan" and Color3.new(1,1,1) or C.DIM
+    TabPos.BackgroundColor3=tab=="pos" and C.MAG or C.BTN
+    TabPos.TextColor3=tab=="pos" and Color3.new(1,1,1) or C.DIM
 end
 TabCalls.MouseButton1Click:Connect(function() SetTab("calls") end)
 TabCode.MouseButton1Click:Connect(function() SetTab("code") end)
-TabScan.MouseButton1Click:Connect(function() SetTab("scan"); if StartScan then task.defer(StartScan) end end)
+TabScan.MouseButton1Click:Connect(function() SetTab("scan") end)
+TabPos.MouseButton1Click:Connect(function() SetTab("pos") end)
 
 BtnCopy.MouseButton1Click:Connect(function()
     local c=GetCode(); if c~="" and E.sclip then setclipboard(c); Flash(BtnCopy,"✓ OK!") end
@@ -1365,6 +1894,7 @@ BtnClear.MouseButton1Click:Connect(function()
     task.spawn(function() for _,d in ipairs(game:GetDescendants()) do HandleInst(d) end end)
 end)
 
+-- ─── SCAN LOGIC ──────────────────────────────────────────────
 decompiledScripts={}
 scanReady=false; scanBusy=false
 scanDone=0; scanTotal=0
@@ -1439,13 +1969,13 @@ StartScan=function()
         if scanTotal==0 then ScanStatus.Text="⚠ Sin scripts encontrados"; return end
         ScanStatus.Text=("Descompilando 0 / %d..."):format(scanTotal)
         for i,scr in ipairs(list) do
-            if not _JRM_Alive then return end  
+            if not _JRM_Alive then return end
             DecompOne(scr)
             if i%12==0 then task.wait(); ScanStatus.Text=("Descompilando %d / %d..."):format(scanDone,scanTotal) end
         end
         local t0=tick()
         while scanDone<scanTotal and tick()-t0<45 do
-            if not _JRM_Alive then return end  
+            if not _JRM_Alive then return end
             task.wait(0.4)
             ScanStatus.Text=("Descompilando %d / %d..."):format(scanDone,scanTotal)
         end
@@ -1520,7 +2050,7 @@ DoSearch=function(rawQ)
         if not _JRM_Alive then scanBusy=false; return end
         local qLow=q:lower(); local hits={}; local total=0
         for _,data in pairs(decompiledScripts) do
-            if not _JRM_Alive then scanBusy=false; return end 
+            if not _JRM_Alive then scanBusy=false; return end
             local typeOk=scanType=="All" or data.stype==scanType
             local srcOk=scanOrigin=="All" or (scanOrigin=="game" and not data.isExec) or (scanOrigin=="exec" and data.isExec)
             if typeOk and srcOk then
@@ -1554,7 +2084,26 @@ BtnClear2.MouseButton1Click:Connect(function()
     ScanStatus.Text=("✅ %d scripts listos"):format(scanTotal)
 end)
 ScanInput.FocusLost:Connect(function(enter) if enter then DoSearch(ScanInput.Text) end end)
+BtnStartScan.MouseButton1Click:Connect(function()
+    if _scanStarted then
+        Flash(BtnStartScan,"Ya iniciado ✓",2)
+        return
+    end
+    BtnStartScan.Text="⏳ Escaneando..."
+    BtnStartScan.BackgroundColor3=C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.45)
+    BtnStartScan.TextColor3=C.ORANGE
+    if StartScan then task.defer(StartScan) end
+    -- Actualizar texto del botón cuando termine
+    task.spawn(function()
+        while not scanReady and _JRM_Alive do task.wait(1) end
+        if not _JRM_Alive then return end
+        BtnStartScan.Text="✅ Escaneo listo"
+        BtnStartScan.BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.50)
+        BtnStartScan.TextColor3=Color3.new(1,1,1)
+    end)
+end)
 
+-- ─── DRAG ────────────────────────────────────────────────────
 dTgt=nil; dStart=nil; dPos=nil
 
 BeginDrag=function(tgt)
@@ -1584,6 +2133,7 @@ UIS.InputEnded:Connect(function(inp)
     if ut==Enum.UserInputType.MouseButton1 or ut==Enum.UserInputType.Touch then dTgt=nil end
 end)
 
+-- ─── RESIZE ──────────────────────────────────────────────────
 rAct=false; rStart=nil; rSz=nil
 ResBtn.InputBegan:Connect(function(inp)
     local ut=inp.UserInputType
@@ -1604,6 +2154,7 @@ UIS.InputEnded:Connect(function(inp)
     if ut==Enum.UserInputType.MouseButton1 or ut==Enum.UserInputType.Touch then rAct=false end
 end)
 
+-- ─── MINIMIZE / RESTORE / CLOSE ──────────────────────────────
 BtnMin.MouseButton1Click:Connect(function()
     MiniBar.Position=Main.Position; Main.Visible=false; MiniBar.Visible=true
 end)
@@ -1613,6 +2164,11 @@ end)
 
 BtnClose.MouseButton1Click:Connect(function()
     _JRM_Alive = false
+    _posRecording=false
+    _playbackActive=false
+    if _posLiveConn then _posLiveConn:Disconnect(); _posLiveConn=nil end
+    if _routeConn then _routeConn:Disconnect(); _routeConn=nil end
+    RemoveSelectorTool()
     if DelayPopup then pcall(function() DelayPopup:Destroy() end); DelayPopup=nil end
     UIQueue = {}
     for _,c in ipairs(Conns) do pcall(function() c:Disconnect() end) end
@@ -1627,6 +2183,7 @@ BtnClose.MouseButton1Click:Connect(function()
     end)
 end)
 
+-- ─── MOUNT ───────────────────────────────────────────────────
 local parentGui=(gethui and gethui()) or CoreGui
 if not pcall(function() Screen.Parent=parentGui end) then Screen.Parent=CoreGui end
 
@@ -1634,7 +2191,7 @@ Tw(Main,{BackgroundTransparency=0})
 task.defer(SetTab,"calls")
 task.defer(SetFilter,"All")
 
-print(("[JmodsPOWERFULL] mode=%s | adonis=%s | mobile=%s"):format(
+print(("[JmodsPOWERFULL v2] mode=%s | adonis=%s | mobile=%s"):format(
     FULL and "FULL" or "BÁSICO",
     #AdonisT>0 and "bypass✓" or "no detectado",
     tostring(isMobile)))
