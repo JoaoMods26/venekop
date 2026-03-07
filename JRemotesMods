@@ -2,11 +2,7 @@
 ╔══════════════════════════════════════════════════════╗
 ║  JRemotesMods v2                                     ║
 ╠══════════════════════════════════════════════════════╣
-║  + Tab Posición (Vector3 + CFrame)                   ║
-║  + Grabación de ruta con lista y copia individual    ║
-║  + Toggle de detección activa                        ║
-║  + Selector de objetos (Tool)                        ║
-║  + Editor de código con scroll arreglado             ║
+║  + se                                                ║
 ╚══════════════════════════════════════════════════════╝
 ]]
 
@@ -443,7 +439,6 @@ AddConn(game.DescendantAdded:Connect(function(d)
 end))
 task.spawn(function() for _,d in ipairs(game:GetDescendants()) do HandleInst(d) end end)
 
--- ─── UI CONFIG ─────────────────────────────────────────────────
 local M      = isMobile
 local BASE_W = M and 345 or 680
 local BASE_H = M and 295 or 460
@@ -582,7 +577,6 @@ TabPos  =MkTab("📍 Posición","TabPosicion")
 
 TOFF=TH2+10
 
--- ─── CALLS VIEW ───────────────────────────────────────────────
 CallsView=N("Frame",{Name="VistaLlamadas",
     Size=UDim2.new(1,0,1,-(TOFF+BTH+8)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -601,7 +595,6 @@ CallsScroll=N("ScrollingFrame",{Name="ScrollLlamadas",
     Parent=CallsView},
     {Lst(nil,2),Pad(4,4,4,4)})
 
--- ─── CODE VIEW ────────────────────────────────────────────────
 CodeView=N("Frame",{Name="VistaCodigo",
     Size=UDim2.new(1,0,1,-(TOFF+BTH+8)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -730,7 +723,6 @@ ToggleEditor=function(on)
     end
 end
 
--- ─── SCAN VIEW ────────────────────────────────────────────────
 ScanView=N("Frame",{Name="VistaScan",
     Size=UDim2.new(1,0,1,-(TOFF+4)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -861,7 +853,6 @@ ScanResults=N("ScrollingFrame",{Name="ResultadosScan",
     Parent=ScanView},
     {Lst(nil,4),Pad(2,2,2,2)})
 
--- ─── POSITION VIEW ───────────────────────────────────────────
 PosView=N("Frame",{Name="VistaPosicion",
     Size=UDim2.new(1,0,1,-(TOFF+4)),
     Position=UDim2.new(0,0,0,TOFF),
@@ -982,7 +973,6 @@ RouteScroll=N("ScrollingFrame",{Name="ScrollRuta",
     Parent=PosView},
     {Cor(6),Str(C.BORDER,1),Lst(nil,2),Pad(3,3,3,3)})
 
--- ─── POSITION LOGIC ──────────────────────────────────────────
 _posRecording   = false
 _routePoints    = {}
 _routeConn      = nil
@@ -1208,7 +1198,6 @@ BtnRecClear.MouseButton1Click:Connect(function()
     RecStatusLbl.Text="0pts"; RecStatusLbl.TextColor3=C.DIM
 end)
 
--- ─── DETAIL VIEW ─────────────────────────────────────────────
 DetailView=N("Frame",{Name="VistaDetalleScript",
     Size=UDim2.new(1,0,1,-(TOFF+4)),
     Position=UDim2.new(SBSC,10,0,TOP_H+4+TOFF),
@@ -1264,8 +1253,6 @@ BtnDPath.MouseButton1Click:Connect(function()
     if E.sclip and _DetailPath then setclipboard(_DetailPath); Flash(BtnDPath,"✓ OK!") end
 end)
 
--- ─── OBJECT SELECTOR TOOL ────────────────────────────────────
--- Panel flotante que muestra datos del objeto seleccionado
 ObjPanel=N("Frame",{Name="PanelSelectorObjeto",
     Size=UDim2.new(0,260,0,220),
     Position=UDim2.new(0,10,0.5,-110),
@@ -1479,7 +1466,6 @@ BtnObjSelector.MouseButton1Click:Connect(function()
     ObjPanel.Visible=not ObjPanel.Visible
 end)
 
--- ─── ACTION BAR ──────────────────────────────────────────────
 ActionBar=N("Frame",{Name="BarraAcciones",Size=UDim2.new(1,0,0,BTH),
     Position=UDim2.new(0,0,1,-(BTH+2)),
     BackgroundColor3=C.PANEL,Parent=RightPanel},
@@ -1518,7 +1504,6 @@ BtnRestore=N("TextButton",{Name="BotonRestaurar",Size=UDim2.new(0,22,0,18),Posit
     BackgroundColor3=C.MAG,Text="-",Font=Enum.Font.GothamBold,TextSize=11,
     TextColor3=Color3.fromRGB(0,0,0),AutoButtonColor=false,ZIndex=52,Parent=MiniBar},{Cor(5)})
 
--- ─── DELAY POPUP ─────────────────────────────────────────────
 DelayPopup=nil
 
 ShowDelayPopup=function(inst, anchorBtn)
@@ -1583,7 +1568,6 @@ ShowDelayPopup=function(inst, anchorBtn)
     end)
 end
 
--- ─── TAB / STATE LOGIC ───────────────────────────────────────
 SelLog=nil; SelCall=nil; SelBtn=nil; CurTab="calls"
 _EditMode=false
 
@@ -1894,7 +1878,6 @@ BtnClear.MouseButton1Click:Connect(function()
     task.spawn(function() for _,d in ipairs(game:GetDescendants()) do HandleInst(d) end end)
 end)
 
--- ─── SCAN LOGIC ──────────────────────────────────────────────
 decompiledScripts={}
 scanReady=false; scanBusy=false
 scanDone=0; scanTotal=0
@@ -2103,7 +2086,6 @@ BtnStartScan.MouseButton1Click:Connect(function()
     end)
 end)
 
--- ─── DRAG ────────────────────────────────────────────────────
 dTgt=nil; dStart=nil; dPos=nil
 
 BeginDrag=function(tgt)
@@ -2133,7 +2115,6 @@ UIS.InputEnded:Connect(function(inp)
     if ut==Enum.UserInputType.MouseButton1 or ut==Enum.UserInputType.Touch then dTgt=nil end
 end)
 
--- ─── RESIZE ──────────────────────────────────────────────────
 rAct=false; rStart=nil; rSz=nil
 ResBtn.InputBegan:Connect(function(inp)
     local ut=inp.UserInputType
@@ -2154,7 +2135,6 @@ UIS.InputEnded:Connect(function(inp)
     if ut==Enum.UserInputType.MouseButton1 or ut==Enum.UserInputType.Touch then rAct=false end
 end)
 
--- ─── MINIMIZE / RESTORE / CLOSE ──────────────────────────────
 BtnMin.MouseButton1Click:Connect(function()
     MiniBar.Position=Main.Position; Main.Visible=false; MiniBar.Visible=true
 end)
@@ -2183,7 +2163,6 @@ BtnClose.MouseButton1Click:Connect(function()
     end)
 end)
 
--- ─── MOUNT ───────────────────────────────────────────────────
 local parentGui=(gethui and gethui()) or CoreGui
 if not pcall(function() Screen.Parent=parentGui end) then Screen.Parent=CoreGui end
 
