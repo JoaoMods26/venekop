@@ -1571,14 +1571,22 @@ ShowDelayPopup=function(inst, anchorBtn)
     bCan.MouseButton1Click:Connect(function()
         if pop and pop.Parent then pop:Destroy(); DelayPopup=nil end
     end)
-    local closeConn
+local closeConn
     task.delay(0.08,function()
         if not pop or not pop.Parent then return end
         closeConn=AddConn(UIS.InputBegan:Connect(function(inp)
             if inp.UserInputType~=Enum.UserInputType.MouseButton1 and inp.UserInputType~=Enum.UserInputType.Touch then return end
-            task.defer(function()
-                if pop and pop.Parent then pop:Destroy(); DelayPopup=nil end
-            end)
+            -- Verificar si el click fue FUERA del popup
+            local mp = UIS:GetMouseLocation()
+            local ap = pop.AbsolutePosition
+            local as = pop.AbsoluteSize
+            local inside = mp.X >= ap.X and mp.X <= ap.X + as.X
+                       and mp.Y >= ap.Y and mp.Y <= ap.Y + as.Y
+            if not inside then
+                task.defer(function()
+                    if pop and pop.Parent then pop:Destroy(); DelayPopup=nil end
+                end)
+            end
         end))
     end)
 end
@@ -1664,8 +1672,8 @@ _OnCall=function(item)
             or cls=="UnreliableRemoteEvent" and "URE"
             or cls=="BindableEvent" and "BE" or "BF"
 
-        local row=N("Frame",{Name="FilaRemote",Size=UDim2.new(1,-4,0,ROW_H),
-            BackgroundColor3=C.ITEM,Parent=RemoteList},{Cor(6)})
+local row=N("Frame",{Name="FilaRemote",Size=UDim2.new(1,-4,0,ROW_H),
+            BackgroundColor3=C.ITEM,LayoutOrder=-totalCalls,Parent=RemoteList},{Cor(6)})
         row:SetAttribute("dir",dir); row:SetAttribute("name",inst.Name:lower())
 
         N("Frame",{Name="FranjaLateral",Size=UDim2.new(0,3,1,0),BackgroundColor3=dotC,
@@ -1761,7 +1769,10 @@ _OnCall=function(item)
     if log.Button then
         local n=#log.Calls
         log.Button.Count.Text=n>99 and "99+" or tostring(n)
+        -- ── Subir al tope: el más reciente queda primero ──
+        log.Button.Frame.LayoutOrder = -totalCalls
         if Delayed[inst] then
+
             Tw(log.Button.Frame,{BackgroundColor3=C.ORANGE:Lerp(C.ITEM,0.7)})
             task.delay(0.3,function()
                 if not _JRM_Alive then return end
