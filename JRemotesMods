@@ -1223,22 +1223,49 @@ DetailView=N("Frame",{Name="VistaDetalleScript",
     Position=UDim2.new(SBSC,10,0,TOP_H+4+TOFF),
     BackgroundColor3=C.PANEL,
     Visible=false,ZIndex=200,Parent=Main},{Cor(9)})
-DTopBar=N("Frame",{Name="BarraDetalleScript",Size=UDim2.new(1,0,0,M and 33 or 40),
+-- DTopBar con 2 filas: fila botones + fila nombre
+local DTOP_H = M and 58 or 68
+DTopBar=N("Frame",{Name="BarraDetalleScript",
+    Size=UDim2.new(1,0,0,DTOP_H),
     BackgroundColor3=C.TOP,ZIndex=201,Parent=DetailView},{Cor(9)})
-DBtn2=function(lbl,bg,xp,bname)
-    local b=N("TextButton",{Name=bname or "BotonDetalle",Size=UDim2.new(0,M and 66 or 80,1,-6),Position=xp,
-        BackgroundColor3=bg,Text=lbl,Font=Enum.Font.GothamBold,TextSize=FSS,
-        TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=202,Parent=DTopBar},{Cor(5)})
+
+local DBTN_H = M and 26 or 32
+local DBtnRow=N("Frame",{Name="FilaBotonesDetalle",
+    Size=UDim2.new(1,0,0,DBTN_H),
+    Position=UDim2.new(0,0,0,0),
+    BackgroundTransparency=1,ZIndex=202,Parent=DTopBar},
+    {Lst(Enum.FillDirection.Horizontal,2),Pad(2,2,2,2)})
+
+DBtn2=function(lbl,bg,bname,w)
+    local b=N("TextButton",{Name=bname or "BotonDetalle",
+        Size=UDim2.new(0,w or (M and 52 or 62),1,0),
+        BackgroundColor3=bg,Text=lbl,
+        Font=Enum.Font.GothamBold,TextSize=M and 7 or 8,
+        TextColor3=Color3.new(1,1,1),AutoButtonColor=false,
+        ZIndex=203,Parent=DBtnRow},{Cor(5)})
     Hvr(b,bg,bg:Lerp(Color3.new(1,1,1),0.2)); return b
 end
-BtnBack  =DBtn2("← Volver",C.BTN, UDim2.new(0,4,0,3),"BotonVolverDetalle")
-BtnDCopy =DBtn2("Código", C.PURP,UDim2.new(0,88,0,3),"BotonCopiarDetalle")
-BtnDPath =DBtn2("Ruta",   C.CYAN,UDim2.new(0,172,0,3),"BotonRutaDetalle")
-DNameLbl =N("TextLabel",{Name="NombreScriptDetalle",Size=UDim2.new(1,-268,1,0),Position=UDim2.new(0,264,0,0),
-    BackgroundTransparency=1,Text="",Font=Enum.Font.GothamBold,TextSize=FSS,
-    TextColor3=C.PURP,TextXAlignment=Enum.TextXAlignment.Left,
-    TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=202,Parent=DTopBar})
-DH=M and 35 or 42
+
+BtnBack  =DBtn2("←",          C.BTN,    "BotonVolverDetalle",  M and 28 or 34)
+BtnFwd   =DBtn2("→",          C.BTN,    "BotonSiguienteDetalle",M and 28 or 34)
+BtnDCopy =DBtn2("Copiar",      C.PURP,   "BotonCopiarDetalle",  M and 40 or 50)
+BtnDPath =DBtn2("Ruta",     C.CYAN,   "BotonRutaDetalle",    M and 40 or 50)
+BtnDDeep =DBtn2("Examinar",     C.MAG,    "BotonAnalizarDetalle",M and 40 or 50)
+BtnDEdit =DBtn2("Editar",     C.ORANGE,  "BotonEditarDetalle",  M and 40 or 50)
+BtnDRun  =DBtn2("Ejecutar",      C.GREEN,   "BotonEjecutarDetalle",M and 40 or 50)
+BtnDClose=DBtn2("X",          C.RED,     "BotonCerrarDetalle",  M and 28 or 34)
+
+DNameLbl=N("TextLabel",{Name="NombreScriptDetalle",
+    Size=UDim2.new(1,-8,0,M and 18 or 22),
+    Position=UDim2.new(0,6,0,DBTN_H+2),
+    BackgroundTransparency=1,Text="",
+    Font=Enum.Font.GothamBold,TextSize=M and 9 or 10,
+    TextColor3=C.PURP,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    TextTruncate=Enum.TextTruncate.AtEnd,
+    ZIndex=202,Parent=DTopBar})
+
+DH = DTOP_H + 2
 
 DScrollWrapper=N("Frame",{Name="ContenedorScrollDetalle",
     Size=UDim2.new(1,-8,1,-(DH+4)),Position=UDim2.new(0,4,0,DH+2),
@@ -1264,15 +1291,658 @@ DCode:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
     DScroll.CanvasSize = UDim2.new(0,0,0,h > DScroll.AbsoluteSize.Y and h or 0)
 end)
 
+
+-- ══════════════════════════════════════════════════════════════════
+-- ANÁLISIS PROFUNDO DE SCRIPT
+-- ══════════════════════════════════════════════════════════════════
+
+AnalyzeDeep=function(src, scriptName)
+    if not src or #src < 2 then return nil end
+
+    local result = {
+        remotes      = {},   -- llamadas a remotes detectadas
+        requires     = {},   -- módulos requeridos
+        functions    = {},   -- funciones definidas
+        websockets   = {},   -- patrones WebSocket / callRemote
+        strings      = {},   -- strings relevantes encontrados
+        summary      = "",
+    }
+
+    -- ── 1. Detectar callRemote / WebSocket patterns ─────────────────
+    -- Patrón: algo.callRemote("RemoteName", "Method", ...)
+    for varName, remoteName, method in src:gmatch(
+        '([%w_]+)%.callRemote%s*%(%s*"([^"]+)"%s*,%s*"([^"]+)"'
+    ) do
+        table.insert(result.websockets, {
+            var=varName, remote=remoteName, method=method,
+            label=varName..'.callRemote("'..remoteName..'", "'..method..'")'
+        })
+    end
+    -- Patrón alternativo: algo.callRemote("RemoteName", "Method" sin segundo arg
+    for varName, remoteName in src:gmatch(
+        '([%w_]+)%.callRemote%s*%(%s*"([^"]+)"%s*[,%)]'
+    ) do
+        local already=false
+        for _,w in ipairs(result.websockets) do
+            if w.var==varName and w.remote==remoteName then already=true; break end
+        end
+        if not already then
+            table.insert(result.websockets,{var=varName,remote=remoteName,method="?",
+                label=varName..'.callRemote("'..remoteName..'")'})
+        end
+    end
+
+    -- ── 2. FireServer / InvokeServer directos ──────────────────────
+    for remotePath, method in src:gmatch('([%w%._%[%]"]+)%s*:%s*(FireServer|InvokeServer|fireServer|invokeServer)%s*%(') do
+        table.insert(result.remotes, {path=remotePath, method=method})
+    end
+    -- Patrón más corto: variable:FireServer(
+    for varName, method in src:gmatch('([%w_]+)%s*:%s*(FireServer|InvokeServer)%s*%(') do
+        local already=false
+        for _,r in ipairs(result.remotes) do
+            if r.path==varName and r.method==method then already=true; break end
+        end
+        if not already then
+            table.insert(result.remotes,{path=varName,method=method})
+        end
+    end
+
+    -- ── 3. Require calls con nombre ────────────────────────────────
+    for arg in src:gmatch('require%s*%(%s*([^%)]+)%s*%)') do
+        arg=arg:match("^%s*(.-)%s*$")
+        -- intentar obtener nombre legible
+        local niceName=arg
+        -- si es algo como v1.Modules.WebSocket → WebSocket
+        niceName=arg:match('%.([%w_]+)%s*$') or arg
+        table.insert(result.requires,{raw=arg, name=niceName})
+    end
+
+    -- ── 4. Funciones definidas ─────────────────────────────────────
+    for cls, fn in src:gmatch('function%s+([%w_]+)%.([%w_]+)%s*%(') do
+        table.insert(result.functions, cls.."."..fn)
+    end
+    for fn in src:gmatch('function%s+([%w_]+)%s*%(') do
+        -- solo funciones sueltas
+        if not fn:find("%.") then
+            table.insert(result.functions, fn)
+        end
+    end
+
+    -- ── 5. Strings relevantes (rutas, nombres, IDs) ───────────────
+    local seenStr={}
+    for s in src:gmatch('"([^"]{4,60})"') do
+        if not seenStr[s] and not s:match("^%-%-") then
+            seenStr[s]=true
+            -- filtrar strings que parecen nombres de remote / método
+            if s:match("^[A-Z]") or s:match("spawn") or s:match("Vehicle")
+            or s:match("Handler") or s:match("System") or s:match("Remote")
+            or s:match("Event") or s:match("Module") then
+                table.insert(result.strings,s)
+            end
+        end
+    end
+
+    -- ── Resumen ────────────────────────────────────────────────────
+    local lines={}
+    table.insert(lines, "═══ ANÁLISIS: "..scriptName.." ═══\n")
+
+    if #result.websockets>0 then
+        table.insert(lines,"── WebSocket / callRemote ──")
+        for _,w in ipairs(result.websockets) do
+            table.insert(lines,"  🌐 Remote : "..w.remote)
+            table.insert(lines,"     Método : "..w.method)
+            table.insert(lines,"     Var    : "..w.var)
+        end
+        table.insert(lines,"")
+    end
+
+    if #result.remotes>0 then
+        table.insert(lines,"── FireServer / InvokeServer ──")
+        for _,r in ipairs(result.remotes) do
+            table.insert(lines,"  🔥 "..r.path.." → "..r.method)
+        end
+        table.insert(lines,"")
+    end
+
+    if #result.requires>0 then
+        table.insert(lines,"── Módulos requeridos ──")
+        for _,r in ipairs(result.requires) do
+            table.insert(lines,"  📦 "..r.name.."  ("..r.raw:sub(1,50)..")")
+        end
+        table.insert(lines,"")
+    end
+
+    if #result.functions>0 then
+        table.insert(lines,"── Funciones definidas ──")
+        for _,f in ipairs(result.functions) do
+            table.insert(lines,"  ƒ  "..f)
+        end
+        table.insert(lines,"")
+    end
+
+    if #result.strings>0 then
+        table.insert(lines,"── Strings relevantes ──")
+        for _,s in ipairs(result.strings) do
+            table.insert(lines,'  "  '..s..'"')
+        end
+        table.insert(lines,"")
+    end
+
+    if #result.websockets==0 and #result.remotes==0 and #result.requires==0 then
+        table.insert(lines,"  (sin patrones detectados en este script)")
+    end
+
+    result.summary=table.concat(lines,"\n")
+    return result
+end
+
+-- Busca instancia de módulo por nombre raw del require
+ResolveRequireInst=function(rawArg)
+    -- limpiar variable prefixes como v1.Modules.X → buscar X
+    local lastName = rawArg:match('%.([%w_]+)%s*$') or rawArg:match('^([%w_]+)$')
+    if not lastName then return nil end
+    for _,d in ipairs(game:GetDescendants()) do
+        if (d:IsA("ModuleScript") or d:IsA("LocalScript")) and d.Name==lastName then
+            return d
+        end
+    end
+    return nil
+end
+
 _DetailSrc=nil; _DetailPath=nil
-BtnBack.MouseButton1Click:Connect(function() DetailView.Visible=false end)
-BtnDCopy.MouseButton1Click:Connect(function()
-    if E.sclip and _DetailSrc then setclipboard(_DetailSrc); Flash(BtnDCopy,"✓ OK!") end
+
+-- ── Stack de navegación ──────────────────────────────────────────
+_NavStack = {}
+_FwdStack = {}   -- stack hacia adelante (para botón ➡)
+
+NavPush=function()
+    -- Al navegar hacia adelante se limpia el stack de forward
+    _FwdStack = {}
+    local editText = nil
+    if _DEditMode and _DEditBox and _DEditBox.Parent then
+        editText = _DEditBox.Text
+    end
+    local srcToSave = _DetailSrc or (DCode and DCode.Text) or ""
+    table.insert(_NavStack, {
+        src         = srcToSave,
+        path        = _DetailPath,
+        name        = DNameLbl and DNameLbl.Text or "",
+        codeText    = DCode and DCode.Text or "",
+        deepVisible = DeepPanel and DeepPanel.Visible or false,
+        editMode    = _DEditMode or false,
+        editText    = editText,
+        scrollY     = DScroll and DScroll.CanvasPosition.Y or 0,
+    })
+    -- Actualizar botón forward si existe
+    if BtnFwd then BtnFwd.TextColor3 = C.DIM end
+    if BtnBack then BtnBack.TextColor3 = #_NavStack > 0 and C.TEXT or C.DIM end
+end
+
+NavSaveCurrentToFwd=function()
+    -- Guarda el estado actual en el stack forward antes de ir atrás
+    local editText = nil
+    if _DEditMode and _DEditBox and _DEditBox.Parent then
+        editText = _DEditBox.Text
+    end
+    table.insert(_FwdStack, {
+        src         = _DetailSrc,
+        path        = _DetailPath,
+        name        = DNameLbl and DNameLbl.Text or "",
+        codeText    = DCode and DCode.Text or "",
+        deepVisible = DeepPanel and DeepPanel.Visible or false,
+        editMode    = _DEditMode or false,
+        editText    = editText,
+        scrollY     = DScroll and DScroll.CanvasPosition.Y or 0,
+    })
+end
+
+NavRestore=function(entry)
+    if not entry then return false end
+_DetailSrc  = entry.src or entry.codeText or ""
+    _DetailPath = entry.path
+    if DNameLbl then DNameLbl.Text = entry.name end
+
+    if _DEditMode then
+        if _DEditBox and _DEditBox.Parent then _DEditBox.Visible = false end
+        DCode.Visible = true
+        _DEditMode = false
+        if BtnDEdit and BtnDEdit.Parent then
+            BtnDEdit.Text = "✏ Edit"
+            BtnDEdit.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.38)
+        end
+    end
+
+    if DCode then
+        DCode.Text = entry.codeText or entry.src or "-- (vacío)"
+        DCode.Visible = true
+    end
+
+    if DeepPanel then DeepPanel.Visible = entry.deepVisible end
+
+    if entry.editMode and entry.editText then
+        _DEditMode = true
+        if not _DEditBox or not _DEditBox.Parent then
+            _DEditBox = N("TextBox",{
+                Name="EditorDetalleInline",
+                Size=UDim2.new(1,-18,0,20),
+                Position=UDim2.new(0,9,0,8),
+                AutomaticSize=Enum.AutomaticSize.Y,
+                BackgroundTransparency=1,
+                Text=entry.editText,
+                Font=Enum.Font.Code, TextSize=FS,
+                TextColor3=Color3.fromRGB(180,240,200),
+                TextXAlignment=Enum.TextXAlignment.Left,
+                TextYAlignment=Enum.TextYAlignment.Top,
+                TextWrapped=true, MultiLine=true,
+                ClearTextOnFocus=false,
+                ZIndex=203, Parent=DScroll
+            })
+        else
+            _DEditBox.Text = entry.editText
+            _DEditBox.Visible = true
+        end
+        DCode.Visible = false
+        if BtnDEdit then
+            BtnDEdit.Text = "👁 Ver"
+            BtnDEdit.BackgroundColor3 = C.ORANGE
+        end
+    end
+
+    task.defer(function()
+        if DScroll and DScroll.Parent then
+            DScroll.CanvasPosition = Vector2.new(0, entry.scrollY or 0)
+        end
+        if DCode and DCode.Parent then
+            local h = DCode.AbsoluteSize.Y + 32
+            DScroll.CanvasSize = UDim2.new(0,0,0,
+                h > DScroll.AbsoluteSize.Y and h or 0)
+        end
+    end)
+
+    -- Actualizar colores de botones nav
+    if BtnBack then BtnBack.TextColor3 = #_NavStack > 0 and C.TEXT or C.DIM end
+    if BtnFwd  then BtnFwd.TextColor3  = #_FwdStack > 0 and C.TEXT or C.DIM end
+    return true
+end
+
+NavPop=function()
+    if #_NavStack == 0 then return false end
+    NavSaveCurrentToFwd()
+    local entry = table.remove(_NavStack)
+    return NavRestore(entry)
+end
+
+NavFwd=function()
+    if #_FwdStack == 0 then return false end
+    -- Guardar actual en back stack SIN limpiar forward
+    local editText = nil
+    if _DEditMode and _DEditBox and _DEditBox.Parent then
+        editText = _DEditBox.Text
+    end
+    table.insert(_NavStack, {
+        src         = _DetailSrc,
+        path        = _DetailPath,
+        name        = DNameLbl and DNameLbl.Text or "",
+        codeText    = DCode and DCode.Text or "",
+        deepVisible = DeepPanel and DeepPanel.Visible or false,
+        editMode    = _DEditMode or false,
+        editText    = editText,
+        scrollY     = DScroll and DScroll.CanvasPosition.Y or 0,
+    })
+    local entry = table.remove(_FwdStack)
+    return NavRestore(entry)
+end
+-- Panel análisis (se superpone sobre DetailView)
+DeepPanel=N("Frame",{Name="PanelAnalisisProfundo",
+    Size=UDim2.new(1,0,1,-(DH+4)),
+    Position=UDim2.new(0,0,0,DH+2),
+    BackgroundColor3=C.CODE,
+    Visible=false,ZIndex=210,Parent=DetailView},
+    {Cor(9),Str(C.MAG,1)})
+
+N("Frame",{Name="BordeMagDeep",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.22,0,0,0),BackgroundColor3=C.MAG,ZIndex=220,Parent=DeepPanel})
+N("Frame",{Name="BordePurpDeep",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.50,0,0,0),BackgroundColor3=C.PURP,ZIndex=220,Parent=DeepPanel})
+
+local DPTop=N("Frame",{Name="TopDeep",Size=UDim2.new(1,0,0,26),Position=UDim2.new(0,0,0,2),
+    BackgroundColor3=C.TOP,ZIndex=211,Parent=DeepPanel},{Cor(7)})
+N("TextLabel",{Name="TituloDeep",Size=UDim2.new(1,-90,1,0),Position=UDim2.new(0,8,0,0),
+    BackgroundTransparency=1,Text="🔬 Análisis Profundo",
+    Font=Enum.Font.GothamBold,TextSize=10,TextColor3=C.MAG,
+    TextXAlignment=Enum.TextXAlignment.Left,ZIndex=212,Parent=DPTop})
+
+local BtnDeepClose=N("TextButton",{Name="CerrarDeep",
+    Size=UDim2.new(0,22,0,16),Position=UDim2.new(1,-26,0.5,-8),
+    BackgroundColor3=C.BTN,Text="X",Font=Enum.Font.GothamBold,TextSize=9,
+    TextColor3=C.RED,AutoButtonColor=false,ZIndex=212,Parent=DPTop},{Cor(4)})
+local BtnDeepCopy=N("TextButton",{Name="CopiarDeep",
+    Size=UDim2.new(0,68,0,16),Position=UDim2.new(1,-98,0.5,-8),
+    BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.4),
+    Text="📋 Copiar",Font=Enum.Font.GothamBold,TextSize=8,
+    TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=212,Parent=DPTop},{Cor(4)})
+Hvr(BtnDeepClose,C.BTN,C.RED:Lerp(C.BTN,0.4))
+Hvr(BtnDeepCopy,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.4),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.15))
+
+-- Scroll de resultados del análisis
+local DeepScroll=N("ScrollingFrame",{Name="ScrollDeep",
+    Size=UDim2.new(1,-8,1,-34),Position=UDim2.new(0,4,0,30),
+    BackgroundColor3=C.CODE,
+    ScrollBarThickness=4,ScrollBarImageColor3=C.MAG,
+    ScrollBarImageTransparency=0.2,
+    CanvasSize=UDim2.new(0,0,0,0),
+    AutomaticCanvasSize=Enum.AutomaticSize.Y,
+    ScrollingDirection=Enum.ScrollingDirection.Y,
+    ElasticBehavior=Enum.ElasticBehavior.Never,
+    ZIndex=211,Parent=DeepPanel})
+
+-- Contenedor de tarjetas del análisis
+local DeepContent=N("Frame",{Name="ContenidoDeep",
+    Size=UDim2.new(1,-4,0,0),
+    AutomaticSize=Enum.AutomaticSize.Y,
+    BackgroundTransparency=1,
+    ZIndex=212,Parent=DeepScroll},
+    {Lst(nil,6),Pad(6,6,6,6)})
+
+_deepAnalysisText=""
+
+-- Función para crear sección en el panel
+MakeDeepSection=function(title, color, items, actionFn)
+    if #items==0 then return end
+    local sec=N("Frame",{Name="SeccionDeep_"..title,
+        Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,
+        BackgroundColor3=C.ITEM,ZIndex=213,Parent=DeepContent},{Cor(7),Str(color:Lerp(C.BORDER,0.5),1)})
+    N("Frame",{Name="FranjaSec",Size=UDim2.new(0,3,1,0),BackgroundColor3=color,ZIndex=214,Parent=sec})
+
+    local hdrH=M and 20 or 22
+    local hdr=N("Frame",{Name="HeaderSec",Size=UDim2.new(1,0,0,hdrH),
+        BackgroundColor3=color:Lerp(C.ITEM,0.7),ZIndex=214,Parent=sec},{Cor(6)})
+    N("TextLabel",{Name="TituloSec",Size=UDim2.new(1,-8,1,0),Position=UDim2.new(0,8,0,0),
+        BackgroundTransparency=1,Text=title,
+        Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=color,
+        TextXAlignment=Enum.TextXAlignment.Left,ZIndex=215,Parent=hdr})
+
+    local itemsFrame=N("Frame",{Name="ItemsSec",
+        Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,
+        BackgroundTransparency=1,ZIndex=213,Parent=sec},
+        {Lst(nil,2),Pad(4,4,2,4)})
+
+    for _,item in ipairs(items) do
+        local rowH=M and 22 or 26
+        local row=N("Frame",{Name="RowDeep",Size=UDim2.new(1,-4,0,rowH),
+            BackgroundColor3=C.ITEM,ZIndex=214,Parent=itemsFrame},{Cor(4)})
+        N("TextLabel",{Name="TxtRow",
+            Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,6,0,0),
+            BackgroundTransparency=1,
+            Text=item.label or item,
+            Font=Enum.Font.Code,TextSize=FSX,
+            TextColor3=item.color or color,
+            TextXAlignment=Enum.TextXAlignment.Left,
+            TextTruncate=Enum.TextTruncate.AtEnd,
+            ZIndex=215,Parent=row})
+        if actionFn then
+            local btn=N("TextButton",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,
+                Text="",AutoButtonColor=false,ZIndex=216,Parent=row})
+            btn.MouseEnter:Connect(function() row.BackgroundColor3=C.ITEMH end)
+            btn.MouseLeave:Connect(function() row.BackgroundColor3=C.ITEM end)
+            local capItem=item
+            btn.MouseButton1Click:Connect(function() actionFn(capItem) end)
+        end
+    end
+end
+
+-- Función principal que rellena el panel
+RunDeepAnalysis=function()
+    if not _DetailSrc or #_DetailSrc<2 then
+        Flash(BtnDDeep,"Sin código!"); return
+    end
+    -- limpiar contenido anterior
+    for _,v in ipairs(DeepContent:GetChildren()) do
+        if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
+    end
+    DeepPanel.Visible=true
+    DeepScroll.CanvasPosition=Vector2.new(0,0)
+
+    local name=DNameLbl.Text:gsub("[📜📦%s]",""):match("^(.-)%s*%(") or "script"
+    local analysis=AnalyzeDeep(_DetailSrc, name)
+    if not analysis then Flash(BtnDDeep,"Error!"); return end
+
+    _deepAnalysisText=analysis.summary
+
+    -- ── WebSocket / callRemote ──────────────────────────────────────
+    if #analysis.websockets>0 then
+        local wItems={}
+        for _,w in ipairs(analysis.websockets) do
+            table.insert(wItems,{
+                label="🌐 "..w.remote.."  →  "..w.method,
+                color=C.CYAN, remote=w.remote, method=w.method
+            })
+        end
+        MakeDeepSection("🌐 WebSocket / callRemote",C.CYAN,wItems,function(item)
+            -- Copiar template de llamada
+            if E.sclip then
+                local code=('-- Llamada detectada por JRM\n%s.callRemote("%s", "%s", --[[args]])'):format(
+                    "ws",item.remote,item.method)
+                setclipboard(code); Flash(BtnDeepCopy,"✓ Copiado!")
+            end
+        end)
+    end
+
+    -- ── FireServer / InvokeServer ───────────────────────────────────
+    if #analysis.remotes>0 then
+        local rItems={}
+        for _,r in ipairs(analysis.remotes) do
+            table.insert(rItems,{
+                label="🔥 "..r.path.."  →  "..r.method,
+                color=C.YELLOW, path=r.path, method=r.method
+            })
+        end
+        MakeDeepSection("🔥 FireServer / InvokeServer",C.YELLOW,rItems,function(item)
+            if E.sclip then
+                local code=('-- Remote detectado por JRM\ngame:GetService("ReplicatedStorage"):FindFirstChild("%s"):FireServer(--[[args]])'):format(item.path)
+                setclipboard(code); Flash(BtnDeepCopy,"✓ Copiado!")
+            end
+        end)
+    end
+
+    -- ── Módulos requeridos (clickables para decompile) ──────────────
+    if #analysis.requires>0 then
+        local modItems={}
+        for _,r in ipairs(analysis.requires) do
+            table.insert(modItems,{
+                label="📦 "..r.name.."  ("..r.raw:sub(1,38)..")",
+                color=C.MAG, raw=r.raw, name=r.name
+            })
+        end
+        MakeDeepSection("📦 Módulos requeridos",C.MAG,modItems,function(item)
+            -- Intentar abrir el módulo
+            local inst=ResolveRequireInst(item.raw)
+            DeepPanel.Visible=false
+            if not inst then
+                DCode.Text="-- Módulo '"..item.name.."' no localizado en el árbol\n-- Raw: "..item.raw
+                DNameLbl.Text="📦 "..item.name
+                _DetailSrc=DCode.Text; return
+            end
+            local icon2=inst:IsA("ModuleScript") and "📦" or "📜"
+            DCode.Text="-- ⏳ Descompilando "..inst.Name.."..."
+            DNameLbl.Text=icon2.." "..inst.Name.." ("..inst.ClassName..")"
+            _DetailSrc=nil; _DetailPath=inst:GetFullName()
+            DScroll.CanvasPosition=Vector2.new(0,0)
+            DecompLazy(inst,function(res)
+                local preview=res.src
+                if #preview>14000 then preview=res.src:sub(1,14000).."\n\n-- [... truncado]" end
+                DCode.Text=preview; _DetailSrc=res.src
+                task.defer(function()
+                    if DCode and DCode.Parent then
+                        local h=DCode.AbsoluteSize.Y+40
+                        DScroll.CanvasSize=UDim2.new(0,0,0,h>DScroll.AbsoluteSize.Y and h or 0)
+                    end
+                end)
+            end)
+        end)
+    end
+
+    -- ── Funciones ───────────────────────────────────────────────────
+    if #analysis.functions>0 then
+        local fnItems={}
+        for _,f in ipairs(analysis.functions) do
+            table.insert(fnItems,{label="ƒ  "..f, color=C.GREEN})
+        end
+        MakeDeepSection("ƒ Funciones definidas",C.GREEN,fnItems,nil)
+    end
+
+    -- ── Strings relevantes ──────────────────────────────────────────
+    if #analysis.strings>0 then
+        local strItems={}
+        for _,s in ipairs(analysis.strings) do
+            table.insert(strItems,{
+                label='"'..s..'"', color=C.ORANGE, str=s
+            })
+        end
+        MakeDeepSection("📝 Strings relevantes",C.ORANGE,strItems,function(item)
+            if E.sclip then setclipboard(item.str); Flash(BtnDeepCopy,'✓ "'..item.str:sub(1,16)..'"') end
+        end)
+    end
+
+    -- Si no hay nada
+    local total=#analysis.websockets+#analysis.remotes+#analysis.requires+#analysis.functions
+    if total==0 then
+        N("TextLabel",{Name="SinResultados",
+            Size=UDim2.new(1,-12,0,40),
+            BackgroundTransparency=1,
+            Text="Sin patrones detectados en este script.\nPuede estar ofuscado o ser muy simple.",
+            Font=Enum.Font.Gotham,TextSize=FSS,TextColor3=C.DIM,
+            TextXAlignment=Enum.TextXAlignment.Center,
+            TextYAlignment=Enum.TextYAlignment.Center,
+            TextWrapped=true,ZIndex=213,Parent=DeepContent})
+    end
+end
+
+BtnDeepClose.MouseButton1Click:Connect(function()
+    DeepPanel.Visible = false
 end)
-BtnDPath.MouseButton1Click:Connect(function()
-    if E.sclip and _DetailPath then setclipboard(_DetailPath); Flash(BtnDPath,"✓ OK!") end
+BtnDeepCopy.MouseButton1Click:Connect(function()
+    if E.sclip and _deepAnalysisText~="" then
+        setclipboard(_deepAnalysisText); Flash(BtnDeepCopy,"✓ Copiado!")
+    end
 end)
 
+BtnBack.MouseButton1Click:Connect(function()
+    if DeepPanel and DeepPanel.Visible then
+        DeepPanel.Visible = false
+        return
+    end
+    if #_NavStack > 0 then
+        NavPop()
+    else
+        -- Stack vacío = cerrar el DetailView (volver a la lista)
+        DetailView.Visible = false
+    end
+    if BtnBack then BtnBack.TextColor3 = #_NavStack > 0 and C.TEXT or C.DIM end
+    if BtnFwd  then BtnFwd.TextColor3  = #_FwdStack > 0 and C.TEXT or C.DIM end
+end)
+
+BtnFwd.MouseButton1Click:Connect(function()
+    if #_FwdStack > 0 then
+        NavFwd()
+    end
+end)
+
+BtnDClose.MouseButton1Click:Connect(function()
+    DeepPanel.Visible = false
+    DetailView.Visible = false
+    _DEditMode = false
+    if DCode then DCode.Visible = true end
+    if _DEditBox and _DEditBox.Parent then _DEditBox.Visible = false end
+    if BtnDEdit then
+        BtnDEdit.Text = "✏ Edit"
+        BtnDEdit.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.38)
+    end
+end)
+
+BtnDDeep.MouseButton1Click:Connect(function()
+    if DeepPanel.Visible then
+        DeepPanel.Visible = false
+    else
+        RunDeepAnalysis()
+    end
+end)
+
+BtnDCopy.MouseButton1Click:Connect(function()
+    if not E.sclip then return end
+    local code = (_DEditMode and _DEditBox and _DEditBox.Parent)
+        and _DEditBox.Text or _DetailSrc
+    if code then setclipboard(code); Flash(BtnDCopy,"✓ OK!")
+    else Flash(BtnDCopy,"⏳ Cargando...") end
+end)
+
+BtnDPath.MouseButton1Click:Connect(function()
+    if not E.sclip then return end
+    local path = _DetailPath or ""
+    if path ~= "" then setclipboard(path); Flash(BtnDPath,"✓ Ruta!")
+    else Flash(BtnDPath,"Sin ruta") end
+end)
+-- ── Editor inline del DetailView ─────────────────────────────────
+-- ── Editor inline del DetailView ─────────────────────────────────
+_DEditMode = false
+_DEditBox  = nil
+
+BtnDEdit.MouseButton1Click:Connect(function()
+    _DEditMode = not _DEditMode
+    if _DEditMode then
+        BtnDEdit.Text = "👁 Ver"
+        BtnDEdit.BackgroundColor3 = C.ORANGE
+        if not _DEditBox or not _DEditBox.Parent then
+            _DEditBox = N("TextBox",{
+                Name="EditorDetalleInline",
+                Size=UDim2.new(1,-18,0,20),
+                Position=UDim2.new(0,9,0,8),
+                AutomaticSize=Enum.AutomaticSize.Y,
+                BackgroundTransparency=1,
+                Text=_DetailSrc or DCode.Text or "",
+                Font=Enum.Font.Code, TextSize=FS,
+                TextColor3=Color3.fromRGB(180,240,200),
+                TextXAlignment=Enum.TextXAlignment.Left,
+                TextYAlignment=Enum.TextYAlignment.Top,
+                TextWrapped=true, MultiLine=true,
+                ClearTextOnFocus=false,
+                ZIndex=203, Parent=DScroll
+            })
+        else
+            _DEditBox.Text = _DetailSrc or DCode.Text or ""
+            _DEditBox.Visible = true
+        end
+        DCode.Visible = false
+        task.defer(function()
+            if _DEditBox and _DEditBox.Parent then
+                _DEditBox:CaptureFocus()
+            end
+        end)
+    else
+        BtnDEdit.Text = "✏ Edit"
+        BtnDEdit.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.38)
+        if _DEditBox and _DEditBox.Parent then
+            _DetailSrc = _DEditBox.Text
+            DCode.Text = _DetailSrc
+            _DEditBox.Visible = false
+        end
+        DCode.Visible = true
+    end
+end)
+
+BtnDRun.MouseButton1Click:Connect(function()
+    local code = (_DEditMode and _DEditBox and _DEditBox.Parent)
+        and _DEditBox.Text
+        or _DetailSrc
+    if not code or code == "" then Flash(BtnDRun,"Sin código!"); return end
+    local fn, err = loadstring(code)
+    if fn then
+        local ok, e = pcall(fn)
+        if ok then Flash(BtnDRun,"✓ Ejecutado!")
+        else warn("[JRM Detail]", e); Flash(BtnDRun,"⚠ Error") end
+    else
+        warn("[JRM Detail] parse:", err)
+        Flash(BtnDRun,"⚠ Sintaxis")
+    end
+end)
 -- ══════════════════════════════════════════════════════════════════
 -- OBJ PANEL (igual que antes)
 -- ══════════════════════════════════════════════════════════════════
@@ -1619,10 +2289,315 @@ ScrollBot=function(sf)
     end)
 end
 
+-- ── Cache de decompilaciones lazy ──────────────────────────────────
+_decompCache = {}   -- [Instance] = {src=string, status="ok"|"err"|"pending"}
+
+DecompLazy=function(scr, onDone)
+    if _decompCache[scr] then
+        if onDone then onDone(_decompCache[scr]) end
+        return
+    end
+    if not E.dec or not E.gsb then
+        local r={src="-- decompile() no disponible en este executor",status="err"}
+        _decompCache[scr]=r; if onDone then onDone(r) end; return
+    end
+    task.spawn(function()
+        local ok1,bc=pcall(getscriptbytecode,scr)
+        if not ok1 or not bc or #bc==0 then
+            local r={src="-- Sin bytecode (script protegido o vacío)",status="err"}
+            _decompCache[scr]=r; if onDone then onDone(r) end; return
+        end
+        local ok2,raw=pcall(decompile,scr)
+        if not ok2 or type(raw)~="string" or #raw<2 then
+            local r={src="-- Decompilación fallida",status="err"}
+            _decompCache[scr]=r; if onDone then onDone(r) end; return
+        end
+        -- ── Anotar con comentarios útiles ──────────────────────────
+        local header=table.concat({
+            "-- ╔══════════════════════════════════════════════════════╗",
+            "-- ║  Decompilado por Joao_Mods                          ║",
+            "-- ╠══════════════════════════════════════════════════════╣",
+            ("-- ║  Nombre  : %-40s║"):format(scr.Name:sub(1,40)),
+            ("-- ║  Clase   : %-40s║"):format(scr.ClassName:sub(1,40)),
+            ("-- ║  ID      : %-40s║"):format(tostring(scr):sub(1,40)),
+            ("-- ║  Ruta    : %-40s║"):format(scr:GetFullName():sub(1,40)),
+            "-- ╚══════════════════════════════════════════════════════╝",
+            "",
+        },"\n")
+        -- Anotar require() calls con comentario inline
+        local annotated=raw:gsub("(require%s*%(%s*)([^%)]+)(%s*%))",function(pre,arg,post)
+            return pre..arg..post.."  --[[ require: "..arg:gsub("%s",""):sub(1,40).." ]]"
+        end)
+        -- Anotar FireServer / InvokeServer con comentario
+        annotated=annotated:gsub("(:[Ff]ire[Ss]erver%s*%()",function(m)
+            return m.."  --[[ → FireServer ]]"
+        end)
+        annotated=annotated:gsub("(:[Ii]nvoke[Ss]erver%s*%()",function(m)
+            return m.."  --[[ → InvokeServer ]]"
+        end)
+        local r={src=header..annotated,status="ok",name=scr.Name,
+            path=scr:GetFullName(),stype=scr.ClassName}
+        _decompCache[scr]=r; if onDone then onDone(r) end
+    end)
+end
+
+-- ── Busca módulos requeridos por un script ──────────────────────────
+FindRequiredModules=function(scr)
+    local mods={}; local seen={}
+    if not _decompCache[scr] or _decompCache[scr].status~="ok" then return mods end
+    local src=_decompCache[scr].src
+    for arg in src:gmatch("require%s*%(%s*([^%)]+)%s*%)") do
+        arg=arg:match("^%s*(.-)%s*$")
+        if not seen[arg] then
+            seen[arg]=true
+            -- intentar resolver la instancia
+            local inst=nil
+            pcall(function()
+                -- buscar por nombre en todo el juego
+                for _,d in ipairs(game:GetDescendants()) do
+                    if (d:IsA("ModuleScript") or d:IsA("LocalScript")) and d.Name==arg then
+                        inst=d; break
+                    end
+                end
+            end)
+            table.insert(mods,{arg=arg,inst=inst})
+        end
+    end
+    return mods
+end
+
+-- ── Menú desplegable de trazabilidad por llamada ───────────────────
+_openDropdown=nil   -- referencia al dropdown activo
+
+CloseDropdown=function()
+    if _openDropdown and _openDropdown.Parent then
+        _openDropdown:Destroy()
+    end
+    _openDropdown=nil
+end
+
+ShowCallDropdown=function(anchorBtn, cd, parentScreen)
+    CloseDropdown()
+
+    local originScript = cd.Origin
+    local isExec       = cd.IsExecutor
+
+    local ap  = anchorBtn.AbsolutePosition
+    local asz = anchorBtn.AbsoluteSize
+
+    local PW = 240
+    local items = {}
+
+    if originScript and typeof(originScript)=="Instance" then
+        table.insert(items,{
+            icon="📜", label="Ver Script: "..originScript.Name:sub(1,24),
+            color=C.CYAN, action="script", inst=originScript
+        })
+    elseif isExec then
+        table.insert(items,{icon="⚙", label="Origen: Executor", color=C.ORANGE, action="none"})
+    else
+        table.insert(items,{icon="❓", label="Origen desconocido", color=C.DIM, action="none"})
+    end
+
+    if originScript and _decompCache[originScript] and _decompCache[originScript].status=="ok" then
+        local mods=FindRequiredModules(originScript)
+        for _,m in ipairs(mods) do
+            table.insert(items,{
+                icon="📦", label="Módulo: "..(m.arg or "?"):sub(1,24),
+                color=C.MAG, action="module", inst=m.inst, arg=m.arg
+            })
+        end
+    end
+
+    if originScript and typeof(originScript)=="Instance" then
+        table.insert(items,{
+            icon="📋", label="Copiar ruta del script",
+            color=C.PURP, action="copypath", inst=originScript
+        })
+    end
+
+    local itemH  = M and 30 or 34
+    local PH     = 36 + #items * (itemH + 3) + 6
+
+    local vpSize = workspace.CurrentCamera.ViewportSize
+    local py     = ap.Y + asz.Y + 4
+    if py + PH > vpSize.Y - 4 then py = ap.Y - PH - 4 end
+    local px     = ap.X - PW + asz.X
+    px = math.max(4, math.min(px, vpSize.X - PW - 4))
+
+    local drop = N("Frame",{
+        Name="DropdownLlamada",
+        Size=UDim2.new(0,PW,0,PH),
+        Position=UDim2.new(0,px,0,py),
+        BackgroundColor3=C.BG,
+        ClipsDescendants=false,
+        ZIndex=900,
+        Parent=parentScreen or Screen
+    },{Cor(10),Str(C.BORDER,1)})
+    _openDropdown=drop
+
+    N("Frame",{Name="BordeCyan",Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.22,0,0,0),BackgroundColor3=C.CYAN,ZIndex=910,Parent=drop})
+    N("Frame",{Name="BordeMag", Size=UDim2.new(0.28,0,0,2),Position=UDim2.new(0.50,0,0,0),BackgroundColor3=C.MAG, ZIndex=910,Parent=drop})
+    local topD=N("Frame",{Name="TopDrop",Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,2),
+        BackgroundColor3=C.TOP,ZIndex=901,Parent=drop},{Cor(8)})
+    N("TextLabel",{Name="TituloDrop",
+        Size=UDim2.new(1,-34,1,0),Position=UDim2.new(0,8,0,0),
+        BackgroundTransparency=1,
+        Text="🔗 Llamada #"..tostring(cd.Index),
+        Font=Enum.Font.GothamBold,TextSize=9,TextColor3=C.CYAN,
+        TextXAlignment=Enum.TextXAlignment.Left,ZIndex=902,Parent=topD})
+    local bX=N("TextButton",{Name="CerrarDrop",
+        Size=UDim2.new(0,20,0,16),Position=UDim2.new(1,-24,0.5,-8),
+        BackgroundColor3=C.BTN,Text="X",Font=Enum.Font.GothamBold,TextSize=9,
+        TextColor3=C.RED,AutoButtonColor=false,ZIndex=902,Parent=topD},{Cor(4)})
+    bX.MouseButton1Click:Connect(CloseDropdown)
+
+    local itemsContainer=N("Frame",{
+        Name="ItemsDrop",
+        Size=UDim2.new(1,-8,0,#items*(itemH+3)+4),
+        Position=UDim2.new(0,4,0,34),
+        BackgroundTransparency=1,
+        ZIndex=901,Parent=drop
+    },{Lst(nil,3),Pad(2,2,2,2)})
+
+    for idx,item in ipairs(items) do
+        -- Frame outer (solo visual, no captura clicks)
+        local ib=N("Frame",{
+            Name="ItemDrop_"..idx,
+            Size=UDim2.new(1,0,0,itemH),
+            BackgroundColor3=C.ITEM,
+            ZIndex=902,Parent=itemsContainer
+        },{Cor(5)})
+        N("TextLabel",{Name="IconoItem",
+            Size=UDim2.new(0,22,1,0),Position=UDim2.new(0,4,0,0),
+            BackgroundTransparency=1,Text=item.icon,
+            Font=Enum.Font.GothamBold,TextSize=M and 11 or 13,
+            TextColor3=item.color,ZIndex=904,Parent=ib})
+        N("TextLabel",{Name="LabelItem",
+            Size=UDim2.new(1,-30,1,0),Position=UDim2.new(0,28,0,0),
+            BackgroundTransparency=1,Text=item.label,
+            Font=Enum.Font.Gotham,TextSize=M and 8 or 9,
+            TextColor3=item.color,
+            TextXAlignment=Enum.TextXAlignment.Left,
+            TextTruncate=Enum.TextTruncate.AtEnd,
+            ZIndex=904,Parent=ib})
+
+        -- TextButton ENCIMA del frame para capturar clicks
+        local btn=N("TextButton",{
+            Name="BtnItem_"..idx,
+            Size=UDim2.new(1,0,1,0),
+            BackgroundTransparency=1,
+            Text="",AutoButtonColor=false,
+            ZIndex=905,Parent=ib
+        })
+        btn.MouseEnter:Connect(function() ib.BackgroundColor3=C.ITEMH end)
+        btn.MouseLeave:Connect(function() ib.BackgroundColor3=C.ITEM end)
+
+        if item.action=="none" then
+            -- sin acción
+
+        elseif item.action=="script" or item.action=="module" then
+            local capInst=item.inst; local capItem=item
+btn.MouseButton1Click:Connect(function()
+    if DetailView.Visible then NavPush() end
+    if drop and drop.Parent then drop:Destroy() end
+    _openDropdown = nil
+
+    -- Resetear editor y DeepPanel
+    if _DEditMode then
+        if _DEditBox and _DEditBox.Parent then _DEditBox.Visible = false end
+        DCode.Visible = true
+        _DEditMode = false
+        if BtnDEdit then
+            BtnDEdit.Text = "✏ Edit"
+            BtnDEdit.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.38)
+        end
+    end
+    if DeepPanel then DeepPanel.Visible = false end
+
+    local target = capInst
+    if not target then
+        for _,d in ipairs(game:GetDescendants()) do
+            if d.Name == capItem.arg then target = d; break end
+        end
+    end
+
+    if not target then
+        DCode.Text = "-- Módulo '"..tostring(capItem.arg or "?").."' no localizado\n-- Puede ser require por ID numérico o path dinámico"
+        DNameLbl.Text = "📦 "..(capItem.arg or "desconocido")
+        _DetailSrc = DCode.Text; _DetailPath = ""
+        DetailView.Visible = true
+        DScroll.CanvasPosition = Vector2.new(0,0)
+        return
+    end
+
+    local icon2 = target:IsA("ModuleScript") and "📦" or "📜"
+    DCode.Text = "-- ⏳ Descompilando "..target.Name.."..."
+    DNameLbl.Text = icon2.." "..target.Name.." ("..target.ClassName..")"
+    _DetailSrc = nil; _DetailPath = target:GetFullName()
+    DetailView.Visible = true
+    DScroll.CanvasPosition = Vector2.new(0,0)
+
+    DecompLazy(target, function(res)
+        if not DetailView.Visible then return end
+        local preview = res.src
+        if #preview > 14000 then
+            preview = res.src:sub(1,14000).."\n\n-- [... truncado — total "..(#res.src).." chars]"
+        end
+        DCode.Text = preview
+        _DetailSrc = res.src
+        task.defer(function()
+            if DCode and DCode.Parent then
+                local h = DCode.AbsoluteSize.Y + 32
+                DScroll.CanvasSize = UDim2.new(0,0,0,
+                    h > DScroll.AbsoluteSize.Y and h or 0)
+            end
+        end)
+    end)
+end)
+
+        elseif item.action=="copypath" then
+            local capInst=item.inst
+            btn.MouseButton1Click:Connect(function()
+                if drop and drop.Parent then drop:Destroy() end
+                _openDropdown=nil
+                if E.sclip then
+                    setclipboard(GetPath(capInst))
+                    -- feedback en el DetailView o en el botón de acción global
+                    Flash(BtnCopy,"✓ Ruta copiada!")
+                end
+            end)
+        end
+    end
+
+    -- ── Cerrar al click FUERA — con delay para no pisar el click del botón ──
+    local closeConn2
+    task.delay(0.15, function()
+        if not drop or not drop.Parent then return end
+        closeConn2 = UIS.InputBegan:Connect(function(inp)
+            if inp.UserInputType~=Enum.UserInputType.MouseButton1
+            and inp.UserInputType~=Enum.UserInputType.Touch then return end
+            if not drop or not drop.Parent then
+                if closeConn2 then closeConn2:Disconnect() end; return
+            end
+            local mp=UIS:GetMouseLocation()
+            local ap2=drop.AbsolutePosition; local as2=drop.AbsoluteSize
+            local inside = mp.X>=ap2.X and mp.X<=ap2.X+as2.X
+                       and mp.Y>=ap2.Y and mp.Y<=ap2.Y+as2.Y
+            if not inside then
+                if closeConn2 then closeConn2:Disconnect() end
+                if drop and drop.Parent then drop:Destroy() end
+                if _openDropdown==drop then _openDropdown=nil end
+            end
+        end)
+    end)
+end
+
+-- ── AddCallRow modificado ───────────────────────────────────────────
 AddCallRow=function(log,cd)
     if not SelLog or SelLog~=log then return end
     local n=cd.Arguments.n or #cd.Arguments
-    local row=N("Frame",{Name="FilaLlamada",Size=UDim2.new(1,-4,0,24),
+    local row=N("Frame",{Name="FilaLlamada",Size=UDim2.new(1,-4,0,26),
         BackgroundColor3=C.ITEM,Parent=CallsScroll},{Cor(4)})
     N("TextLabel",{Name="IndiceCall",Size=UDim2.new(0,26,1,0),BackgroundTransparency=1,
         Text="#"..tostring(cd.Index),Font=Enum.Font.GothamBold,
@@ -1631,16 +2606,40 @@ AddCallRow=function(log,cd)
     N("TextLabel",{Name="CantidadArgs",Size=UDim2.new(0,32,1,0),Position=UDim2.new(0,28,0,0),
         BackgroundTransparency=1,Text=n.."arg"..(n~=1 and "s" or ""),
         Font=Enum.Font.Gotham,TextSize=9,TextColor3=C.TEXT,Parent=row})
-    local prev=n>0 and Ser(cd.Arguments[1],0):sub(1,28) or ""
-    N("TextLabel",{Name="VistaPrevia",Size=UDim2.new(1,-120,1,0),Position=UDim2.new(0,64,0,0),
+    local prev=n>0 and Ser(cd.Arguments[1],0):sub(1,24) or ""
+    N("TextLabel",{Name="VistaPrevia",Size=UDim2.new(1,-148,1,0),Position=UDim2.new(0,64,0,0),
         BackgroundTransparency=1,Text=prev,Font=Enum.Font.Code,
         TextSize=9,TextColor3=C.GREEN,TextXAlignment=Enum.TextXAlignment.Left,
         TextTruncate=Enum.TextTruncate.AtEnd,Parent=row})
-    local orig=cd.Origin and cd.Origin.Name or (cd.IsExecutor and "[exec]" or "[game]")
-    N("TextLabel",{Name="OrigenCall",Size=UDim2.new(0,50,1,0),Position=UDim2.new(1,-52,0,0),
+
+    -- ── Origen (icono) ──
+    local isExec=cd.IsExecutor
+    local hasOrigin=cd.Origin and typeof(cd.Origin)=="Instance"
+    local origIco=hasOrigin and "📜" or (isExec and "⚙" or "❓")
+    local origCol=hasOrigin and C.CYAN or (isExec and C.ORANGE or C.DIM)
+    N("TextLabel",{Name="OriginIco",Size=UDim2.new(0,16,1,0),Position=UDim2.new(1,-86,0,0),
+        BackgroundTransparency=1,Text=origIco,Font=Enum.Font.GothamBold,
+        TextSize=M and 9 or 11,TextColor3=origCol,Parent=row})
+
+    local orig=hasOrigin and cd.Origin.Name:sub(1,12) or (isExec and "[exec]" or "[?]")
+    N("TextLabel",{Name="OrigenCall",Size=UDim2.new(0,62,1,0),Position=UDim2.new(1,-68,0,0),
         BackgroundTransparency=1,Text=orig,Font=Enum.Font.Gotham,
-        TextSize=8,TextColor3=C.DIM,TextTruncate=Enum.TextTruncate.AtEnd,Parent=row})
-    local cb=N("TextButton",{Name="AreaClickCall",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,
+        TextSize=8,TextColor3=origCol,TextTruncate=Enum.TextTruncate.AtEnd,Parent=row})
+
+    -- ── Botón 🔗 desplegable ──
+    local bTrace=N("TextButton",{Name="BotonTrazabilidad",
+        Size=UDim2.new(0,22,0,18),Position=UDim2.new(1,-24,0.5,-9),
+        BackgroundColor3=C.BTN,Text="🔗",Font=Enum.Font.GothamBold,TextSize=M and 9 or 11,
+        TextColor3=C.CYAN,AutoButtonColor=false,ZIndex=4,Parent=row},{Cor(4)})
+    Hvr(bTrace,C.BTN,C.CYAN:Lerp(C.BTN,0.3))
+
+    local capCd=cd
+    bTrace.MouseButton1Click:Connect(function()
+        ShowCallDropdown(bTrace, capCd, Screen)
+    end)
+
+    local cb=N("TextButton",{Name="AreaClickCall",
+        Size=UDim2.new(1,-28,1,0),BackgroundTransparency=1,
         Text="",AutoButtonColor=false,ZIndex=3,Parent=row})
     cb.MouseEnter:Connect(function() row.BackgroundColor3=C.ITEMH end)
     cb.MouseLeave:Connect(function() if SelCall~=cd then row.BackgroundColor3=C.ITEM end end)
@@ -2088,6 +3087,942 @@ BtnPageNext.MouseButton1Click:Connect(function()
     end
 end)
 
+
+
+--[[
+╔══════════════════════════════════════════════════════════════════════╗
+║  JRM — GC SCAN SUBTAB  v3  (fix: snapshot estable, sin race)        ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  INSTALACIÓN:                                                         ║
+║  Pega TODO esto justo ANTES de:                                       ║
+║    BtnSearch.MouseButton1Click:Connect(function()                     ║
+╚══════════════════════════════════════════════════════════════════════╝
+]]
+
+-- ══════════════════════════════════════════════════════════════════
+-- 0. BARRA DE SUBTABS
+-- ══════════════════════════════════════════════════════════════════
+local SUB_H = 22
+
+local ScanSubBar = N("Frame",{
+    Name="BarraSubtabScan",
+    Size=UDim2.new(1,0,0,SUB_H),
+    Position=UDim2.new(0,0,0,0),
+    BackgroundColor3=C.TOP,
+    ZIndex=10,
+    Parent=ScanView
+},{Str(C.BORDER,1)})
+
+local SubTab_Scripts = N("TextButton",{
+    Name="SubTabScripts",
+    Size=UDim2.new(0.5,0,1,0),
+    BackgroundColor3=C.PURP,
+    Text="📜 Scripts",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.new(1,1,1),
+    AutoButtonColor=false, ZIndex=11,
+    Parent=ScanSubBar
+},{Cor(0)})
+
+local SubTab_GC = N("TextButton",{
+    Name="SubTabGC",
+    Size=UDim2.new(0.5,0,1,0),
+    Position=UDim2.new(0.5,0,0,0),
+    BackgroundColor3=C.BTN,
+    Text="🧠 GC Scan",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM,
+    AutoButtonColor=false, ZIndex=11,
+    Parent=ScanSubBar
+},{Cor(0)})
+
+-- Empujar controles de Scripts hacia abajo
+local _scriptObjs = {
+    ScanBar, BtnStartScan, FRow1, FRow2, FRow3,
+    ScanStatus, PageBar, ScanResults, HistPanel
+}
+for _, obj in ipairs(_scriptObjs) do
+    if obj and obj.Parent == ScanView then
+        local p = obj.Position
+        obj.Position = UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, p.Y.Offset + SUB_H)
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════════
+-- 1. CONTENEDOR GCView
+-- ══════════════════════════════════════════════════════════════════
+local GCView = N("Frame",{
+    Name="VistaGCScan",
+    Size=UDim2.new(1,0,1,-SUB_H),
+    Position=UDim2.new(0,0,0,SUB_H),
+    BackgroundColor3=C.PANEL,
+    ClipsDescendants=false,
+    Visible=false, ZIndex=5,
+    Parent=ScanView
+},{Cor(9),Str(C.BORDER,1)})
+
+
+-- ── Filtro clase remote ───────────────────────────────────────────
+-- ── Barra de búsqueda (ARRIBA de todo) ───────────────────────────
+local GCSearchBarH = M and 22 or 26
+local GCSearchBar = N("Frame",{
+    Name="BarraBusquedaGC",
+    Size=UDim2.new(1,-8,0,GCSearchBarH),
+    Position=UDim2.new(0,4,0,4),
+    BackgroundColor3=C.CODE, Parent=GCView
+},{Cor(6),Str(C.BORDER,1)})
+
+local GCSearchInput = N("TextBox",{
+    Name="InputBusquedaGC",
+    Size=UDim2.new(1,-82,1,-4), Position=UDim2.new(0,6,0,2),
+    BackgroundTransparency=1,
+    PlaceholderText="Buscar en resultados GC...",
+    Text="", Font=Enum.Font.Gotham, TextSize=FS,
+    TextColor3=C.TEXT, PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    ClearTextOnFocus=false, Parent=GCSearchBar
+})
+local BtnGCSearch = N("TextButton",{
+    Name="BotonBuscarGC",
+    Size=UDim2.new(0,52,1,-4), Position=UDim2.new(1,-76,0,2),
+    BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),
+    Text="Buscar", Font=Enum.Font.GothamBold, TextSize=FSS,
+    TextColor3=Color3.new(1,1,1), AutoButtonColor=false, Parent=GCSearchBar
+},{Cor(5)})
+Hvr(BtnGCSearch,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
+local BtnGCSearchClear = N("TextButton",{
+    Name="LimpiarBusquedaGC",
+    Size=UDim2.new(0,20,1,-4), Position=UDim2.new(1,-22,0,2),
+    BackgroundColor3=C.BTN, Text="X",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, AutoButtonColor=false, Parent=GCSearchBar
+},{Cor(4)})
+Hvr(BtnGCSearchClear, C.BTN, C.ITEMH)
+
+-- ── Filtros categoría ─────────────────────────────────────────────
+local GCCatY = 4 + GCSearchBarH + 4
+local GCCatBar = N("Frame",{
+    Name="BarraCategoriasGC",
+    Size=UDim2.new(1,-8,0,21),
+    Position=UDim2.new(0,4,0,GCCatY),
+    BackgroundTransparency=1, Parent=GCView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+local gcCat = "all"
+
+local function MkGCBtn(parent, lbl, key, active)
+    return N("TextButton",{
+        Name="GCCat_"..key,
+        Size=UDim2.new(0, M and 46 or 56, 1, 0),
+        BackgroundColor3 = active and C.CYAN or C.BTN,
+        Text=lbl,
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3 = active and Color3.fromRGB(0,0,0) or C.DIM,
+        AutoButtonColor=false, Parent=parent
+    },{Cor(4)})
+end
+
+local GCF_All  = MkGCBtn(GCCatBar,"Todo",    "all",      true)
+local GCF_Rem  = MkGCBtn(GCCatBar,"Remotes", "remote",   false)
+local GCF_Tbl  = MkGCBtn(GCCatBar,"Tablas",  "table",    false)
+local GCF_Cal  = MkGCBtn(GCCatBar,"Callable","callable", false)
+local GCF_Func = MkGCBtn(GCCatBar,"Funcs",   "func",     false)
+
+local gcCatBtns = {
+    {GCF_All,"all"},{GCF_Rem,"remote"},{GCF_Tbl,"table"},
+    {GCF_Cal,"callable"},{GCF_Func,"func"}
+}
+local function RefGCCat()
+    for _,p in ipairs(gcCatBtns) do
+        local a=(p[2]==gcCat)
+        p[1].BackgroundColor3=a and C.CYAN or C.BTN
+        p[1].TextColor3=a and Color3.fromRGB(0,0,0) or C.DIM
+    end
+end
+for _,p in ipairs(gcCatBtns) do
+    local b,k=p[1],p[2]; b.MouseButton1Click:Connect(function() gcCat=k; RefGCCat() end)
+end
+
+-- ── Filtro clase remote ───────────────────────────────────────────
+local GCClsY = GCCatY + 21 + 3
+local GCClsBar = N("Frame",{
+    Name="BarraClaseGC",
+    Size=UDim2.new(1,-8,0,20),
+    Position=UDim2.new(0,4,0,GCClsY),
+    BackgroundTransparency=1, Parent=GCView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+N("TextLabel",{Size=UDim2.new(0,24,1,0),BackgroundTransparency=1,
+    Text="Cls:",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,Parent=GCClsBar})
+
+local gcCls = "All"
+local function MkClsBtn(lbl,key,active)
+    return N("TextButton",{
+        Name="GCCls_"..key,
+        Size=UDim2.new(0, M and 34 or 42, 1, 0),
+        BackgroundColor3=active and C.PURP or C.BTN,
+        Text=lbl, Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=active and Color3.new(1,1,1) or C.DIM,
+        AutoButtonColor=false, Parent=GCClsBar
+    },{Cor(4)})
+end
+local GCC_All=MkClsBtn("All","All",true)
+local GCC_RE =MkClsBtn("RE","RemoteEvent",false)
+local GCC_RF =MkClsBtn("RF","RemoteFunction",false)
+local GCC_URE=MkClsBtn("URE","UnreliableRemoteEvent",false)
+local GCC_BE =MkClsBtn("BE","BindableEvent",false)
+local GCC_BF =MkClsBtn("BF","BindableFunction",false)
+
+local gcClsBtns={
+    {GCC_All,"All"},{GCC_RE,"RemoteEvent"},{GCC_RF,"RemoteFunction"},
+    {GCC_URE,"UnreliableRemoteEvent"},{GCC_BE,"BindableEvent"},{GCC_BF,"BindableFunction"}
+}
+local function RefGCCls()
+    for _,p in ipairs(gcClsBtns) do
+        local a=(p[2]==gcCls)
+        p[1].BackgroundColor3=a and C.PURP or C.BTN
+        p[1].TextColor3=a and Color3.new(1,1,1) or C.DIM
+    end
+end
+for _,p in ipairs(gcClsBtns) do
+    local b,k=p[1],p[2]; b.MouseButton1Click:Connect(function() gcCls=k; RefGCCls() end)
+end
+
+-- ── Toggles ───────────────────────────────────────────────────────
+local GCOptY = GCClsY + 20 + 3
+local GCOptBar = N("Frame",{
+    Name="BarraOpcionesGC",
+    Size=UDim2.new(1,-8,0,20),
+    Position=UDim2.new(0,4,0,GCOptY),
+    BackgroundTransparency=1, Parent=GCView
+},{Lst(Enum.FillDirection.Horizontal,4)})
+
+local _gcNilInst=true; local _gcDeepTbl=true; local _gcShowFull=false
+
+local function MkTogGC(parent,label,default,onChange)
+    local state=default
+    local b=N("TextButton",{
+        Size=UDim2.new(0,M and 62 or 74,1,0),
+        BackgroundColor3=state and C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.45) or C.BTN,
+        Text=label..": "..(state and "ON" or "OFF"),
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=state and Color3.new(1,1,1) or C.DIM,
+        AutoButtonColor=false, Parent=parent
+    },{Cor(4)})
+    b.MouseButton1Click:Connect(function()
+        state=not state
+        b.BackgroundColor3=state and C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.45) or C.BTN
+        b.TextColor3=state and Color3.new(1,1,1) or C.DIM
+        b.Text=label..": "..(state and "ON" or "OFF")
+        onChange(state)
+    end)
+end
+MkTogGC(GCOptBar,"NilInst",true, function(v) _gcNilInst=v end)
+MkTogGC(GCOptBar,"Tablas+",true, function(v) _gcDeepTbl=v end)
+MkTogGC(GCOptBar,"RutaFull",false,function(v) _gcShowFull=v end)
+
+-- ── Botón escanear ────────────────────────────────────────────────
+local GCScanBtnY = GCOptY + 20 + 3
+local BtnGCScan = N("TextButton",{
+    Name="BotonEscanearGC",
+    Size=UDim2.new(1,-8,0,M and 24 or 28),
+    Position=UDim2.new(0,4,0,GCScanBtnY),
+    BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.38),
+    Text="▶ Escanear Memoria  (getgc)",
+    Font=Enum.Font.GothamBold, TextSize=FSS,
+    TextColor3=Color3.new(1,1,1),
+    AutoButtonColor=false, Parent=GCView
+},{Cor(6)})
+Hvr(BtnGCScan,C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.38),C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.10))
+
+-- ── Status bar ────────────────────────────────────────────────────
+local GCStatusY = GCScanBtnY + (M and 24 or 28) + 3
+local GCStatus = N("TextLabel",{
+    Name="EstadoGC",
+    Size=UDim2.new(1,-8,0,14),
+    Position=UDim2.new(0,4,0,GCStatusY),
+    BackgroundTransparency=1,
+    Text="▸ Presiona escanear para buscar en memoria",
+    Font=Enum.Font.Gotham, TextSize=FSX,
+    TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    Parent=GCView
+})
+
+-- ── Barra paginación ──────────────────────────────────────────────
+local GCPageBarY = GCStatusY + 16
+local GCPageBar=N("Frame",{
+    Name="BarraPaginacionGC",
+    Size=UDim2.new(1,-8,0,20),
+    Position=UDim2.new(0,4,0,GCPageBarY),
+    BackgroundTransparency=1,Visible=false,Parent=GCView
+},{Lst(Enum.FillDirection.Horizontal,4)})
+
+local BtnGCPrev=N("TextButton",{Size=UDim2.new(0,56,1,0),BackgroundColor3=C.BTN,
+    Text="◀ Prev",Font=Enum.Font.GothamBold,TextSize=FSX,
+    TextColor3=C.DIM,AutoButtonColor=false,Parent=GCPageBar},{Cor(5)})
+local GCPageLbl=N("TextLabel",{Size=UDim2.new(1,-124,1,0),BackgroundTransparency=1,
+    Text="Pág 1/1",Font=Enum.Font.GothamBold,TextSize=FSX,
+    TextColor3=C.CYAN,TextXAlignment=Enum.TextXAlignment.Center,Parent=GCPageBar})
+local BtnGCNext=N("TextButton",{Size=UDim2.new(0,56,1,0),BackgroundColor3=C.BTN,
+    Text="Sig ▶",Font=Enum.Font.GothamBold,TextSize=FSX,
+    TextColor3=C.DIM,AutoButtonColor=false,Parent=GCPageBar},{Cor(5)})
+Hvr(BtnGCPrev,C.BTN,C.CYAN:Lerp(C.BTN,0.4))
+Hvr(BtnGCNext,C.BTN,C.CYAN:Lerp(C.BTN,0.4))
+
+-- ── ScrollFrame resultados ────────────────────────────────────────
+local GCResY = GCPageBarY + 23
+local GCResults=N("ScrollingFrame",{
+    Name="ResultadosGC",
+    Size=UDim2.new(1,-8,1,-(GCResY+4)),
+    Position=UDim2.new(0,4,0,GCResY),
+    BackgroundColor3=C.CODE,
+    BackgroundTransparency=0.95,
+    ScrollBarThickness=3,ScrollBarImageColor3=C.CYAN,
+    ScrollBarImageTransparency=0.3,
+    CanvasSize=UDim2.new(0,0,0,0),
+    AutomaticCanvasSize=Enum.AutomaticSize.Y,
+    ScrollingDirection=Enum.ScrollingDirection.Y,
+    ElasticBehavior=Enum.ElasticBehavior.Never,
+    Parent=GCView
+},{Lst(nil,4),Pad(2,2,2,2)})
+-- ══════════════════════════════════════════════════════════════════
+-- 2. CONSTANTES Y HELPERS
+-- ══════════════════════════════════════════════════════════════════
+local REMOTE_CLS={
+    RemoteEvent=true,UnreliableRemoteEvent=true,
+    RemoteFunction=true,BindableEvent=true,BindableFunction=true
+}
+
+local NET_KEYS={
+    "remote","fire","invoke","event","call","signal",
+    "network","send","request","replicate","dispatch","emit"
+}
+
+local function SafeGet(obj,prop)
+    local ok,v=pcall(function() return obj[prop] end); return ok and v or nil
+end
+local function SafeFullName(obj)
+    local ok,v=pcall(function() return obj:GetFullName() end)
+    return ok and type(v)=="string" and v or (SafeGet(obj,"Name") or "?")
+end
+local function HasNetKey(k)
+    if type(k)~="string" then return false end
+    local kl=k:lower()
+    for _,pat in ipairs(NET_KEYS) do if kl:find(pat,1,true) then return true end end
+    return false
+end
+local function IsCallable(t)
+    if type(t)~="table" then return false end
+    local ok,mt=pcall(getmetatable,t)
+    if ok and type(mt)=="table" and type(rawget(mt,"__call"))=="function" then return true end
+    if E.grm then
+        local ok2,rmt=pcall(getrawmetatable,t)
+        if ok2 and type(rmt)=="table" and type(rawget(rmt,"__call"))=="function" then return true end
+    end
+    return false
+end
+local function FuncDebugInfo(f)
+    local name,src="?","?"
+    pcall(function() name=debug.info(f,"n") or "?"; src=debug.info(f,"s") or "?" end)
+    return name,src
+end
+local function TableNetSummary(t)
+    local keys,fns,netKeys=0,0,{}
+    for k,v in pairs(t) do
+        keys=keys+1; if type(v)=="function" then fns=fns+1 end
+        if HasNetKey(k) then table.insert(netKeys,tostring(k)) end
+        if keys>100 then break end
+    end
+    return keys,fns,netKeys
+end
+
+
+-- ── Filtro de búsqueda sobre _gcData ─────────────────────────────
+local function GetGCFiltered()
+_gcData = _gcData or {}
+    local q = GCSearchInput and GCSearchInput.Text:lower():match("^%s*(.-)%s*$") or ""
+if q == nil or q == "" or q:match("^%s*$") then
+    return _gcData or {}
+end
+    local out = {}
+    for _, entry in ipairs(_gcData) do
+        local name  = (entry.name  or ""):lower()
+        local path  = (entry.path  or ""):lower()
+        local cls   = (entry.cls   or ""):lower()
+        local extra = (entry.extra or ""):lower()
+        local typ   = (entry.type  or ""):lower()
+        if name:find(q,1,true) or path:find(q,1,true)
+        or cls:find(q,1,true)  or extra:find(q,1,true)
+        or typ:find(q,1,true)  then
+            table.insert(out, entry)
+        end
+    end
+    return out
+end
+
+-- ══════════════════════════════════════════════════════════════════
+-- 3. PAGINACIÓN
+-- ══════════════════════════════════════════════════════════════════
+local GC_PAGE=30
+local _gcPage=1
+_gcData={}   -- SIN local — variable global para que GetGCFiltered la vea
+local _gcBusy=false
+
+local function ClearGCRes()
+    for _,v in ipairs(GCResults:GetChildren()) do
+        if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
+    end
+end
+
+local function UpdateGCPageBar(total)
+    local pages=math.max(1,math.ceil(total/GC_PAGE))
+    GCPageBar.Visible=total>0
+    if total>0 then
+local totalAll = #_gcData
+        GCPageLbl.Text = total==totalAll
+            and ("Pág %d/%d  [%d]"):format(_gcPage,pages,total)
+            or  ("Pág %d/%d  [%d/%d]"):format(_gcPage,pages,total,totalAll)
+                    BtnGCPrev.TextColor3=_gcPage>1 and C.CYAN or C.DIM
+        BtnGCNext.TextColor3=_gcPage<pages and C.CYAN or C.DIM
+    end
+end
+
+-- ── RENDER: solo opera sobre _gcData, nunca llama al GC ───────────
+-- ── RENDER: solo opera sobre _gcData, nunca llama al GC ───────────
+local function RenderGCPage()
+    ClearGCRes()
+    local filtered = GetGCFiltered() or {}
+    local total = #filtered
+    local pages = math.max(1, math.ceil(total/GC_PAGE))
+    _gcPage = math.max(1, math.min(_gcPage, pages))
+    UpdateGCPageBar(total)
+
+    if total == 0 then
+        N("TextLabel",{
+            Size=UDim2.new(1,-8,0,40),
+            BackgroundTransparency=1,
+            Text="Sin resultados. Prueba filtro 'Todo' o re-escanea.",
+            Font=Enum.Font.Gotham, TextSize=FSX,
+            TextColor3=C.DIM,
+            TextXAlignment=Enum.TextXAlignment.Center,
+            TextYAlignment=Enum.TextYAlignment.Center,
+            TextWrapped=true, Parent=GCResults
+        })
+        return
+    end
+
+    local s = (_gcPage-1)*GC_PAGE+1
+    local e = math.min(_gcPage*GC_PAGE, total)
+
+    task.spawn(function()
+    for i=s,e do
+        if not _JRM_Alive then return end
+        local entry=filtered[i]
+
+        if entry then
+            -- ── Tarjeta ──────────────────────────────────────────
+            local lc = entry.type=="remote"   and C.YELLOW
+                    or entry.type=="table"    and C.GREEN
+                    or entry.type=="callable" and C.PURP
+                    or C.ORANGE
+
+            local CH = entry.type=="remote" and (M and 82 or 92)
+                    or entry.type=="func"   and (M and 64 or 72)
+                    or (M and 74 or 84)
+
+            local card=N("Frame",{
+                Name="TarjetaGC",Size=UDim2.new(1,-2,0,CH),
+                BackgroundColor3=C.ITEM,Parent=GCResults
+            },{Cor(7),Str(C.BORDER,1)})
+
+            N("Frame",{Name="Franja",Size=UDim2.new(0,3,1,0),
+                BackgroundColor3=lc,BackgroundTransparency=0.15,Parent=card})
+
+            -- Icono+nombre
+            local ico=entry.type=="remote" and "📡" or entry.type=="table" and "📋"
+                    or entry.type=="callable" and "⚡" or "ƒ"
+            local badge=entry.type=="remote" and (entry.cls or "Remote")
+                      or entry.type=="table" and "Table"
+                      or entry.type=="callable" and "Callable" or "Function"
+
+            N("TextLabel",{Name="Ico",Size=UDim2.new(0,16,0,M and 14 or 16),
+                Position=UDim2.new(0,6,0,4),BackgroundTransparency=1,
+                Text=ico,Font=Enum.Font.GothamBold,TextSize=M and 11 or 13,
+                TextColor3=lc,ZIndex=3,Parent=card})
+            N("TextLabel",{Name="Nombre",Size=UDim2.new(1,-116,0,M and 14 or 16),
+                Position=UDim2.new(0,24,0,4),BackgroundTransparency=1,
+                Text=entry.name or "?",Font=Enum.Font.GothamBold,TextSize=FSS,
+                TextColor3=C.TEXT,TextXAlignment=Enum.TextXAlignment.Left,
+                TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=3,Parent=card})
+            N("TextLabel",{Name="Badge",Size=UDim2.new(0,66,0,12),
+                Position=UDim2.new(1,-70,0,5),
+                BackgroundColor3=lc,BackgroundTransparency=0.68,
+                Text=badge:sub(1,16),Font=Enum.Font.GothamBold,TextSize=7,
+                TextColor3=lc,ZIndex=3,Parent=card},{Cor(3)})
+
+            -- Ruta
+            N("TextLabel",{Name="Ruta",Size=UDim2.new(1,-8,0,M and 13 or 15),
+                Position=UDim2.new(0,8,0,M and 21 or 23),BackgroundTransparency=1,
+                Text=entry.path or "",Font=Enum.Font.Gotham,TextSize=FSX,
+                TextColor3=C.DIM,TextXAlignment=Enum.TextXAlignment.Left,
+                TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=3,Parent=card})
+
+            -- Extra
+            if entry.extra and entry.extra~="" then
+                N("TextLabel",{Name="Extra",Size=UDim2.new(1,-8,0,M and 13 or 15),
+                    Position=UDim2.new(0,8,0,M and 36 or 41),BackgroundTransparency=1,
+                    Text=entry.extra,Font=Enum.Font.Code,TextSize=FSX,
+                    TextColor3=lc:Lerp(C.TEXT,0.3),
+                    TextXAlignment=Enum.TextXAlignment.Left,
+                    TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=3,Parent=card})
+            end
+
+            -- Fila de botones
+            local btnY=CH-(M and 22 or 26)
+            local bRow=N("Frame",{Size=UDim2.new(1,-8,0,M and 18 or 21),
+                Position=UDim2.new(0,4,0,btnY),
+                BackgroundTransparency=1,ZIndex=3,Parent=card
+            },{Lst(Enum.FillDirection.Horizontal,3)})
+
+            local function MkAB(lbl,bg,w)
+                local b=N("TextButton",{
+                    Size=UDim2.new(0,w or (M and 44 or 52),1,0),
+                    BackgroundColor3=bg,Text=lbl,
+                    Font=Enum.Font.GothamBold,TextSize=7,
+                    TextColor3=Color3.new(1,1,1),AutoButtonColor=false,ZIndex=4,Parent=bRow
+                },{Cor(3)})
+                Hvr(b,bg,bg:Lerp(Color3.new(1,1,1),0.22)); return b
+            end
+
+            -- 📋 Ruta (siempre)
+            local bP=MkAB("📋 Ruta",C.PURP:Lerp(Color3.fromRGB(0,0,0),0.42))
+            local capPath=entry.path or entry.name or ""
+            bP.MouseButton1Click:Connect(function()
+                if E.sclip then setclipboard(capPath); Flash(bP,"✓") end
+            end)
+
+            -- 🔥 Fire (remote vivo)
+            if entry.type=="remote" and entry.inst then
+                local capInst=entry.inst; local capCls=entry.cls or ""
+                local bF=MkAB("🔥 Fire",C.YELLOW:Lerp(Color3.fromRGB(0,0,0),0.42))
+                bF.MouseButton1Click:Connect(function()
+                    if not E.sclip then return end
+                    local ok2,pth=pcall(GetPath,capInst)
+                    if not ok2 then pth='"'..entry.name..'"' end
+                    local meth=capCls=="RemoteFunction" and "InvokeServer"
+                            or capCls=="BindableFunction" and "Invoke"
+                            or capCls=="BindableEvent" and "Fire"
+                            or "FireServer"
+                    setclipboard(("-- [JRM GC] Remote oculto\nlocal r=%s\nr:%s(--[[args]])"):format(pth,meth))
+                    Flash(bF,"✓ Código!")
+                end)
+
+                -- ▶ Exec (ejecutar sin args)
+                local bE=MkAB("▶ Exec",C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.42),M and 38 or 46)
+                bE.MouseButton1Click:Connect(function()
+                    local meth2=capCls=="RemoteFunction" and "InvokeServer"
+                              or capCls=="BindableFunction" and "Invoke"
+                              or capCls=="BindableEvent" and "Fire"
+                              or "FireServer"
+                    local ok3,err=pcall(function() capInst[meth2](capInst) end)
+                    if ok3 then Flash(bE,"✓ OK!") else Flash(bE,"⚠ Err") end
+                end)
+            end
+
+            -- ⚡ Código callable
+            if entry.type=="callable" then
+                local bCal=MkAB("⚡ Código",C.PURP:Lerp(Color3.fromRGB(0,0,0),0.42))
+                local capName=entry.name
+                bCal.MouseButton1Click:Connect(function()
+                    if E.sclip then
+                        setclipboard(("-- [JRM GC] Callable\n-- Aprox: %s\n-- obj(--[[args]])"):format(capName))
+                        Flash(bCal,"✓")
+                    end
+                end)
+            end
+
+            -- 📋 Claves (tabla)
+            if entry.type=="table" and entry.rawKeys then
+                local bTbl=MkAB("📋 Claves",C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.42))
+                local capKeys=entry.rawKeys
+                bTbl.MouseButton1Click:Connect(function()
+                    if E.sclip then
+                        local lines={"-- [JRM GC] Tabla con claves de red"}
+                        for _,k in ipairs(capKeys) do lines[#lines+1]="-- ."..k end
+                        setclipboard(table.concat(lines,"\n")); Flash(bTbl,"✓ Claves!")
+                    end
+                end)
+            end
+
+            -- 📜 Script (función con origen)
+            if entry.type=="func" and entry.originScript then
+                local capScr=entry.originScript
+                local bS=MkAB("📜 Script",C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.40))
+bS.MouseButton1Click:Connect(function()
+    if DetailView.Visible then NavPush() end
+    local icon2=capScr:IsA("ModuleScript") and "📦" or "📜"
+                    DCode.Text="-- ⏳ Descompilando "..capScr.Name.."..."
+                    DNameLbl.Text=icon2.." "..capScr.Name.." ("..capScr.ClassName..")"
+                    _DetailSrc=nil; _DetailPath=capScr:GetFullName()
+                    DetailView.Visible=true; DScroll.CanvasPosition=Vector2.new(0,0)
+                    DecompLazy(capScr,function(res)
+                        if not DetailView.Visible then return end
+                        local prev=res.src
+                        if #prev>14000 then prev=res.src:sub(1,14000).."\n\n-- [truncado]" end
+                        DCode.Text=prev; _DetailSrc=res.src
+                        task.defer(function()
+                            if DCode and DCode.Parent then
+                                local h=DCode.AbsoluteSize.Y+32
+                                DScroll.CanvasSize=UDim2.new(0,0,0,h>DScroll.AbsoluteSize.Y and h or 0)
+                            end
+                        end)
+                    end)
+                end)
+            end
+
+            -- Hover
+            local cbH=N("TextButton",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,
+                Text="",AutoButtonColor=false,ZIndex=2,Parent=card})
+            cbH.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
+            cbH.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM  end)
+        end
+
+      if i % 8 == 0 then task.wait() end
+    end
+
+    if GCResults and GCResults.Parent then
+        GCResults.CanvasPosition=Vector2.new(0,0)
+    end
+    end) -- cierre del task.spawn
+end
+
+BtnGCPrev.MouseButton1Click:Connect(function()
+    if _gcPage<=1 then return end; _gcPage=_gcPage-1; RenderGCPage()
+end)
+BtnGCNext.MouseButton1Click:Connect(function()
+    local pages=math.max(1,math.ceil(#GetGCFiltered()/GC_PAGE))
+    if _gcPage>=pages then return end; _gcPage=_gcPage+1; RenderGCPage()
+end)
+
+-- Filtrado en tiempo real al escribir
+-- Buscar al presionar botón o Enter (igual que Scripts)
+BtnGCSearch.MouseButton1Click:Connect(function()
+    _gcPage = 1; RenderGCPage()
+end)
+GCSearchInput.FocusLost:Connect(function(enter)
+    if enter then _gcPage = 1; RenderGCPage() end
+end)
+BtnGCSearchClear.MouseButton1Click:Connect(function()
+    GCSearchInput.Text = ""
+    _gcPage = 1; RenderGCPage()
+end)
+-- ══════════════════════════════════════════════════════════════════
+-- 4. LÓGICA DE ESCANEO  (snapshot único, procesado SÍNCRONO)
+-- ══════════════════════════════════════════════════════════════════
+local function RunGCScan()
+    if _gcBusy then return end
+    if not E.ggc then
+        GCStatus.Text="⚠ getgc() no disponible en este executor"; return
+    end
+    _gcBusy=true
+    ClearGCRes(); GCPageBar.Visible=false
+    BtnGCScan.Text="⏳ Tomando snapshot..."
+    BtnGCScan.BackgroundColor3=C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.45)
+    GCStatus.Text="Llamando getgc(true)..."
+
+    task.spawn(function()
+        -- ┌─────────────────────────────────────────────────────────┐
+        -- │ PASO 1: Obtener snapshot completo ANTES de cualquier    │
+        -- │ task.wait(). Así el array gc no cambia mientras lo      │
+        -- │ procesamos.                                             │
+        -- └─────────────────────────────────────────────────────────┘
+        local ok, gcRaw = pcall(getgc, true)
+        if not ok or type(gcRaw)~="table" then
+            GCStatus.Text="⚠ Error al llamar getgc(true)"
+            BtnGCScan.Text="▶ Escanear Memoria  (getgc)"
+            BtnGCScan.BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.38)
+            _gcBusy=false; return
+        end
+
+        -- Copiar a tabla LOCAL para que el GC no la mueva mientras iteramos
+        -- (algunos executors retornan una referencia viva que puede cambiar)
+        local gcSnap = table.move(gcRaw, 1, #gcRaw, 1, table.create(#gcRaw))
+
+        -- NilInstances (también copiamos)
+        local nilSnap={}
+        if _gcNilInst and E.gnil then
+            local ok2,res=pcall(getnilinstances)
+            if ok2 and type(res)=="table" then
+                nilSnap=table.move(res,1,#res,1,table.create(#res))
+            end
+        end
+
+        local totalSnap=#gcSnap+#nilSnap
+        GCStatus.Text=("Procesando %d objetos..."):format(totalSnap)
+        BtnGCScan.Text="⏳ Procesando..."
+
+        -- ┌─────────────────────────────────────────────────────────┐
+        -- │ PASO 2: Procesar el snapshot usando tablas hash para    │
+        -- │ deduplicar. Usamos rawequal() para comparar userdata    │
+        -- │ porque tostring() de userdata NO es estable entre GCs.  │
+        -- └─────────────────────────────────────────────────────────┘
+        -- Usamos weak tables para no retener refs innecesariamente
+        local seenInst   = {}   -- [Instance ref] = true
+        local seenFnKey  = {}   -- [name|src] = true
+        local seenTblKey = {}   -- [tostring addr] = true  (tablas son menos críticas)
+
+        local remotes   = {}
+        local tables    = {}
+        local callables = {}
+        local funcs     = {}
+
+        -- ── Función para intentar buscar el script de origen de una fn ──
+        local function FindOriginScript(srcStr)
+            if not srcStr or srcStr=="?" then return nil end
+            -- El source en Roblox suele ser algo como "LocalScript" o el nombre del script
+            local scriptName = srcStr:match("@(.+)$") or srcStr:match("=(.+)$") or srcStr
+            -- Quitar path completo, quedarnos con el último segmento
+            scriptName = scriptName:match("([^%.]+)$") or scriptName:match("([^/]+)$") or scriptName
+            scriptName = scriptName:gsub("[^%w_]",""):sub(1,50)
+            if scriptName=="" then return nil end
+            for _,d in ipairs(game:GetDescendants()) do
+                if (d:IsA("LocalScript") or d:IsA("ModuleScript")) and d.Name==scriptName then
+                    return d
+                end
+            end
+            return nil
+        end
+
+        -- ── Procesador (síncrono, sin task.wait aquí dentro) ─────
+        local function Proc(item)
+            local t=type(item)
+
+            -- ════ USERDATA → posible Instance / Remote ═══════════
+            if t=="userdata" then
+                -- Verificar que sea una Instance de Roblox de forma segura
+                local ok2,isInst=pcall(function() return typeof(item)=="Instance" end)
+                if not (ok2 and isInst) then return end
+
+                -- Dedup por referencia directa (rawequal)
+                if seenInst[item] then return end
+                seenInst[item]=true
+
+                local ok3,cls=pcall(function() return item.ClassName end)
+                if not ok3 or type(cls)~="string" then return end
+
+                if not REMOTE_CLS[cls] then return end
+
+                -- Filtro de categoría
+                if gcCat~="remote" and gcCat~="all" then return end
+                -- Filtro de clase
+                if gcCls~="All" and gcCls~=cls then return end
+
+                local name   = SafeGet(item,"Name") or "?"
+                local par    = SafeGet(item,"Parent")
+                local parName= par and (SafeGet(par,"Name") or "?") or "nil"
+                local path
+
+                if _gcShowFull then
+                    path=SafeFullName(item)
+                else
+                    path=par and SafeFullName(item) or "[⚠ sin parent — oculto en memoria]"
+                end
+
+                table.insert(remotes,{
+                    type="remote", name=name, cls=cls,
+                    path=path, inst=item,
+                    extra="Parent: "..(par and parName or "nil  ← remote oculto")
+                })
+                return
+            end
+
+            -- ════ TABLA ══════════════════════════════════════════
+            if t=="table" then
+                local addr=tostring(item)
+                if seenTblKey[addr] then return end
+                seenTblKey[addr]=true
+
+                -- Ignorar tablas propias del JRM
+                local isSelf=pcall(function()
+                    if rawget(item,"__JRMINTERNAL") then error() end
+                    if rawget(item,"_JRM_Alive")    then error() end
+                end)
+                if not isSelf then return end
+
+                -- ¿Es callable?
+                if IsCallable(item) then
+                    if gcCat=="callable" or gcCat=="all" or gcCat=="table" then
+                        local keys,fns=0,0
+                        pcall(function()
+                            for _,v in pairs(item) do
+                                keys=keys+1
+                                if type(v)=="function" then fns=fns+1 end
+                                if keys>80 then return end
+                            end
+                        end)
+                        table.insert(callables,{
+                            type="callable",name="callable_obj",cls="Table+__call",
+                            path="GC: "..addr:sub(1,32),
+                            extra=("keys:%d  fns:%d  __call presente"):format(keys,fns)
+                        })
+                    end
+                    return
+                end
+
+                -- Tabla con claves de red
+                if (gcCat=="table" or gcCat=="all") and _gcDeepTbl then
+                    local ok4,keys,fns,netKeys=pcall(TableNetSummary,item)
+                    if ok4 and #netKeys>0 then
+                        local keyStr=table.concat(netKeys,", "):sub(1,60)
+                        table.insert(tables,{
+                            type="table",
+                            name=("net_table[%d keys]"):format(keys),
+                            cls="Table",
+                            path="GC: "..addr:sub(1,32),
+                            extra=("keys:%d  fns:%d  🔑 %s"):format(keys,fns,keyStr),
+                            rawKeys=netKeys
+                        })
+                    end
+                end
+                return
+            end
+
+            -- ════ FUNCIÓN ════════════════════════════════════════
+            if t=="function" then
+                if gcCat~="func" and gcCat~="all" then return end
+
+                local name,src=FuncDebugInfo(item)
+
+                if not src or src=="?" then return end
+                -- Filtrar JRM y executor internals
+                if src:find("JRemotesMods") or src:find("JRM") then return end
+                if src:find("CoreScript") or src=="=[C]" then return end
+
+                -- Solo scripts de juego
+                local isGame=src:find("LocalScript") or src:find("ModuleScript")
+                           or src:find("Script") or src:match("^@")
+                           or src:match("^=[A-Z][a-z]")
+                if not isGame then return end
+
+                local fkey=(name or "?").."|"..(src or "?")
+                if seenFnKey[fkey] then return end
+                seenFnKey[fkey]=true
+
+                local originScript=FindOriginScript(src)
+
+                table.insert(funcs,{
+                    type="func",
+                    name=name~="?" and name or ("fn@"..src:sub(-26)),
+                    cls="Function",
+                    path=src:sub(1,64),
+                    extra="",
+                    originScript=originScript
+                })
+                return
+            end
+        end
+
+        -- ── Iterar snapshot en batches CON task.wait entre ellos ─
+        -- Importante: task.wait es ENTRE batches, no dentro de Proc()
+        -- Así el snapshot no cambia (ya está copiado en gcSnap)
+        local BATCH=500
+        local n=#gcSnap
+        for bStart=1,n,BATCH do
+            if not _JRM_Alive then _gcBusy=false; return end
+            local bEnd=math.min(bStart+BATCH-1,n)
+            for i=bStart,bEnd do
+                pcall(Proc,gcSnap[i])
+            end
+            local pct=math.floor(bEnd/n*100)
+            GCStatus.Text=("Procesando... %d%% (%d/%d)"):format(pct,bEnd,n)
+            task.wait()   -- ceder frame SOLO entre batches, no dentro del loop
+        end
+
+        -- NilInstances (pocas, procesamos de corrido)
+        for _,item in ipairs(nilSnap) do
+            if not _JRM_Alive then _gcBusy=false; return end
+            local ok5,cls=pcall(function() return item.ClassName end)
+            if ok5 and REMOTE_CLS[cls] and not seenInst[item] then
+                seenInst[item]=true
+                if (gcCat=="remote" or gcCat=="all") and (gcCls=="All" or gcCls==cls) then
+                    local name=SafeGet(item,"Name") or "?"
+                    table.insert(remotes,{
+                        type="remote",name=name,cls=cls,
+                        path="[NilInstance — parent=nil]",inst=item,
+                        extra="⚠ NilInstance: parent = nil"
+                    })
+                end
+            end
+        end
+
+        if not _JRM_Alive then _gcBusy=false; return end
+
+        -- ┌─────────────────────────────────────────────────────────┐
+        -- │ PASO 3: Construir _gcData de forma FINAL e inmutable    │
+        -- │ Orden: remote → callable → table → func                │
+        -- └─────────────────────────────────────────────────────────┘
+        table.sort(remotes,   function(a,b) return a.name:lower()<b.name:lower() end)
+        table.sort(callables, function(a,b) return a.name:lower()<b.name:lower() end)
+        table.sort(tables,    function(a,b) return a.name:lower()<b.name:lower() end)
+        table.sort(funcs,     function(a,b) return a.name:lower()<b.name:lower() end)
+
+        _gcData={}
+      _gcData={}
+for _,r in ipairs(remotes)   do table.insert(_gcData,r) end
+for _,r in ipairs(callables) do table.insert(_gcData,r) end
+for _,r in ipairs(tables)    do table.insert(_gcData,r) end
+for _,r in ipairs(funcs)     do table.insert(_gcData,r) end
+
+-- 🔥 FIX AQUÍ EXACTO
+_gcPage = 1
+gcCat   = "all"
+gcCls   = "All"
+
+if GCSearchInput then
+    GCSearchInput.Text = ""
+end
+
+        _gcPage=1
+        local total=#_gcData
+        local nR=#remotes; local nT=#tables+#callables; local nF=#funcs
+
+        if total==0 then
+            GCStatus.Text="⚠ Sin resultados — prueba con filtro 'Todo'"
+            GCPageBar.Visible=false
+        else
+            GCStatus.Text=("✅ %d obj  |  📡%d remote  📋%d tabla  ƒ%d func"):format(total,nR,nT,nF)
+            RenderGCPage()
+        end
+
+        BtnGCScan.Text="▶ Re-Escanear  (getgc)"
+        BtnGCScan.BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.38)
+        _gcBusy=false
+    end)
+end
+
+BtnGCScan.MouseButton1Click:Connect(RunGCScan)
+
+-- ══════════════════════════════════════════════════════════════════
+-- 5. SELECTOR DE SUBTAB
+-- ══════════════════════════════════════════════════════════════════
+_scanSubTab="scripts"
+local function SetScanSubTab(tab)
+    _scanSubTab=tab
+    local isS=(tab=="scripts")
+    SubTab_Scripts.BackgroundColor3=isS and C.PURP or C.BTN
+    SubTab_Scripts.TextColor3=isS and Color3.new(1,1,1) or C.DIM
+    SubTab_GC.BackgroundColor3=(not isS) and C.CYAN or C.BTN
+    SubTab_GC.TextColor3=(not isS) and Color3.fromRGB(0,0,0) or C.DIM
+    for _,obj in ipairs(_scriptObjs) do if obj and obj.Parent then obj.Visible=isS end end
+    GCView.Visible=not isS
+end
+SubTab_Scripts.MouseButton1Click:Connect(function() SetScanSubTab("scripts") end)
+SubTab_GC.MouseButton1Click:Connect(function() SetScanSubTab("gc") end)
+SetScanSubTab("scripts")
+-- ── FIN DEL BLOQUE — pega justo arriba de BtnSearch.MouseButton1Click:Connect
+
+
 -- Conectar botones scan (igual que antes)
 BtnSearch.MouseButton1Click:Connect(function() DoSearch(ScanInput.Text) end)
 BtnClear2.MouseButton1Click:Connect(function()
@@ -2193,16 +4128,31 @@ MakeCard=function(data,qLow,hits)
         Text="",AutoButtonColor=false,ZIndex=3,Parent=card})
     cb2.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
     cb2.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM end)
-    cb2.MouseButton1Click:Connect(function()
-        local src=capData.src
-        local preview=src
-        if #preview>12000 then preview=src:sub(1,12000).."\n\n-- [... truncado — usa Código para el completo]" end
-        DCode.Text=preview; DNameLbl.Text=icon.." "..capData.name.." ("..capData.stype..")"
-        _DetailSrc=src; _DetailPath=capData.path
-        DetailView.Visible=true; DScroll.CanvasPosition=Vector2.new(0,0)
-    end)
+cb2.MouseButton1Click:Connect(function()
+    if DetailView.Visible then NavPush() end
+    if _DEditMode then
+        if _DEditBox and _DEditBox.Parent then _DEditBox.Visible = false end
+        DCode.Visible = true
+        _DEditMode = false
+        if BtnDEdit then
+            BtnDEdit.Text = "✏ Edit"
+            BtnDEdit.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.38)
+        end
+    end
+    if DeepPanel then DeepPanel.Visible = false end
+    local src = capData.src
+    local preview = src
+    if #preview > 12000 then
+        preview = src:sub(1,12000).."\n\n-- [... truncado]"
+    end
+    DCode.Text = preview
+    DNameLbl.Text = icon.." "..capData.name.." ("..capData.stype..")"
+    _DetailSrc = src
+    _DetailPath = capData.path
+    DetailView.Visible = true
+    DScroll.CanvasPosition = Vector2.new(0,0)
+end)
 end
-
 -- ══════════════════════════════════════════════════════════════════
 -- DRAG / RESIZE / MINIMIZE
 -- ══════════════════════════════════════════════════════════════════
@@ -2342,6 +4292,7 @@ BtnIgnore.MouseButton1Click:Connect(function()
     Flash(BtnIgnore,SelLog.Ignored and "✓ Ignorado!" or "✓ Activo!")
 end)
 BtnClear.MouseButton1Click:Connect(function()
+    CloseDropdown()
     if _EditMode then ToggleEditor(false); BtnEdit.Text="Editar"; BtnEdit.BackgroundColor3=Color3.fromRGB(30,22,55) end
     for _,v in ipairs(RemoteList:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     for _,v in ipairs(CallsScroll:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
