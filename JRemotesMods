@@ -1222,7 +1222,13 @@ DetailView=N("Frame",{Name="VistaDetalleScript",
     Size=UDim2.new(1,0,1,-(TOFF+4)),
     Position=UDim2.new(SBSC,10,0,TOP_H+4+TOFF),
     BackgroundColor3=C.PANEL,
+    ClipsDescendants=true,
     Visible=false,ZIndex=200,Parent=Main},{Cor(9)})
+
+-- Bloquear propagación de touch/click al Main para evitar drag accidental
+DetailView.InputBegan:Connect(function(inp)
+    -- consumir el evento para que no llegue al TopBar drag
+end)
 -- DTopBar con 2 filas: fila botones + fila nombre
 local DTOP_H = M and 58 or 68
 DTopBar=N("Frame",{Name="BarraDetalleScript",
@@ -1456,7 +1462,6 @@ _NavStack = {}
 _FwdStack = {}   -- stack hacia adelante (para botón ➡)
 
 NavPush=function()
-    -- Al navegar hacia adelante se limpia el stack de forward
     _FwdStack = {}
     local editText = nil
     if _DEditMode and _DEditBox and _DEditBox.Parent then
@@ -1473,9 +1478,8 @@ NavPush=function()
         editText    = editText,
         scrollY     = DScroll and DScroll.CanvasPosition.Y or 0,
     })
-    -- Actualizar botón forward si existe
     if BtnFwd then BtnFwd.TextColor3 = C.DIM end
-    if BtnBack then BtnBack.TextColor3 = #_NavStack > 0 and C.TEXT or C.DIM end
+    if BtnBack then BtnBack.TextColor3 = C.TEXT end
 end
 
 NavSaveCurrentToFwd=function()
@@ -1752,10 +1756,10 @@ RunDeepAnalysis=function()
                 color=C.MAG, raw=r.raw, name=r.name
             })
         end
-        MakeDeepSection("📦 Módulos requeridos",C.MAG,modItems,function(item)
-            -- Intentar abrir el módulo
-            local inst=ResolveRequireInst(item.raw)
-            DeepPanel.Visible=false
+MakeDeepSection("📦 Módulos requeridos",C.MAG,modItems,function(item)
+    NavPush()
+    local inst=ResolveRequireInst(item.raw)
+    DeepPanel.Visible=false
             if not inst then
                 DCode.Text="-- Módulo '"..item.name.."' no localizado en el árbol\n-- Raw: "..item.raw
                 DNameLbl.Text="📦 "..item.name
@@ -1828,13 +1832,23 @@ end)
 BtnBack.MouseButton1Click:Connect(function()
     if DeepPanel and DeepPanel.Visible then
         DeepPanel.Visible = false
+        if BtnBack then BtnBack.TextColor3 = #_NavStack > 0 and C.TEXT or C.DIM end
+        if BtnFwd  then BtnFwd.TextColor3  = #_FwdStack > 0 and C.TEXT or C.DIM end
         return
     end
     if #_NavStack > 0 then
         NavPop()
     else
-        -- Stack vacío = cerrar el DetailView (volver a la lista)
         DetailView.Visible = false
+        _DetailSrc = nil
+        _DetailPath = nil
+        _DEditMode = false
+        if _DEditBox and _DEditBox.Parent then _DEditBox.Visible = false end
+        if DCode then DCode.Visible = true end
+        if BtnDEdit then
+            BtnDEdit.Text = "✏ Edit"
+            BtnDEdit.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.38)
+        end
     end
     if BtnBack then BtnBack.TextColor3 = #_NavStack > 0 and C.TEXT or C.DIM end
     if BtnFwd  then BtnFwd.TextColor3  = #_FwdStack > 0 and C.TEXT or C.DIM end
@@ -2278,8 +2292,14 @@ GetCode=function()
     if _EditMode and CodeEditor and CodeEditor.Parent then
         return CodeEditor.Text
     end
-    if not SelLog or not SelCall then return "" end
-    return BuildCode(SelLog,SelCall)
+    if SelLog and SelCall then
+        return BuildCode(SelLog,SelCall)
+    end
+    -- fallback: leer lo que esté visible en CodeLabel
+    if CodeLabel and CodeLabel.Text and CodeLabel.Text~="" then
+        return CodeLabel.Text
+    end
+    return ""
 end
 
 ScrollBot=function(sf)
@@ -2499,7 +2519,7 @@ ShowCallDropdown=function(anchorBtn, cd, parentScreen)
         elseif item.action=="script" or item.action=="module" then
             local capInst=item.inst; local capItem=item
 btn.MouseButton1Click:Connect(function()
-    if DetailView.Visible then NavPush() end
+    NavPush()
     if drop and drop.Parent then drop:Destroy() end
     _openDropdown = nil
 
@@ -3660,7 +3680,7 @@ local function RenderGCPage()
                 local capScr=entry.originScript
                 local bS=MkAB("📜 Script",C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.40))
 bS.MouseButton1Click:Connect(function()
-    if DetailView.Visible then NavPush() end
+    NavPush()
     local icon2=capScr:IsA("ModuleScript") and "📦" or "📜"
                     DCode.Text="-- ⏳ Descompilando "..capScr.Name.."..."
                     DNameLbl.Text=icon2.." "..capScr.Name.." ("..capScr.ClassName..")"
@@ -4129,7 +4149,7 @@ MakeCard=function(data,qLow,hits)
     cb2.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
     cb2.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM end)
 cb2.MouseButton1Click:Connect(function()
-    if DetailView.Visible then NavPush() end
+    NavPush()
     if _DEditMode then
         if _DEditBox and _DEditBox.Parent then _DEditBox.Visible = false end
         DCode.Visible = true
@@ -4167,8 +4187,11 @@ BeginDrag=function(tgt)
     end
 end
 
-TopBar.InputBegan:Connect(BeginDrag(Main))
-MiniBar.InputBegan:Connect(BeginDrag(MiniBar))
+TopBar.InputBegan:Connect(function(inp)
+    -- No iniciar drag si DetailView está visible
+    if DetailView and DetailView.Visible then return end
+    BeginDrag(Main)(inp)
+end)MiniBar.InputBegan:Connect(BeginDrag(MiniBar))
 TopBar.TouchLongPress:Connect(function(touches)
     if #touches>0 then dTgt=Main; dStart=touches[1].Position; dPos=Main.Position end
 end)
@@ -4238,7 +4261,15 @@ TabScan.MouseButton1Click:Connect(function() SetTab("scan") end)
 TabPos.MouseButton1Click:Connect(function() SetTab("pos") end)
 
 BtnCopy.MouseButton1Click:Connect(function()
-    local c=GetCode(); if c~="" and E.sclip then setclipboard(c); Flash(BtnCopy,"✓ OK!") end
+    local c=GetCode()
+    if not E.sclip then Flash(BtnCopy,"Sin clipboard"); return end
+    if c and c~="" then
+        local ok,err=pcall(setclipboard,c)
+        if ok then Flash(BtnCopy,"✓ OK!")
+        else Flash(BtnCopy,"⚠ Error") end
+    else
+        Flash(BtnCopy,"Sin código")
+    end
 end)
 BtnRun.MouseButton1Click:Connect(function()
     local c=GetCode(); if c=="" then return end
