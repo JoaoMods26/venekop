@@ -565,7 +565,7 @@ TabBar=N("Frame",{Name="BarraTabs",Size=UDim2.new(1,0,0,TH2+6),
     {Cor(9),Str(C.BORDER,1),Lst(Enum.FillDirection.Horizontal,3),Pad(4,4,3,3)})
 
 MkTab=function(lbl,bname)
-    return N("TextButton",{Name=bname or "TabBoton",Size=UDim2.new(0.232,0,1,-4),
+    return N("TextButton",{Name=bname or "TabBoton",Size=UDim2.new(0.19,0,1,-4),
         BackgroundColor3=C.BTN,Text=lbl,
         Font=Enum.Font.GothamBold,TextSize=FSS,
         TextColor3=C.DIM,AutoButtonColor=false,Parent=TabBar},{Cor(7)})
@@ -3702,10 +3702,10 @@ bS.MouseButton1Click:Connect(function()
             end
 
             -- Hover
-            local cbH=N("TextButton",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,
-                Text="",AutoButtonColor=false,ZIndex=2,Parent=card})
-            cbH.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
-            cbH.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM  end)
+local cbH=N("TextButton",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,
+        Text="",AutoButtonColor=false,ZIndex=1,Parent=card})
+    cbH.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
+    cbH.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM end)
         end
 
       if i % 8 == 0 then task.wait() end
@@ -4041,6 +4041,1678 @@ SubTab_Scripts.MouseButton1Click:Connect(function() SetScanSubTab("scripts") end
 SubTab_GC.MouseButton1Click:Connect(function() SetScanSubTab("gc") end)
 SetScanSubTab("scripts")
 -- ── FIN DEL BLOQUE — pega justo arriba de BtnSearch.MouseButton1Click:Connect
+-- ══════════════════════════════════════════════════════════════════
+-- CHEAT ENGINE TAB
+-- ══════════════════════════════════════════════════════════════════
+
+-- ── Nuevo Tab en TabBar ───────────────────────────────────────────
+local TabCE = MkTab("🔢 Valores","TabCheatEngine")
+TabCE.Size = UDim2.new(0.232,0,1,-4)
+
+-- ── Vista principal CE ────────────────────────────────────────────
+local CEView = N("Frame",{
+    Name="VistaCE",
+    Size=UDim2.new(1,0,1,-(TOFF+4)),
+    Position=UDim2.new(0,0,0,TOFF),
+    BackgroundColor3=C.PANEL,
+    Visible=false, Parent=RightPanel
+},{Cor(9),Str(C.BORDER,1)})
+
+-- ── SubTab bar CE ─────────────────────────────────────────────────
+local CE_SUB_H = 22
+local CESubBar = N("Frame",{
+    Name="BarraSubtabCE",
+    Size=UDim2.new(1,0,0,CE_SUB_H),
+    Position=UDim2.new(0,0,0,0),
+    BackgroundColor3=C.TOP, ZIndex=10,
+    Parent=CEView
+},{Str(C.BORDER,1)})
+
+local CESubScan = N("TextButton",{
+    Name="CESubScan",
+    Size=UDim2.new(0.5,0,1,0),
+    BackgroundColor3=C.CYAN,
+    Text="📡 Live Scan",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.fromRGB(0,0,0),
+    AutoButtonColor=false, ZIndex=11,
+    Parent=CESubBar
+},{Cor(0)})
+local CESubFilter = N("TextButton",{
+    Name="CESubFilter",
+    Size=UDim2.new(0.5,0,1,0),
+    Position=UDim2.new(0.5,0,0,0),
+    BackgroundColor3=C.BTN,
+    Text="🎯 Cheat Engine",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM,
+    AutoButtonColor=false, ZIndex=11,
+    Parent=CESubBar
+},{Cor(0)})
+
+-- ══════════════════════════════════════════════════════════════════
+-- SUBTAB 1: LIVE SCAN (valores cambiando en tiempo real)
+-- ══════════════════════════════════════════════════════════════════
+local LiveScanView = N("Frame",{
+    Name="VistaLiveScan",
+    Size=UDim2.new(1,0,1,-CE_SUB_H),
+    Position=UDim2.new(0,0,0,CE_SUB_H),
+    BackgroundColor3=C.PANEL,
+    Visible=true, ZIndex=5,
+    Parent=CEView
+})
+
+-- Controles Live
+-- Fila 1: Toggle + Filtro
+local LSCtrlRow = N("Frame",{
+    Name="FilaControlesLS",
+    Size=UDim2.new(1,-8,0,24),
+    Position=UDim2.new(0,4,0,4),
+    BackgroundTransparency=1, Parent=LiveScanView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+-- ══════════════════════════════════════════════════════════════════
+-- LIVE SCAN — versión corregida
+-- SIN recreación de cards, SIN lag, CON búsqueda por nombre
+-- ══════════════════════════════════════════════════════════════════
+
+local _lsActive = false
+
+-- ── Fila 0: Búsqueda por nombre (NUEVA) ──────────────────────────
+local LSNameRow = N("Frame",{
+    Name="FilaNombreLS",
+    Size=UDim2.new(1,-8,0,24),
+    Position=UDim2.new(0,4,0,4),
+    BackgroundTransparency=1, Parent=LiveScanView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+local LSNameInput = N("TextBox",{
+    Size=UDim2.new(1,-84,1,0),
+    BackgroundColor3=C.CODE,
+    Text="",
+    Font=Enum.Font.Gotham, TextSize=FSX,
+    TextColor3=C.TEXT,
+    PlaceholderText="🔎 buscar por nombre / ruta...",
+    PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    ClearTextOnFocus=false,
+    Parent=LSNameRow
+},{Cor(5),Str(C.BORDER,1)})
+
+local LSNameSearchBtn = N("TextButton",{
+    Size=UDim2.new(0,58,1,0),
+    BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),
+    Text="Filtrar",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+    Parent=LSNameRow
+},{Cor(5)})
+Hvr(LSNameSearchBtn,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
+
+local LSNameClearBtn = N("TextButton",{
+    Size=UDim2.new(0,22,1,0),
+    BackgroundColor3=C.BTN, Text="X",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, AutoButtonColor=false,
+    Parent=LSNameRow
+},{Cor(5)})
+Hvr(LSNameClearBtn,C.BTN,C.ITEMH)
+
+-- ── Fila 1: Toggle + Filtro tipo ─────────────────────────────────
+-- (desplazamos todo +30 para dejar espacio al nuevo row)
+local LSCtrlRow = N("Frame",{
+    Name="FilaControlesLS",
+    Size=UDim2.new(1,-8,0,24),
+    Position=UDim2.new(0,4,0,30),
+    BackgroundTransparency=1, Parent=LiveScanView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+local LSToggle = N("TextButton",{
+    Size=UDim2.new(0,58,1,0),
+    BackgroundColor3=C.BTN,
+    Text="OFF",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, AutoButtonColor=false,
+    Parent=LSCtrlRow
+},{Cor(5)})
+Hvr(LSToggle,C.BTN,C.GREEN:Lerp(C.BTN,0.3))
+
+N("TextLabel",{
+    Size=UDim2.new(0,32,1,0),
+    BackgroundTransparency=1,
+    Text="Filtro:",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, Parent=LSCtrlRow
+})
+
+local LSFilter = N("TextBox",{
+    Size=UDim2.new(1,-96,1,0),
+    BackgroundColor3=C.CODE,
+    Text="",
+    Font=Enum.Font.Gotham, TextSize=FSX,
+    TextColor3=C.CYAN,
+    PlaceholderText="Valores/numeros...",
+    PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    ClearTextOnFocus=false,
+    Parent=LSCtrlRow
+},{Cor(4),Str(C.BORDER,1)})
+
+-- Fila Limpiar
+local LSClearRow = N("Frame",{
+    Name="FilaLimpiarLS",
+    Size=UDim2.new(1,-8,0,22),
+    Position=UDim2.new(0,4,0,56),
+    BackgroundTransparency=1, Parent=LiveScanView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+local LSClear = N("TextButton",{
+    Size=UDim2.new(0,96,1,0),
+    BackgroundColor3=Color3.fromRGB(33,14,20),
+    Text="X Borrar Todo",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, AutoButtonColor=false,
+    Parent=LSClearRow
+},{Cor(5)})
+Hvr(LSClear,Color3.fromRGB(33,14,20),C.RED:Lerp(C.BTN,0.4))
+
+-- Fila delay + tipo
+local LSRow2 = N("Frame",{
+    Name="FilaRow2LS",
+    Size=UDim2.new(1,-8,0,20),
+    Position=UDim2.new(0,4,0,80),
+    BackgroundTransparency=1, Parent=LiveScanView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+N("TextLabel",{Size=UDim2.new(0,28,1,0),BackgroundTransparency=1,
+    Text="⏱ cada:",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,Parent=LSRow2})
+local LSDelay = N("TextBox",{
+    Size=UDim2.new(0,36,1,0),
+    BackgroundColor3=C.CODE, Text="1.0",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.CYAN, PlaceholderText="seg",
+    TextXAlignment=Enum.TextXAlignment.Center,
+    ClearTextOnFocus=false, Parent=LSRow2
+},{Cor(4),Str(C.BORDER,1)})
+N("TextLabel",{Size=UDim2.new(0,18,1,0),BackgroundTransparency=1,
+    Text="s  |",Font=Enum.Font.Gotham,TextSize=FSX,TextColor3=C.DIM,Parent=LSRow2})
+
+local _lsType = "number"
+local function MkLSTypeBtn(lbl, key, active)
+    return N("TextButton",{
+        Size=UDim2.new(0,M and 38 or 46,1,0),
+        BackgroundColor3=active and C.CYAN or C.BTN,
+        Text=lbl,
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=active and Color3.fromRGB(0,0,0) or C.DIM,
+        AutoButtonColor=false, Parent=LSRow2
+    },{Cor(4)})
+end
+local LSTNum = MkLSTypeBtn("Num","number",true)
+local LSTStr = MkLSTypeBtn("Str","string",false)
+local LSTBoo = MkLSTypeBtn("Bool","boolean",false)
+local LSTAll = MkLSTypeBtn("All","all",false)
+
+local LSTypeBtns = {{LSTNum,"number"},{LSTStr,"string"},{LSTBoo,"boolean"},{LSTAll,"all"}}
+local function RefLSType()
+    for _,p in ipairs(LSTypeBtns) do
+        local a=(p[2]==_lsType)
+        p[1].BackgroundColor3=a and C.CYAN or C.BTN
+        p[1].TextColor3=a and Color3.fromRGB(0,0,0) or C.DIM
+    end
+end
+for _,p in ipairs(LSTypeBtns) do
+    local b,k=p[1],p[2]
+    b.MouseButton1Click:Connect(function() _lsType=k; RefLSType() end)
+end
+
+-- Status bar LS
+local LSStatus = N("TextLabel",{
+    Name="EstadoLS",
+    Size=UDim2.new(1,-8,0,13),
+    Position=UDim2.new(0,4,0,102),
+    BackgroundTransparency=1,
+    Text="▸ Activa el scan para ver valores",
+    Font=Enum.Font.Gotham, TextSize=FSX,
+    TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    Parent=LiveScanView
+})
+
+-- ScrollFrame resultados Live
+local LSResults = N("ScrollingFrame",{
+    Name="ResultadosLS",
+    Size=UDim2.new(1,-8,1,-118),
+    Position=UDim2.new(0,4,0,118),
+    BackgroundColor3=C.CODE,
+    BackgroundTransparency=0.96,
+    ScrollBarThickness=3, ScrollBarImageColor3=C.CYAN,
+    ScrollBarImageTransparency=0.3,
+    CanvasSize=UDim2.new(0,0,0,0),
+    AutomaticCanvasSize=Enum.AutomaticSize.Y,
+    ScrollingDirection=Enum.ScrollingDirection.Y,
+    ElasticBehavior=Enum.ElasticBehavior.Never,
+    Parent=LiveScanView
+},{Lst(nil,3),Pad(2,2,2,2)})
+
+-- ══════════════════════════════════════════════════════════════════
+-- PROPIEDADES CONOCIDAS POR CLASE (idéntico al CE)
+-- ══════════════════════════════════════════════════════════════════
+local VALUE_PROPS = {
+    -- Values
+    IntValue               = {"Value"},
+    NumberValue            = {"Value"},
+    StringValue            = {"Value"},
+    BoolValue              = {"Value"},
+    IntConstrainedValue    = {"Value","MinValue","MaxValue"},
+    NumberConstrainedValue = {"Value","MinValue","MaxValue"},
+    -- Personaje
+    Humanoid  = {"Health","MaxHealth","WalkSpeed","JumpPower","JumpHeight","AutoRotate"},
+    -- Partes físicas
+    Part            = {"Transparency","Reflectance","Anchored","CanCollide","Massless","Locked"},
+    MeshPart        = {"Transparency","Reflectance","Anchored","CanCollide","Massless"},
+    UnionOperation  = {"Transparency","Reflectance","Anchored","CanCollide"},
+    SpecialMesh     = {"Scale"},
+    WedgePart       = {"Transparency","Reflectance","Anchored","CanCollide"},
+    TrussPart       = {"Transparency","Anchored","CanCollide"},
+    SpawnLocation   = {"Transparency","Anchored","CanCollide","Duration","TeamColor"},
+    -- Modelos
+    Model           = {"LevelOfDetail","ModelLOD"},
+    -- Efectos visuales
+    PointLight      = {"Brightness","Range","Enabled"},
+    SpotLight       = {"Brightness","Range","Angle","Enabled"},
+    SurfaceLight    = {"Brightness","Range","Angle","Enabled"},
+    SelectionBox    = {"LineThickness"},
+    Highlight       = {"FillTransparency","OutlineTransparency","Enabled"},
+    -- Partículas / efectos
+    ParticleEmitter = {"Rate","Enabled","Lifetime","Speed","RotSpeed","Rotation"},
+    Beam            = {"Enabled","Width0","Width1","FaceCamera"},
+    Trail           = {"Enabled","MinLength","MaxLength"},
+    Fire            = {"Enabled","Heat","Size"},
+    Smoke           = {"Enabled","Opacity","RiseVelocity","Size"},
+    Sparkles        = {"Enabled","SparkleColor"},
+    Explosion       = {"BlastRadius","BlastPressure"},
+    -- UI
+    ScreenGui       = {"Enabled","ResetOnSpawn"},
+    SurfaceGui      = {"Enabled"},
+    BillboardGui    = {"Enabled","AlwaysOnTop"},
+    Frame           = {"BackgroundTransparency","Visible"},
+    TextLabel       = {"Text","TextTransparency","BackgroundTransparency","Visible","TextScaled"},
+    TextButton      = {"Text","TextTransparency","BackgroundTransparency","Visible"},
+    TextBox         = {"Text","ClearTextOnFocus"},
+    ImageLabel      = {"ImageTransparency","BackgroundTransparency","Visible"},
+    ImageButton     = {"ImageTransparency","BackgroundTransparency","Visible"},
+    ScrollingFrame  = {"ScrollingEnabled","BackgroundTransparency","Visible"},
+    -- Scripts
+    LocalScript     = {"Disabled"},
+    ModuleScript    = {"Disabled"},
+    Script          = {"Disabled"},
+    -- Otros
+    Tool            = {"Enabled","CanBeDropped","RequiresHandle"},
+    Seat            = {"Disabled"},
+    VehicleSeat     = {"Disabled","MaxSpeed","Torque","TurnSpeed"},
+    ClickDetector   = {"MaxActivationDistance"},
+    ProximityPrompt = {"Enabled","MaxActivationDistance","HoldDuration"},
+    Sound           = {"Playing","Looped","Volume","PlaybackSpeed","TimePosition"},
+    SoundGroup      = {"Volume"},
+    Folder          = {},   -- solo atributos
+    Configuration   = {},   -- solo atributos
+    RemoteEvent     = {},
+    RemoteFunction  = {},
+    BindableEvent   = {},
+    BindableFunction= {},
+}
+
+-- ── Helpers compartidos con CE ────────────────────────────────────
+local function SafeApplyValue(inst, prop, newVal, isAttr)
+    if isAttr then
+        return pcall(function() inst:SetAttribute(prop, newVal) end)
+    end
+    if not inst then return false,"sin instancia" end
+    return pcall(function() inst[prop]=newVal end)
+end
+
+local function SafeReadValue(inst, prop, isAttr)
+    if isAttr then
+        local ok,v=pcall(function() return inst:GetAttribute(prop) end)
+        return ok and v or nil
+    end
+    if not inst then return nil end
+    local ok,v=pcall(function() return inst[prop] end)
+    return ok and v or nil
+end
+
+local function ParseTypedValue(raw, origVal)
+    local t=type(origVal)
+    if t=="number" then return tonumber(raw)
+    elseif t=="boolean" then
+        local lo=tostring(raw):lower()
+        return lo=="true" or lo=="1" or lo=="yes"
+    else return tostring(raw) end
+end
+
+-- ══════════════════════════════════════════════════════════════════
+-- MOTOR LIVE SCAN — sin recrear cards, sin lag
+-- ══════════════════════════════════════════════════════════════════
+
+-- _lsRows: tabla PERMANENTE  key → { card, valLabel, chgLabel, editBox,
+--                                     lastVal, origVal, changes, visible }
+local _lsRows     = {}
+local _lsTargets  = {}   -- snapshot de targets
+local _lsScanPass = 0
+local _lsConn     = nil
+local MAX_LS_ROWS = 300
+local _lsRowCount = 0
+
+-- Filtro de nombre activo
+local _lsNameFilter = ""
+
+-- Muestra u oculta una card según el filtro de nombre actual
+local function ApplyLSNameFilter(key, entry)
+    local row = _lsRows[key]
+    if not row or not row.card or not row.card.Parent then return end
+    if _lsNameFilter == "" then
+        row.card.Visible = true
+        row.visible = true
+    else
+        local match = entry.path:lower():find(_lsNameFilter,1,true)
+                   or entry.prop:lower():find(_lsNameFilter,1,true)
+        row.card.Visible = (match ~= nil)
+        row.visible = (match ~= nil)
+    end
+end
+
+-- Aplica el filtro de nombre a todas las cards existentes
+local function ApplyLSNameFilterAll()
+    for key, row in pairs(_lsRows) do
+        if row.card and row.card.Parent then
+            local target = nil
+            for _, t in ipairs(_lsTargets) do
+                if t.key == key then target = t; break end
+            end
+            if target then
+                ApplyLSNameFilter(key, target)
+            end
+        end
+    end
+end
+
+-- Crea la card UNA SOLA VEZ y nunca la destruye (solo muestra/oculta)
+local function MakeLSCard(key, path, cls, prop, val, inst, isAttr, targetRef)
+    if _lsRowCount >= MAX_LS_ROWS then return end
+    _lsRowCount = _lsRowCount + 1
+
+    local lc = type(val)=="number"  and C.CYAN
+            or type(val)=="string"  and C.GREEN
+            or type(val)=="boolean" and C.YELLOW
+            or C.DIM
+
+    local card = N("Frame",{
+        Name="CardLS",
+        Size=UDim2.new(1,-2,0,M and 80 or 90),
+        BackgroundColor3=C.ITEM,
+        Parent=LSResults
+    },{Cor(6),Str(C.BORDER,1)})
+
+    N("Frame",{Name="Franja",Size=UDim2.new(0,3,1,0),
+        BackgroundColor3=lc,BackgroundTransparency=0.2,Parent=card})
+
+    local icon = (cls=="GlobalTable") and "🌐"
+              or isAttr               and "🏷"
+              or cls:find("Value")    and "💎"
+              or cls=="Humanoid"      and "🧍"
+              or "⚙"
+
+    N("TextLabel",{
+        Name="NombreKey",
+        Size=UDim2.new(1,-8,0,M and 14 or 16), Position=UDim2.new(0,8,0,3),
+        BackgroundTransparency=1,
+        Text=icon.." "..prop,
+        Font=Enum.Font.GothamBold, TextSize=FSS,
+        TextColor3=lc,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,
+        Parent=card
+    })
+    N("TextLabel",{
+        Name="RutaCard",
+        Size=UDim2.new(1,-8,0,M and 12 or 14), Position=UDim2.new(0,8,0,M and 19 or 22),
+        BackgroundTransparency=1,
+        Text=path:sub(-64),
+        Font=Enum.Font.Gotham, TextSize=FSX,
+        TextColor3=C.DIM,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,
+        Parent=card
+    })
+
+    local valStr = tostring(val)
+    local valLbl = N("TextLabel",{
+        Name="ValorActual",
+        Size=UDim2.new(0.58,0,0,M and 14 or 16), Position=UDim2.new(0,8,0,M and 34 or 40),
+        BackgroundTransparency=1,
+        Text="Val: "..valStr:sub(1,36),
+        Font=Enum.Font.Code, TextSize=FSX,
+        TextColor3=C.GREEN,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,
+        Parent=card
+    })
+    local chgLbl = N("TextLabel",{
+        Name="ContadorCambios",
+        Size=UDim2.new(0.40,0,0,M and 14 or 16), Position=UDim2.new(0.59,0,0,M and 34 or 40),
+        BackgroundTransparency=1,
+        Text="Δ 0",
+        Font=Enum.Font.Gotham, TextSize=FSX,
+        TextColor3=C.DIM,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        Parent=card
+    })
+
+    local bRow = N("Frame",{
+        Name="FilaBotones",
+        Size=UDim2.new(1,-8,0,M and 20 or 24),
+        Position=UDim2.new(0,4,0,M and 54 or 62),
+        BackgroundTransparency=1, ZIndex=3, Parent=card
+    },{Lst(Enum.FillDirection.Horizontal,3)})
+
+    local editBox = N("TextBox",{
+        Size=UDim2.new(0.42,0,1,0),
+        BackgroundColor3=C.CODE,
+        Text=valStr:sub(1,24),
+        Font=Enum.Font.Code, TextSize=FSX,
+        TextColor3=C.YELLOW,
+        PlaceholderText="valor...",
+        PlaceholderColor3=C.DIM,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        ClearTextOnFocus=false,
+        Parent=bRow
+    },{Cor(4),Str(C.BORDER,1)})
+
+    local bApply = N("TextButton",{
+        Size=UDim2.new(0.30,0,1,0),
+        BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.40),
+        Text="✓ Aplicar",
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+        Parent=bRow
+    },{Cor(4)})
+    Hvr(bApply,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.40),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.12))
+
+    local bRestore = N("TextButton",{
+        Size=UDim2.new(0.26,0,1,0),
+        BackgroundColor3=C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.45),
+        Text="↩ Orig",
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+        Parent=bRow
+    },{Cor(4)})
+    Hvr(bRestore,C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.45),C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.15))
+
+    -- Capturas locales inmutables para los callbacks
+    local origVal      = val
+    local capInst      = inst
+    local capProp      = prop
+    local capIsAttr    = isAttr
+    local capTargetRef = targetRef
+
+    bApply.MouseButton1Click:Connect(function()
+        local newVal = ParseTypedValue(editBox.Text, origVal)
+        if newVal == nil then Flash(bApply,"⚠ Tipo!"); return end
+        local ok, err
+        if capTargetRef and capTargetRef.isGlobal then
+            ok, err = pcall(function() capTargetRef.envRef[capProp] = newVal end)
+        else
+            ok, err = SafeApplyValue(capInst, capProp, newVal, capIsAttr)
+        end
+        if ok then Flash(bApply,"✓ OK!")
+               valLbl.Text="Val: "..tostring(newVal):sub(1,36)
+        else Flash(bApply,"⚠ Error"); warn("[JRM LiveScan Apply]",tostring(err)) end
+    end)
+
+    bRestore.MouseButton1Click:Connect(function()
+        local ok, err
+        if capTargetRef and capTargetRef.isGlobal then
+            ok, err = pcall(function() capTargetRef.envRef[capProp] = origVal end)
+        else
+            ok, err = SafeApplyValue(capInst, capProp, origVal, capIsAttr)
+        end
+        if ok then
+            Flash(bRestore,"✓ Restaurado!")
+            valLbl.Text="Val: "..tostring(origVal):sub(1,36)
+            editBox.Text=tostring(origVal):sub(1,24)
+        else Flash(bRestore,"⚠ Error"); warn("[JRM LiveScan Restore]",tostring(err)) end
+    end)
+
+    local cbH = N("TextButton",{
+        Size=UDim2.new(1,0,1,0), BackgroundTransparency=1,
+        Text="", AutoButtonColor=false, ZIndex=1, Parent=card
+    })
+    cbH.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
+    cbH.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM end)
+
+    _lsRows[key] = {
+        card=card, valLabel=valLbl, chgLabel=chgLbl,
+        editBox=editBox, lastVal=val, origVal=origVal,
+        changes=0, visible=true
+    }
+
+    -- Aplicar filtro de nombre inmediatamente al crear
+    if _lsNameFilter ~= "" then
+        local match = path:lower():find(_lsNameFilter,1,true)
+                   or prop:lower():find(_lsNameFilter,1,true)
+        card.Visible = (match ~= nil)
+        _lsRows[key].visible = (match ~= nil)
+    end
+end
+
+-- Recolecta targets del juego (sin límite de tipo; el filtro se aplica al leer)
+local function CollectLSTargets()
+    local targets = {}
+    local seen    = {}
+
+    local function addTarget(inst, prop, isAttr, v, envRef, isGlobal)
+        local vt = type(v)
+        if vt~="number" and vt~="string" and vt~="boolean" then return end
+        if _lsType~="all" and vt~=_lsType then return end
+
+        local ok2, path = pcall(function() return inst:GetFullName() end)
+        path = ok2 and path or (inst and inst.Name or "?")
+        local key = path..(isAttr and ("[attr:"..prop.."]") or ("."..prop))
+        if seen[key] then return end
+        seen[key] = true
+
+        table.insert(targets, {
+            inst=inst, prop=prop, path=path,
+            key=key, cls=(inst and inst.ClassName or "?"),
+            isAttr=isAttr, origVal=v,
+            isGlobal=isGlobal or false,
+            envRef=envRef,
+        })
+    end
+
+    -- 1. Descendientes del juego
+    local ok0, allDesc = pcall(function() return game:GetDescendants() end)
+    if ok0 and allDesc then
+        for _, inst in ipairs(allDesc) do
+            pcall(function()
+                local cls = inst.ClassName
+
+                -- Atributos de cualquier instancia (leaderstats, etc.)
+                local ok1, attrs = pcall(function() return inst:GetAttributes() end)
+                if ok1 and type(attrs)=="table" then
+                    for attrName, attrVal in pairs(attrs) do
+                        addTarget(inst, attrName, true, attrVal)
+                    end
+                end
+
+                -- Propiedades conocidas por clase
+                local props = VALUE_PROPS[cls]
+                if props then
+                    for _, p in ipairs(props) do
+                        local ok2, v2 = pcall(function() return inst[p] end)
+                        if ok2 then addTarget(inst, p, false, v2) end
+                    end
+                end
+
+                -- .Value genérico
+                local ok3, v3 = pcall(function() return inst.Value end)
+                if ok3 and v3~=nil then addTarget(inst, "Value", false, v3) end
+            end)
+        end
+    end
+
+    -- 2. Variables globales (_G / shared)
+    local function scanEnv(env, prefix)
+        if type(env)~="table" then return end
+        local count=0
+        for k, v in pairs(env) do
+            count=count+1; if count>400 then break end
+            if type(k)=="string" then
+                addTarget(nil, k, false, v, env, true)
+            end
+        end
+    end
+    pcall(scanEnv, getfenv and getfenv(0) or _G, "_G")
+    pcall(scanEnv, shared, "shared")
+
+    return targets
+end
+
+-- Lee el valor actual de un target
+local function ReadLSVal(t)
+    if t.isGlobal then
+        local ok,v=pcall(function() return t.envRef[t.prop] end)
+        return ok and v or nil
+    end
+    if not t.inst or not t.inst.Parent then return nil end
+    return SafeReadValue(t.inst, t.prop, t.isAttr)
+end
+
+-- Tick del live scan: SOLO actualiza labels, no recrea nada
+local function DoLiveScanTick()
+    if not _lsActive then return end
+    _lsScanPass = _lsScanPass + 1
+
+    local propFilt = LSFilter.Text:lower()
+    local changed  = 0
+    local visible  = 0
+    local deadKeys = {}
+
+    for _, t in ipairs(_lsTargets) do
+        if not _lsActive then return end
+
+        -- Detectar instancias destruidas
+        if not t.isGlobal and (not t.inst or not t.inst.Parent) then
+            table.insert(deadKeys, t.key)
+            continue
+        end
+
+        -- Filtro por tipo
+        if _lsType~="all" then
+            local ok2, v2=pcall(function() return type(t.origVal) end)
+            if ok2 and v2~=_lsType then continue end
+        end
+
+        -- Filtro por propiedad (LSFilter, barra inferior)
+        if propFilt~="" and not t.prop:lower():find(propFilt,1,true)
+        and not t.path:lower():find(propFilt,1,true) then continue end
+
+        -- Leer valor actual
+        local v = ReadLSVal(t)
+        if v==nil then continue end
+        local vt=type(v)
+        if vt~="number" and vt~="string" and vt~="boolean" then continue end
+        if _lsType~="all" and vt~=_lsType then continue end
+
+        visible = visible + 1
+
+        -- Crear card solo la primera vez
+        local row = _lsRows[t.key]
+        if not row then
+            MakeLSCard(t.key, t.path, t.cls, t.prop, v, t.inst, t.isAttr, t)
+            row = _lsRows[t.key]
+        end
+
+        -- Actualizar SOLO si el valor cambió
+        if row and row.card and row.card.Parent then
+            if v ~= row.lastVal then
+                changed = changed + 1
+                row.changes = row.changes + 1
+                row.lastVal = v
+                -- Actualizar label (operación barata, no destruye nada)
+                row.valLabel.Text = "Val: "..tostring(v):sub(1,36)
+                row.chgLabel.Text = "Δ "..tostring(row.changes)
+                row.chgLabel.TextColor3 = C.RED
+                -- Solo si el editBox no tiene foco
+                if not row.editBox:IsFocused() then
+                    row.editBox.Text = tostring(v):sub(1,24)
+                end
+                -- Flash suave en la card (sin tween de posición)
+                Tw(row.card,{BackgroundColor3=C.GREEN:Lerp(C.ITEM,0.45)})
+                local capCard=row.card
+                task.delay(0.6,function()
+                    if capCard and capCard.Parent then
+                        Tw(capCard,{BackgroundColor3=C.ITEM})
+                    end
+                end)
+            end
+        end
+    end
+
+    -- Ocultar cards de instancias muertas (sin destruirlas si quieres
+    -- mantener el historial; aquí las destruimos para liberar memoria)
+    if #deadKeys > 0 then
+        local deadSet={}
+        for _,k in ipairs(deadKeys) do
+            deadSet[k]=true
+            local row=_lsRows[k]
+            if row and row.card and row.card.Parent then
+                row.card:Destroy()
+            end
+            _lsRows[k]=nil
+            _lsRowCount=math.max(0,_lsRowCount-1)
+        end
+        local surviving={}
+        for _,t in ipairs(_lsTargets) do
+            if not deadSet[t.key] then table.insert(surviving,t) end
+        end
+        _lsTargets=surviving
+    end
+
+    if changed>0 then
+        LSStatus.Text=("🔴 LIVE — %d visibles | Δ %d cambiaron"):format(visible,changed)
+    else
+        LSStatus.Text=("🟢 LIVE — %d valores monitoreados"):format(visible)
+    end
+end
+
+-- Refresca targets cada N pasadas (para detectar nuevas instancias como leaderstats)
+local _lsRefreshEvery = 10  -- pasadas
+local function MaybeFreshTargets()
+    _lsScanPass = _lsScanPass + 1
+    if _lsScanPass % _lsRefreshEvery ~= 0 then return end
+    task.spawn(function()
+        local newTargets = CollectLSTargets()
+        local existingKeys = {}
+        for _,t in ipairs(_lsTargets) do existingKeys[t.key]=true end
+        for _,t in ipairs(newTargets) do
+            if not existingKeys[t.key] then
+                table.insert(_lsTargets, t)
+            end
+        end
+    end)
+end
+
+-- ── Toggle Live Scan ──────────────────────────────────────────────
+LSToggle.MouseButton1Click:Connect(function()
+    _lsActive = not _lsActive
+    if _lsActive then
+        LSToggle.Text="🔴 ON"
+        LSToggle.BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.35)
+        LSToggle.TextColor3=Color3.new(1,1,1)
+        LSStatus.Text="⏳ Recolectando valores..."
+
+        task.spawn(function()
+            _lsTargets = CollectLSTargets()
+            LSStatus.Text=("✅ %d valores encontrados — monitoreando..."):format(#_lsTargets)
+            local function loop()
+                while _lsActive and _JRM_Alive do
+                    local t0=tick()
+                    pcall(DoLiveScanTick)
+                    pcall(MaybeFreshTargets)
+                    local elapsed=tick()-t0
+                    local interval=math.max(0.5, tonumber(LSDelay.Text) or 1.0)
+                    -- Nunca menos de 0.5s para evitar lag
+                    local wait=math.max(0.5, interval-elapsed)
+                    task.wait(wait)
+                end
+            end
+            loop()
+        end)
+    else
+        LSToggle.Text="OFF"
+        LSToggle.BackgroundColor3=C.BTN
+        LSToggle.TextColor3=C.DIM
+        LSStatus.Text="▸ Scan pausado"
+    end
+end)
+
+-- ── Botones de búsqueda por nombre ───────────────────────────────
+LSNameSearchBtn.MouseButton1Click:Connect(function()
+    _lsNameFilter = LSNameInput.Text:lower():match("^%s*(.-)%s*$") or ""
+    ApplyLSNameFilterAll()
+    if _lsNameFilter~="" then
+        LSStatus.Text=('🔎 Filtro: "%s"'):format(_lsNameFilter)
+    end
+end)
+LSNameInput.FocusLost:Connect(function(enter)
+    if enter then
+        _lsNameFilter = LSNameInput.Text:lower():match("^%s*(.-)%s*$") or ""
+        ApplyLSNameFilterAll()
+    end
+end)
+LSNameClearBtn.MouseButton1Click:Connect(function()
+    LSNameInput.Text=""
+    _lsNameFilter=""
+    ApplyLSNameFilterAll()
+    LSStatus.Text="▸ Filtro limpiado"
+end)
+
+-- ── Limpiar todo ──────────────────────────────────────────────────
+local function ClearLSResults()
+    for _,v in ipairs(LSResults:GetChildren()) do
+        if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
+    end
+    _lsRows = {}
+    _lsRowCount = 0
+end
+
+LSClear.MouseButton1Click:Connect(function()
+    _lsActive=false
+    LSToggle.Text="OFF"
+    LSToggle.BackgroundColor3=C.BTN
+    LSToggle.TextColor3=C.DIM
+    ClearLSResults()
+    _lsTargets={}
+    _lsNameFilter=""
+    LSNameInput.Text=""
+    LSStatus.Text="▸ Limpiado — activa de nuevo para escanear"
+end)
+
+-- ══════════════════════════════════════════════════════════════════
+-- SUBTAB 2: CHEAT ENGINE (escaneo por valor numérico con filtrado progresivo)
+-- ══════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════
+-- SUBTAB 2: CHEAT ENGINE — con búsqueda por nombre Y por valor
+-- ══════════════════════════════════════════════════════════════════
+local CEFilterView = N("Frame",{
+    Name="VistaCEFilter",
+    Size=UDim2.new(1,0,1,-CE_SUB_H),
+    Position=UDim2.new(0,0,0,CE_SUB_H),
+    BackgroundColor3=C.PANEL,
+    Visible=false, ZIndex=5,
+    Parent=CEView
+})
+
+local _ceActive = false
+
+-- ── Fila 0: Búsqueda por nombre (NUEVA) ──────────────────────────
+local CENameRow = N("Frame",{
+    Size=UDim2.new(1,-8,0,26),
+    Position=UDim2.new(0,4,0,4),
+    BackgroundTransparency=1, Parent=CEFilterView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+local CENameInput = N("TextBox",{
+    Size=UDim2.new(1,-84,1,0),
+    BackgroundColor3=C.CODE,
+    Text="",
+    Font=Enum.Font.Gotham, TextSize=FSX,
+    TextColor3=C.TEXT,
+    PlaceholderText="🔎 buscar por nombre / ruta...",
+    PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    ClearTextOnFocus=false,
+    Parent=CENameRow
+},{Cor(5),Str(C.BORDER,1)})
+
+local CENameSearchBtn = N("TextButton",{
+    Size=UDim2.new(0,58,1,0),
+    BackgroundColor3=C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),
+    Text="Filtrar",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+    Parent=CENameRow
+},{Cor(5)})
+Hvr(CENameSearchBtn,C.PURP:Lerp(Color3.fromRGB(0,0,0),0.35),C.PURP:Lerp(Color3.fromRGB(0,0,0),0.10))
+
+local CENameClearBtn = N("TextButton",{
+    Size=UDim2.new(0,22,1,0),
+    BackgroundColor3=C.BTN, Text="X",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, AutoButtonColor=false,
+    Parent=CENameRow
+},{Cor(5)})
+Hvr(CENameClearBtn,C.BTN,C.ITEMH)
+
+-- ── Fila 1: Toggle + Input valor + Escanear + Reset ──────────────
+local CERow1 = N("Frame",{
+    Size=UDim2.new(1,-8,0,26),
+    Position=UDim2.new(0,4,0,32),
+    BackgroundTransparency=1, Parent=CEFilterView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+local CEToggle = N("TextButton",{
+    Size=UDim2.new(0,52,1,0),
+    BackgroundColor3=C.BTN,
+    Text="OFF",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.DIM, AutoButtonColor=false,
+    Parent=CERow1
+},{Cor(5)})
+Hvr(CEToggle,C.BTN,C.GREEN:Lerp(C.BTN,0.3))
+
+local CEValInput = N("TextBox",{
+    Size=UDim2.new(1,-214,1,0),
+    BackgroundColor3=C.CODE,
+    Text="",
+    Font=Enum.Font.GothamBold, TextSize=FS,
+    TextColor3=C.CYAN,
+    PlaceholderText="Valor numérico / texto...",
+    PlaceholderColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    ClearTextOnFocus=false,
+    Parent=CERow1
+},{Cor(5),Str(C.CYAN,1)})
+
+local BtnCEScan = N("TextButton",{
+    Size=UDim2.new(0,76,1,0),
+    BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.36),
+    Text="🔍 BUSCAR",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+    Parent=CERow1
+},{Cor(5)})
+Hvr(BtnCEScan,C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.36),C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.10))
+
+local BtnCEReset = N("TextButton",{
+    Size=UDim2.new(0,72,1,0),
+    BackgroundColor3=C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.40),
+    Text="🔄 Reset",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+    Parent=CERow1
+},{Cor(5)})
+Hvr(BtnCEReset,C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.40),C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.15))
+
+-- ── Fila 2: tipo + tolerancia ─────────────────────────────────────
+local CERow2 = N("Frame",{
+    Size=UDim2.new(1,-8,0,20),
+    Position=UDim2.new(0,4,0,60),
+    BackgroundTransparency=1, Parent=CEFilterView
+},{Lst(Enum.FillDirection.Horizontal,3)})
+
+N("TextLabel",{Size=UDim2.new(0,30,1,0),BackgroundTransparency=1,
+    Text="Tipo:",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,Parent=CERow2})
+
+local _ceType = "number"
+local function MkCETypeBtn(lbl,key,active)
+    return N("TextButton",{
+        Size=UDim2.new(0,M and 40 or 48,1,0),
+        BackgroundColor3=active and C.CYAN or C.BTN,
+        Text=lbl, Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=active and Color3.fromRGB(0,0,0) or C.DIM,
+        AutoButtonColor=false, Parent=CERow2
+    },{Cor(4)})
+end
+local CENum = MkCETypeBtn("Num","number",true)
+local CEStr = MkCETypeBtn("Str","string",false)
+local CEBoo = MkCETypeBtn("Bool","boolean",false)
+local CETypeBtns={{CENum,"number"},{CEStr,"string"},{CEBoo,"boolean"}}
+local function RefCEType()
+    for _,p in ipairs(CETypeBtns) do
+        local a=(p[2]==_ceType)
+        p[1].BackgroundColor3=a and C.CYAN or C.BTN
+        p[1].TextColor3=a and Color3.fromRGB(0,0,0) or C.DIM
+    end
+end
+for _,p in ipairs(CETypeBtns) do
+    local b,k=p[1],p[2]; b.MouseButton1Click:Connect(function() _ceType=k; RefCEType() end)
+end
+
+N("TextLabel",{Size=UDim2.new(0,44,1,0),BackgroundTransparency=1,
+    Text=" Tol±:",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,Parent=CERow2})
+local CETolBox = N("TextBox",{
+    Size=UDim2.new(0,32,1,0),
+    BackgroundColor3=C.CODE, Text="0",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.ORANGE, PlaceholderText="0",
+    TextXAlignment=Enum.TextXAlignment.Center,
+    ClearTextOnFocus=false, Parent=CERow2
+},{Cor(4),Str(C.BORDER,1)})
+
+-- Status + conteo
+local CEStatus = N("TextLabel",{
+    Name="EstadoCE",
+    Size=UDim2.new(1,-100,0,14),
+    Position=UDim2.new(0,4,0,83),
+    BackgroundTransparency=1,
+    Text="▸ Activa CE → escribe valor o nombre → BUSCAR",
+    Font=Enum.Font.Gotham, TextSize=FSX,
+    TextColor3=C.DIM,
+    TextXAlignment=Enum.TextXAlignment.Left,
+    Parent=CEFilterView
+})
+
+local CECountLbl = N("TextLabel",{
+    Name="ContadorCE",
+    Size=UDim2.new(0,90,0,14),
+    Position=UDim2.new(1,-94,0,83),
+    BackgroundTransparency=1, Text="",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=C.CYAN,
+    TextXAlignment=Enum.TextXAlignment.Right,
+    Parent=CEFilterView
+})
+
+-- ScrollFrame resultados CE
+local CEResults = N("ScrollingFrame",{
+    Name="ResultadosCE",
+    Size=UDim2.new(1,-8,1,-102),
+    Position=UDim2.new(0,4,0,100),
+    BackgroundColor3=C.CODE,
+    BackgroundTransparency=0.96,
+    ScrollBarThickness=3, ScrollBarImageColor3=C.CYAN,
+    ScrollBarImageTransparency=0.3,
+    CanvasSize=UDim2.new(0,0,0,0),
+    AutomaticCanvasSize=Enum.AutomaticSize.Y,
+    ScrollingDirection=Enum.ScrollingDirection.Y,
+    ElasticBehavior=Enum.ElasticBehavior.Never,
+    Parent=CEFilterView
+},{Lst(nil,3),Pad(2,2,2,2)})
+
+-- ── Estado interno CE ─────────────────────────────────────────────
+local _cePool     = nil   -- nil = no iniciado
+local _ceScanPass = 0
+local _ceBusy     = false
+local _ceCards    = {}
+local _ceNameFilter = ""
+
+-- ── Helpers CE (reutiliza SafeApplyValue/SafeReadValue/ParseTypedValue del LS) ──
+local function ClearCEResults()
+    for _,v in ipairs(CEResults:GetChildren()) do
+        if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
+    end
+    _ceCards={}
+end
+
+local function ParseCEInput(raw, typ)
+    if typ=="number" then return tonumber(raw)
+    elseif typ=="boolean" then
+        local lo=tostring(raw):lower()
+        return lo=="true" or lo=="1" or lo=="yes"
+    else return tostring(raw) end
+end
+
+local function CERoughMatch(v, target, tol)
+    if type(v)=="number" and type(target)=="number" then
+        return math.abs(v-target)<=tol
+    end
+    return v==target
+end
+
+-- Snapshot completo del juego (mismo que LS, pero sin filtro de tipo al inicio)
+local function CollectCESnapshot(targetType)
+    local targets = {}
+    local seen    = {}
+
+    local function addTarget(inst, prop, isAttr, v, envRef, isGlobal)
+        local vt = type(v)
+        if vt ~= targetType and targetType ~= "all" then return end
+        if vt ~= "number" and vt ~= "string" and vt ~= "boolean" then return end
+
+        local path
+        if isGlobal then
+            path = (envRef == shared) and "shared" or "_G"
+        else
+            local ok2, fp = pcall(function() return inst:GetFullName() end)
+            path = (ok2 and fp) or (inst and inst.Name) or "?"
+        end
+
+        local key = path .. (isAttr and ("[attr:" .. prop .. "]") or ("." .. prop))
+        if seen[key] then return end
+        seen[key] = true
+
+        table.insert(targets, {
+            inst    = inst,
+            prop    = prop,
+            path    = path,
+            key     = key,
+            cls     = (isGlobal and "GlobalTable") or (inst and inst.ClassName) or "?",
+            isAttr  = isAttr,
+            val     = v,
+            origVal = v,
+            isGlobal = isGlobal or false,
+            envRef  = envRef,
+        })
+    end
+
+    -- 1. Descendientes del juego
+    local ok0, allDesc = pcall(function() return game:GetDescendants() end)
+    if ok0 and allDesc then
+        for _, inst in ipairs(allDesc) do
+            pcall(function()
+                local cls = inst.ClassName
+
+                -- Atributos (leaderstats, datos de juego, etc.)
+                local ok1, attrs = pcall(function() return inst:GetAttributes() end)
+                if ok1 and type(attrs) == "table" then
+                    for attrName, attrVal in pairs(attrs) do
+                        addTarget(inst, attrName, true, attrVal, nil, false)
+                    end
+                end
+
+                -- Propiedades conocidas por clase
+                local props = VALUE_PROPS[cls]
+                if props then
+                    for _, p in ipairs(props) do
+                        local ok2, v2 = pcall(function() return inst[p] end)
+                        if ok2 and v2 ~= nil then
+                            addTarget(inst, p, false, v2, nil, false)
+                        end
+                    end
+                end
+
+                -- .Value genérico (IntValue, NumberValue, StringValue, BoolValue, objetos custom)
+                local ok3, v3 = pcall(function() return inst.Value end)
+                if ok3 and v3 ~= nil then
+                    addTarget(inst, "Value", false, v3, nil, false)
+                end
+
+-- Escaneo genérico para instancias no listadas en VALUE_PROPS
+                if not VALUE_PROPS[cls] then
+                    local ok3b, v3b = pcall(function() return inst.Value end)
+                    if ok3b and v3b ~= nil then
+                        addTarget(inst, "Value", false, v3b, nil, false)
+                    end
+                    for _, genericProp in ipairs({
+                        "Amount","Count","Level","Score","Points","Money","Cash",
+                        "Coins","Gems","Stars","Lives","Time","Timer","Damage",
+                        "Defense","Attack","Speed","Power","Energy","Mana",
+                        "Stamina","Hunger","Thirst","Age","Rank","XP","EXP",
+                        "Gold","Silver","Kills","Deaths","Wins","Losses",
+                        "Stage","Floor","Wave","Round","Streak","Combo",
+                        "Distance","Weight","Price","Cost","Size","Multiplier"
+                    }) do
+                        local ok4b, v4b = pcall(function() return inst[genericProp] end)
+                        if ok4b and v4b ~= nil and type(v4b) == "number" then
+                            addTarget(inst, genericProp, false, v4b, nil, false)
+                        end
+                    end
+                end
+
+                -- .Text para strings
+                if targetType == "string" or targetType == "all" then
+                    local ok4, txt = pcall(function() return inst.Text end)
+                    if ok4 and type(txt) == "string" and #txt > 0 and #txt < 200 then
+                        addTarget(inst, "Text", false, txt, nil, false)
+                    end
+                end
+
+                -- Humanoid extras
+                if cls == "Humanoid" then
+                    for _, prop2 in ipairs({"Health","MaxHealth","WalkSpeed","JumpPower","JumpHeight"}) do
+                        local ok5, v5 = pcall(function() return inst[prop2] end)
+                        if ok5 and v5 ~= nil then
+                            addTarget(inst, prop2, false, v5, nil, false)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+
+    -- 2. Variables globales (_G / shared)
+    local function scanGlobal(env, prefix)
+        if type(env) ~= "table" then return end
+        local count = 0
+        for k, v in pairs(env) do
+            count = count + 1
+            if count > 500 then break end
+            local vt = type(v)
+            if type(k) == "string"
+            and (vt == "number" or vt == "string" or vt == "boolean")
+            and (targetType == "all" or vt == targetType) then
+                local key = prefix .. "." .. k
+                if not seen[key] then
+                    seen[key] = true
+                    table.insert(targets, {
+                        inst     = nil,
+                        prop     = k,
+                        path     = prefix,
+                        key      = key,
+                        cls      = "GlobalTable",
+                        isAttr   = false,
+                        val      = v,
+                        origVal  = v,
+                        isGlobal = true,
+                        envRef   = env,
+                    })
+                end
+            end
+        end
+    end
+    pcall(scanGlobal, getfenv and getfenv(0) or _G, "_G")
+    pcall(scanGlobal, shared, "shared")
+
+    return targets
+end
+
+local function ReadCEVal(entry)
+    if not entry then return nil end
+    if entry.isGlobal then
+        if type(entry.envRef) ~= "table" then return nil end
+        local ok, v = pcall(function() return entry.envRef[entry.prop] end)
+        return ok and v or nil
+    end
+    -- Verificar que la instancia siga viva
+    local ok0, alive = pcall(function()
+        return entry.inst ~= nil and entry.inst.Parent ~= nil
+    end)
+    if not ok0 or not alive then return nil end
+    return SafeReadValue(entry.inst, entry.prop, entry.isAttr)
+end
+
+-- ── Aplica filtro de nombre a los resultados CE ───────────────────
+local function ApplyCENameFilter()
+    local q=_ceNameFilter
+    for _,v in ipairs(CEResults:GetChildren()) do
+        if v:IsA("Frame") then
+            -- Leer la ruta y prop desde atributos de la card
+            local prop  = v:GetAttribute("ce_prop")  or ""
+            local path  = v:GetAttribute("ce_path")  or ""
+            if q=="" then
+                v.Visible=true
+            else
+                v.Visible = (prop:lower():find(q,1,true) or path:lower():find(q,1,true)) ~= nil
+            end
+        end
+    end
+end
+
+-- ── Construye card CE (guarda prop/path como atributos para el filtro) ──
+local function MakeCECard(entry)
+    local val=entry.val
+    local lc=type(val)=="number" and C.CYAN
+          or type(val)=="string" and C.GREEN
+          or type(val)=="boolean" and C.YELLOW
+          or C.DIM
+
+    local card=N("Frame",{
+        Name="CardCE",
+        Size=UDim2.new(1,-2,0,M and 80 or 90),
+        BackgroundColor3=C.ITEM,
+        Parent=CEResults
+    },{Cor(6),Str(C.BORDER,1)})
+
+    -- Guardar datos para filtrado por nombre
+    card:SetAttribute("ce_prop", entry.prop)
+    card:SetAttribute("ce_path", entry.path)
+
+    N("Frame",{Name="Franja",Size=UDim2.new(0,3,1,0),
+        BackgroundColor3=C.CYAN,BackgroundTransparency=0.2,Parent=card})
+
+    local icon=entry.isAttr and "🏷" or (entry.cls:find("Value") and "💎" or "⚙")
+    N("TextLabel",{
+        Size=UDim2.new(1,-8,0,M and 14 or 16), Position=UDim2.new(0,8,0,3),
+        BackgroundTransparency=1,
+        Text=icon.." "..entry.prop,
+        Font=Enum.Font.GothamBold, TextSize=FSS,
+        TextColor3=lc,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,
+        Parent=card
+    })
+    N("TextLabel",{
+        Size=UDim2.new(1,-8,0,M and 12 or 14), Position=UDim2.new(0,8,0,M and 18 or 21),
+        BackgroundTransparency=1,
+        Text=entry.path:sub(-60),
+        Font=Enum.Font.Gotham, TextSize=FSX,
+        TextColor3=C.DIM,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,
+        Parent=card
+    })
+
+    local valLbl=N("TextLabel",{
+        Size=UDim2.new(1,-8,0,M and 14 or 16), Position=UDim2.new(0,8,0,M and 32 or 37),
+        BackgroundTransparency=1,
+        Text="Val: "..tostring(val):sub(1,40),
+        Font=Enum.Font.Code, TextSize=FSX,
+        TextColor3=C.GREEN,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextTruncate=Enum.TextTruncate.AtEnd,
+        Parent=card
+    })
+    entry.valLbl=valLbl
+
+    local bRow=N("Frame",{
+        Size=UDim2.new(1,-8,0,M and 18 or 22),
+        Position=UDim2.new(0,4,0,M and 49 or 56),
+        BackgroundTransparency=1, ZIndex=3, Parent=card
+    },{Lst(Enum.FillDirection.Horizontal,3)})
+
+    local editBox=N("TextBox",{
+        Size=UDim2.new(0.4,0,1,0),
+        BackgroundColor3=C.CODE,
+        Text=tostring(val):sub(1,20),
+        Font=Enum.Font.Code, TextSize=FSX,
+        TextColor3=C.YELLOW,
+        PlaceholderText="nuevo valor",
+        PlaceholderColor3=C.DIM,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        ClearTextOnFocus=false,
+        Parent=bRow
+    },{Cor(4),Str(C.BORDER,1)})
+    entry.editBox=editBox
+
+    local bApply=N("TextButton",{
+        Size=UDim2.new(0.3,0,1,0),
+        BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.40),
+        Text="✓ Aplicar",
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+        Parent=bRow
+    },{Cor(4)})
+    Hvr(bApply,C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.40),C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.12))
+
+    local bRestCE=N("TextButton",{
+        Size=UDim2.new(0.28,0,1,0),
+        BackgroundColor3=C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.45),
+        Text="↩ Orig",
+        Font=Enum.Font.GothamBold, TextSize=FSX,
+        TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+        Parent=bRow
+    },{Cor(4)})
+    Hvr(bRestCE,C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.45),C.ORANGE:Lerp(Color3.fromRGB(0,0,0),0.15))
+
+    local capEntry=entry
+
+    bApply.MouseButton1Click:Connect(function()
+        local newVal=ParseTypedValue(editBox.Text, capEntry.origVal)
+        if newVal==nil then Flash(bApply,"⚠ Tipo!"); return end
+        local ok,err
+        if capEntry.isGlobal then
+            ok,err=pcall(function() capEntry.envRef[capEntry.prop]=newVal end)
+        else
+            ok,err=SafeApplyValue(capEntry.inst, capEntry.prop, newVal, capEntry.isAttr)
+        end
+        if ok then Flash(bApply,"✓ OK!"); valLbl.Text="Val: "..tostring(newVal):sub(1,40)
+        else Flash(bApply,"⚠ Error"); warn("[JRM CE apply]",tostring(err)) end
+    end)
+
+    bRestCE.MouseButton1Click:Connect(function()
+        local ok,err
+        if capEntry.isGlobal then
+            ok,err=pcall(function() capEntry.envRef[capEntry.prop]=capEntry.origVal end)
+        else
+            ok,err=SafeApplyValue(capEntry.inst, capEntry.prop, capEntry.origVal, capEntry.isAttr)
+        end
+        if ok then
+            Flash(bRestCE,"✓ Restaurado!")
+            valLbl.Text="Val: "..tostring(capEntry.origVal):sub(1,40)
+            editBox.Text=tostring(capEntry.origVal):sub(1,20)
+        else Flash(bRestCE,"⚠ Error"); warn("[JRM CE restore]",tostring(err)) end
+    end)
+
+    local cbH=N("TextButton",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,
+        Text="",AutoButtonColor=false,ZIndex=2,Parent=card})
+    cbH.MouseEnter:Connect(function() card.BackgroundColor3=C.ITEMH end)
+    cbH.MouseLeave:Connect(function() card.BackgroundColor3=C.ITEM end)
+
+    entry.card=card
+    _ceCards[entry.key]=card
+
+    -- Aplicar filtro de nombre activo inmediatamente
+    if _ceNameFilter~="" then
+        card.Visible = (entry.prop:lower():find(_ceNameFilter,1,true)
+                    or  entry.path:lower():find(_ceNameFilter,1,true)) ~= nil
+    end
+end
+
+-- ── Lógica del escaneo CE ─────────────────────────────────────────
+-- Modo dual: puede buscar POR VALOR o POR NOMBRE
+--   - Si el input de valor está relleno → filtra por valor (Cheat Engine clásico)
+--   - Si el input de nombre está relleno y valor vacío → filtra solo por nombre
+--   - Ambos rellenos → AND (valor Y nombre coinciden)
+
+local function DoCEScan()
+    if not _ceActive then
+        CEStatus.Text = "⚠ Activa CE primero"; return
+    end
+    if _ceBusy then return end
+
+    local rawVal  = CEValInput.Text:match("^%s*(.-)%s*$") or ""
+    local rawName = CENameInput.Text:match("^%s*(.-)%s*$") or ""
+
+    if rawVal == "" and rawName == "" then
+        CEStatus.Text = "⚠ Escribe un valor o nombre para buscar"
+        return
+    end
+
+    -- Parsear valor objetivo
+    local targetVal = nil
+    if rawVal ~= "" then
+        if _ceType == "number" then
+            targetVal = tonumber(rawVal)
+            if targetVal == nil then
+                CEStatus.Text = "⚠ Valor numérico inválido (ej: 100 o 3.5)"
+                return
+            end
+        elseif _ceType == "boolean" then
+            local lo = rawVal:lower()
+            if lo == "true" or lo == "1" or lo == "yes" then
+                targetVal = true
+            elseif lo == "false" or lo == "0" or lo == "no" then
+                targetVal = false
+            else
+                CEStatus.Text = "⚠ Booleano inválido (usa: true / false)"
+                return
+            end
+        else
+            targetVal = tostring(rawVal)
+        end
+    end
+
+    local nameFilt = rawName:lower()
+    local tol      = math.abs(tonumber(CETolBox.Text) or 0)
+
+    _ceBusy       = true
+    _ceScanPass   = _ceScanPass + 1
+
+    BtnCEScan.Text = "⏳"
+    BtnCEScan.BackgroundColor3 = C.ORANGE:Lerp(Color3.fromRGB(0,0,0), 0.40)
+
+    task.spawn(function()
+        if _cePool == nil then
+            -- ── PRIMER SCAN ─────────────────────────────────────
+            CEStatus.Text = ("🔍 Recolectando... (pase #%d)"):format(_ceScanPass)
+
+            -- Determinar qué tipo recolectar
+            local collectType = (targetVal ~= nil) and _ceType or "all"
+            local targets = CollectCESnapshot(collectType)
+
+            CEStatus.Text = ("🔍 Filtrando %d candidatos..."):format(#targets)
+            task.wait()
+
+            local newPool = {}
+            for i, entry in ipairs(targets) do
+                -- Filtro por valor
+                local valMatch = true
+                if targetVal ~= nil then
+                    valMatch = CERoughMatch(entry.val, targetVal, tol)
+                end
+
+                -- Filtro por nombre
+                local nameMatch = true
+                if nameFilt ~= "" then
+                    nameMatch = entry.prop:lower():find(nameFilt, 1, true) ~= nil
+                             or entry.path:lower():find(nameFilt, 1, true) ~= nil
+                end
+
+                if valMatch and nameMatch then
+                    entry.origVal = entry.val
+                    table.insert(newPool, entry)
+                end
+
+                -- Ceder cada 300 items para no bloquear UI
+                if i % 300 == 0 then
+                    CEStatus.Text = ("🔍 Procesando %d/%d..."):format(i, #targets)
+                    task.wait()
+                end
+            end
+
+            _cePool = newPool
+            ClearCEResults()
+
+            if #_cePool == 0 then
+                CEStatus.Text = "⚠ Sin resultados — prueba con otro valor o verifica el tipo"
+                CECountLbl.Text = ""
+                _cePool = nil
+                _ceScanPass = 0
+                BtnCEScan.Text = "🔍 BUSCAR"
+                BtnCEScan.BackgroundColor3 = C.CYAN:Lerp(Color3.fromRGB(0,0,0), 0.36)
+                _ceBusy = false
+                return
+            end
+
+            local shown = math.min(#_cePool, 150)
+            for i = 1, shown do
+                MakeCECard(_cePool[i])
+                if i % 10 == 0 then task.wait() end
+            end
+            local extra = #_cePool > 150 and ("  (+" .. (#_cePool-150) .. " no mostrados)") or ""
+            CEStatus.Text = ("✅ Pase #%d → %d candidatos%s"):format(_ceScanPass, #_cePool, extra)
+            CECountLbl.Text = tostring(#_cePool) .. " candidatos"
+
+        else
+            -- ── SCAN SUBSIGUIENTE: refinar pool ──────────────────
+            local newRaw = (rawVal ~= "") and targetVal or nil
+            CEStatus.Text = ("🔍 Refinando %d candidatos... (pase #%d)"):format(#_cePool, _ceScanPass)
+            task.wait()
+
+            local surviving = {}
+            for i, entry in ipairs(_cePool) do
+                local v = ReadCEVal(entry)
+
+                local valMatch = true
+                if newRaw ~= nil and v ~= nil then
+                    valMatch = CERoughMatch(v, newRaw, tol)
+                elseif newRaw ~= nil and v == nil then
+                    valMatch = false
+                end
+
+                local nameMatch = true
+                if nameFilt ~= "" then
+                    nameMatch = entry.prop:lower():find(nameFilt, 1, true) ~= nil
+                             or entry.path:lower():find(nameFilt, 1, true) ~= nil
+                end
+
+                if valMatch and nameMatch and v ~= nil then
+                    entry.val = v
+                    table.insert(surviving, entry)
+
+                    -- Actualizar labels de la card
+                    if entry.valLbl then
+                        entry.valLbl.Text = "Val: " .. tostring(v):sub(1, 40)
+                    end
+                    if entry.editBox and not entry.editBox:IsFocused() then
+                        entry.editBox.Text = tostring(v):sub(1, 20)
+                    end
+
+                    -- Flash de supervivencia
+                    if entry.card and entry.card.Parent then
+                        Tw(entry.card, {BackgroundColor3 = C.CYAN:Lerp(C.ITEM, 0.65)})
+                        local capCard = entry.card
+                        task.delay(0.3, function()
+                            if capCard and capCard.Parent then
+                                Tw(capCard, {BackgroundColor3 = C.ITEM})
+                            end
+                        end)
+                    end
+                else
+                    -- Eliminar card
+                    if entry.card and entry.card.Parent then
+                        entry.card:Destroy()
+                    end
+                    _ceCards[entry.key] = nil
+                end
+
+                if i % 100 == 0 then task.wait() end
+            end
+
+            _cePool = surviving
+            CEStatus.Text = ("✅ Pase #%d → %d candidatos restantes"):format(_ceScanPass, #_cePool)
+            CECountLbl.Text = tostring(#_cePool) .. " candidatos"
+
+            if #_cePool == 0 then
+                CEStatus.Text = "⚠ Sin candidatos — pulsa 🔄 Reset para nuevo scan"
+                CECountLbl.Text = ""
+                _cePool = nil
+                _ceScanPass = 0
+            elseif #_cePool == 1 then
+                if _cePool[1].card and _cePool[1].card.Parent then
+                    Tw(_cePool[1].card, {BackgroundColor3 = C.GREEN:Lerp(C.ITEM, 0.40)})
+                end
+                CEStatus.Text = "🎯 ¡ENCONTRADO! 1 candidato aislado"
+            end
+        end
+
+        BtnCEScan.Text = "🔍 BUSCAR"
+        BtnCEScan.BackgroundColor3 = C.CYAN:Lerp(Color3.fromRGB(0,0,0), 0.36)
+        _ceBusy = false
+    end)
+end
+
+BtnCEScan.MouseButton1Click:Connect(DoCEScan)
+
+-- Filtrado por nombre en tiempo real (sobre los resultados ya mostrados)
+CENameSearchBtn.MouseButton1Click:Connect(function()
+    _ceNameFilter=CENameInput.Text:lower():match("^%s*(.-)%s*$") or ""
+    ApplyCENameFilter()
+end)
+CENameInput.FocusLost:Connect(function(enter)
+    if enter then
+        _ceNameFilter=CENameInput.Text:lower():match("^%s*(.-)%s*$") or ""
+        ApplyCENameFilter()
+    end
+end)
+CENameClearBtn.MouseButton1Click:Connect(function()
+    CENameInput.Text=""
+    _ceNameFilter=""
+    ApplyCENameFilter()
+end)
+
+-- Restaurar TODOS
+local BtnCERestAll=N("TextButton",{
+    Name="BotonRestaurarTodosCE",
+    Size=UDim2.new(1,-8,0,M and 22 or 26),
+    Position=UDim2.new(0,4,0,M and 76 or 87),
+    BackgroundColor3=C.RED:Lerp(Color3.fromRGB(0,0,0),0.40),
+    Text="↩ Restaurar TODOS los valores originales",
+    Font=Enum.Font.GothamBold, TextSize=FSX,
+    TextColor3=Color3.new(1,1,1), AutoButtonColor=false,
+    ZIndex=10, Parent=CEFilterView
+},{Cor(5)})
+Hvr(BtnCERestAll,C.RED:Lerp(Color3.fromRGB(0,0,0),0.40),C.RED:Lerp(Color3.fromRGB(0,0,0),0.15))
+
+BtnCERestAll.MouseButton1Click:Connect(function()
+    if not _cePool then Flash(BtnCERestAll,"Sin datos"); return end
+    local ok_count,err_count=0,0
+    for _,entry in ipairs(_cePool) do
+        local ok,err
+        if entry.isGlobal then
+            ok,err=pcall(function() entry.envRef[entry.prop]=entry.origVal end)
+        else
+            ok,err=SafeApplyValue(entry.inst,entry.prop,entry.origVal,entry.isAttr)
+        end
+        if ok then ok_count=ok_count+1
+        else err_count=err_count+1; warn("[JRM CERestAll]",tostring(err)) end
+    end
+    Flash(BtnCERestAll,("✓ %d restaurados | ⚠ %d errores"):format(ok_count,err_count),2.5)
+end)
+
+BtnCEReset.MouseButton1Click:Connect(function()
+    _cePool=nil; _ceScanPass=0; _ceBusy=false
+    ClearCEResults()
+    CEStatus.Text="▸ Reset — pon un valor o nombre y pulsa BUSCAR"
+    CECountLbl.Text=""
+    CEValInput.Text=""
+    CENameInput.Text=""
+    _ceNameFilter=""
+    BtnCEScan.Text="🔍 BUSCAR"
+    BtnCEScan.BackgroundColor3=C.CYAN:Lerp(Color3.fromRGB(0,0,0),0.36)
+end)
+
+CEToggle.MouseButton1Click:Connect(function()
+    _ceActive=not _ceActive
+    if _ceActive then
+        CEToggle.Text="🟢 ON"
+        CEToggle.BackgroundColor3=C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.35)
+        CEToggle.TextColor3=Color3.new(1,1,1)
+        CEStatus.Text="✅ CE activado — escribe valor o nombre y pulsa BUSCAR"
+    else
+        CEToggle.Text="OFF"
+        CEToggle.BackgroundColor3=C.BTN
+        CEToggle.TextColor3=C.DIM
+        CEStatus.Text="▸ CE desactivado"
+        _ceBusy=false
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════════
+-- SELECTOR SUBTAB CE
+-- ══════════════════════════════════════════════════════════════════
+local _ceSubTab="livescan"
+local function SetCESubTab(tab)
+    _ceSubTab=tab
+    local isL=(tab=="livescan")
+    CESubScan.BackgroundColor3=isL and C.CYAN or C.BTN
+    CESubScan.TextColor3=isL and Color3.fromRGB(0,0,0) or C.DIM
+    CESubFilter.BackgroundColor3=(not isL) and C.PURP or C.BTN
+    CESubFilter.TextColor3=(not isL) and Color3.new(1,1,1) or C.DIM
+    LiveScanView.Visible=isL
+    CEFilterView.Visible=not isL
+end
+CESubScan.MouseButton1Click:Connect(function() SetCESubTab("livescan") end)
+CESubFilter.MouseButton1Click:Connect(function() SetCESubTab("filter") end)
+SetCESubTab("livescan")
+
+-- ══════════════════════════════════════════════════════════════════
+-- INTEGRAR TAB CE EN EL SetTab PRINCIPAL
+-- ══════════════════════════════════════════════════════════════════
+TabCE.MouseButton1Click:Connect(function() SetTab("ce") end)
 
 
 -- Conectar botones scan (igual que antes)
@@ -4245,7 +5917,8 @@ SetTab=function(tab)
     CodeView.Visible=tab=="code"
     ScanView.Visible=tab=="scan"
     PosView.Visible=tab=="pos"
-    ActionBar.Visible=(tab~="scan" and tab~="pos")
+    if CEView then CEView.Visible=(tab=="ce") end
+    ActionBar.Visible=(tab~="scan" and tab~="pos" and tab~="ce")
     TabCalls.BackgroundColor3=tab=="calls" and C.CYAN or C.BTN
     TabCalls.TextColor3=tab=="calls" and Color3.fromRGB(0,0,0) or C.DIM
     TabCode.BackgroundColor3=tab=="code" and C.CYAN or C.BTN
@@ -4254,6 +5927,10 @@ SetTab=function(tab)
     TabScan.TextColor3=tab=="scan" and Color3.new(1,1,1) or C.DIM
     TabPos.BackgroundColor3=tab=="pos" and C.MAG or C.BTN
     TabPos.TextColor3=tab=="pos" and Color3.new(1,1,1) or C.DIM
+    if TabCE then
+        TabCE.BackgroundColor3=tab=="ce" and C.GREEN:Lerp(Color3.fromRGB(0,0,0),0.35) or C.BTN
+        TabCE.TextColor3=tab=="ce" and Color3.new(1,1,1) or C.DIM
+    end
 end
 TabCalls.MouseButton1Click:Connect(function() SetTab("calls") end)
 TabCode.MouseButton1Click:Connect(function() SetTab("code") end)
@@ -4341,6 +6018,9 @@ BtnClose.MouseButton1Click:Connect(function()
     _JRM_Alive = false
     _posRecording=false
     _playbackActive=false
+    _lsActive=false
+_ceActive=false
+if _lsConn then _lsConn:Disconnect(); _lsConn=nil end
     if _posLiveConn then _posLiveConn:Disconnect(); _posLiveConn=nil end
     if _routeConn then _routeConn:Disconnect(); _routeConn=nil end
     RemoveSelectorTool()
