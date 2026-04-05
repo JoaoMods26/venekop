@@ -4611,7 +4611,7 @@ local function CollectLSTargets()
     local targets = {}
     local seen    = {}
 
-    local function addTarget(inst, prop, isAttr, v, envRef, isGlobal)
+     function addTarget(inst, prop, isAttr, v, envRef, isGlobal)
         local vt = type(v)
         if vt~="number" and vt~="string" and vt~="boolean" then return end
         if _lsType~="all" and vt~=_lsType then return end
@@ -4663,7 +4663,7 @@ local function CollectLSTargets()
     end
 
     -- 2. Variables globales (_G / shared)
-    local function scanEnv(env, prefix)
+     function scanEnv(env, prefix)
         if type(env)~="table" then return end
         local count=0
         for k, v in pairs(env) do
@@ -4680,7 +4680,7 @@ local function CollectLSTargets()
 end
 
 -- Lee el valor actual de un target
-local function ReadLSVal(t)
+ function ReadLSVal(t)
     if t.isGlobal then
         local ok,v=pcall(function() return t.envRef[t.prop] end)
         return ok and v or nil
@@ -4690,7 +4690,7 @@ local function ReadLSVal(t)
 end
 
 -- Tick del live scan: SOLO actualiza labels, no recrea nada
-local function DoLiveScanTick()
+ function DoLiveScanTick()
     if not _lsActive then return end
     _lsScanPass = _lsScanPass + 1
 
@@ -4789,7 +4789,7 @@ end
 
 -- Refresca targets cada N pasadas (para detectar nuevas instancias como leaderstats)
 local _lsRefreshEvery = 10  -- pasadas
-local function MaybeFreshTargets()
+ function MaybeFreshTargets()
     _lsScanPass = _lsScanPass + 1
     if _lsScanPass % _lsRefreshEvery ~= 0 then return end
     task.spawn(function()
@@ -4816,7 +4816,7 @@ LSToggle.MouseButton1Click:Connect(function()
         task.spawn(function()
             _lsTargets = CollectLSTargets()
             LSStatus.Text=("✅ %d valores encontrados — monitoreando..."):format(#_lsTargets)
-            local function loop()
+             function loop()
                 while _lsActive and _JRM_Alive do
                     local t0=tick()
                     pcall(DoLiveScanTick)
@@ -4860,7 +4860,7 @@ LSNameClearBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ── Limpiar todo ──────────────────────────────────────────────────
-local function ClearLSResults()
+ function ClearLSResults()
     for _,v in ipairs(LSResults:GetChildren()) do
         if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
     end
@@ -4997,7 +4997,7 @@ N("TextLabel",{Size=UDim2.new(0,30,1,0),BackgroundTransparency=1,
     Text="Tipo:",Font=Enum.Font.GothamBold,TextSize=FSX,TextColor3=C.DIM,Parent=CERow2})
 
 local _ceType = "number"
-local function MkCETypeBtn(lbl,key,active)
+ function MkCETypeBtn(lbl,key,active)
     return N("TextButton",{
         Size=UDim2.new(0,M and 40 or 48,1,0),
         BackgroundColor3=active and C.CYAN or C.BTN,
@@ -5010,7 +5010,7 @@ local CENum = MkCETypeBtn("Num","number",true)
 local CEStr = MkCETypeBtn("Str","string",false)
 local CEBoo = MkCETypeBtn("Bool","boolean",false)
 local CETypeBtns={{CENum,"number"},{CEStr,"string"},{CEBoo,"boolean"}}
-local function RefCEType()
+ function RefCEType()
     for _,p in ipairs(CETypeBtns) do
         local a=(p[2]==_ceType)
         p[1].BackgroundColor3=a and C.CYAN or C.BTN
@@ -5080,14 +5080,14 @@ local _ceCards    = {}
 local _ceNameFilter = ""
 
 -- ── Helpers CE (reutiliza SafeApplyValue/SafeReadValue/ParseTypedValue del LS) ──
-local function ClearCEResults()
+ function ClearCEResults()
     for _,v in ipairs(CEResults:GetChildren()) do
         if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
     end
     _ceCards={}
 end
 
-local function ParseCEInput(raw, typ)
+ function ParseCEInput(raw, typ)
     if typ=="number" then return tonumber(raw)
     elseif typ=="boolean" then
         local lo=tostring(raw):lower()
@@ -5095,7 +5095,7 @@ local function ParseCEInput(raw, typ)
     else return tostring(raw) end
 end
 
-local function CERoughMatch(v, target, tol)
+ function CERoughMatch(v, target, tol)
     if type(v)=="number" and type(target)=="number" then
         return math.abs(v-target)<=tol
     end
@@ -5107,7 +5107,7 @@ local function CollectCESnapshot(targetType)
     local targets = {}
     local seen    = {}
 
-    local function addTarget(inst, prop, isAttr, v, envRef, isGlobal)
+     function addTarget(inst, prop, isAttr, v, envRef, isGlobal)
         local vt = type(v)
         if vt ~= targetType and targetType ~= "all" then return end
         if vt ~= "number" and vt ~= "string" and vt ~= "boolean" then return end
@@ -5214,7 +5214,7 @@ local function CollectCESnapshot(targetType)
     end
 
     -- 2. Variables globales (_G / shared)
-    local function scanGlobal(env, prefix)
+     function scanGlobal(env, prefix)
         if type(env) ~= "table" then return end
         local count = 0
         for k, v in pairs(env) do
@@ -5249,7 +5249,7 @@ local function CollectCESnapshot(targetType)
     return targets
 end
 
-local function ReadCEVal(entry)
+ function ReadCEVal(entry)
     if not entry then return nil end
     if entry.isGlobal then
         if type(entry.envRef) ~= "table" then return nil end
@@ -5265,7 +5265,7 @@ local function ReadCEVal(entry)
 end
 
 -- ── Aplica filtro de nombre a los resultados CE ───────────────────
-local function ApplyCENameFilter()
+ function ApplyCENameFilter()
     local q=_ceNameFilter
     for _,v in ipairs(CEResults:GetChildren()) do
         if v:IsA("Frame") then
@@ -5282,7 +5282,7 @@ local function ApplyCENameFilter()
 end
 
 -- ── Construye card CE (guarda prop/path como atributos para el filtro) ──
-local function MakeCECard(entry)
+ function MakeCECard(entry)
     local val=entry.val
     local lc=type(val)=="number" and C.CYAN
           or type(val)=="string" and C.GREEN
@@ -5427,7 +5427,7 @@ end
 --   - Si el input de nombre está relleno y valor vacío → filtra solo por nombre
 --   - Ambos rellenos → AND (valor Y nombre coinciden)
 
-local function DoCEScan()
+ function DoCEScan()
     if not _ceActive then
         CEStatus.Text = "⚠ Activa CE primero"; return
     end
@@ -5695,7 +5695,7 @@ end)
 -- SELECTOR SUBTAB CE
 -- ══════════════════════════════════════════════════════════════════
 local _ceSubTab="livescan"
-local function SetCESubTab(tab)
+ function SetCESubTab(tab)
     _ceSubTab=tab
     local isL=(tab=="livescan")
     CESubScan.BackgroundColor3=isL and C.CYAN or C.BTN
@@ -5749,7 +5749,7 @@ BtnStartScan.MouseButton1Click:Connect(function()
 end)
 
 -- Cuando cambien los filtros de tipo/origen/orden, si ya hay datos rerenderizar
-local function RefreshPageIfReady()
+ function RefreshPageIfReady()
     if not scanReady then return end
     _currentPage = 1
     if _pageMode == "all" or ScanInput.Text:match("^%s*$") then
