@@ -88,6 +88,20 @@ local antiCaidaConnection
 local StreamingEnabled = workspace.StreamingEnabled
 local lastKnownPositions = {}
 
+RunService.Heartbeat:Connect(function()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local char = plr.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    lastKnownPositions[plr.UserId] = hrp.Position
+                end
+            end
+        end
+    end
+end)
+
 local function ForceStreamToPlayer(player, callback)
     if not player or player == LocalPlayer then
         if callback then callback() end
@@ -117,7 +131,7 @@ local function ForceStreamToPlayer(player, callback)
     end
 
     pcall(function()
-        LocalPlayer:RequestStreamAroundAsync(targetPos, 512)
+        LocalPlayer:RequestStreamAroundAsync(targetPos, 1024)
     end)
 
     -- Esperar hasta que aparezca (máx 3s)
@@ -126,7 +140,7 @@ local function ForceStreamToPlayer(player, callback)
         repeat
             task.wait(0.3)
             intentos = intentos + 1
-        until (player.Character and player.Character:FindFirstChild("HumanoidRootPart")) or intentos >= 10
+        until (player.Character and player.Character:FindFirstChild("HumanoidRootPart")) or intentos >= 20
 
         if callback then callback() end
     end)
