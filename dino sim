@@ -1,0 +1,472 @@
+--- ============================================
+--- AUTO HIT MONSTERS - Skill Tester con UI Detection (FAST)
+--- Optimizado: timeout reducido, polling por Heartbeat, sin spam de notifs
+--- ============================================
+
+local RunService = game:GetService("RunService")
+
+--- Cargar la librería
+local JmodsLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/pruebasjoao/test/refs/heads/main/JmodsLibV1.0'))()
+
+--- Crear la ventana principal
+local Window = JmodsLib:CreateWindow({
+    Name = "JDinoSimMods",
+    Icon = 90692784970350,
+    LoadingTitle = "Cargando Script...",
+    LoadingSubtitle = "Inicializando componentes...",
+    Theme = "neon_blue",
+    Intro = true,
+    IntroIcon = 90692784970350,
+    AnimationIntro = 0,
+    DragImage = 127271155083726
+})
+
+JmodsLib:Notify({
+    Title = "¡Bienvenido!",
+    Content = "Script cargado correctamente.",
+    Duration = 5
+})
+
+--- 📑 TABS
+local MainTab = Window:CreateTab("Principal")
+MainTab:CreateSection("Auto kill")
+
+--- ============================================
+--- VARIABLES DE CONTROL
+--- ============================================
+local autoHitEnabled = false
+local currentSkillId = 1
+local maxSkillId = 400
+local foundValidSkill = false
+local validSkillId = 0
+local hitDelay = 0.05
+
+local testLoopRunning = false
+local testLoopThread = nil
+local autoHitThread = nil  -- Hilo separado para auto hit
+
+-- ⚡ NUEVO: timeout reducido para pruebas de skill (era 0.5, ahora 0.25 con margen para lag de replicación)
+local SKILL_TEST_TIMEOUT = 0.25
+
+-- ⚡ NUEVO: notificar progreso cada N intentos en vez de en cada uno
+local PROGRESS_NOTIFY_INTERVAL = 25
+
+--- Variables para monitorear UI
+local uiMonitors = {}
+
+--- ============================================
+--- FUNCIÓN: Obtener el Label de un monstruo
+--- ============================================
+local function getMonsterLabel(monster)
+    if not monster or not monster:IsA("Model") then
+        return nil
+    end
+
+    local humanoidRootPart = monster:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return nil end
+
+    local attrDisplay = humanoidRootPart:FindFirstChild("AttrDisplay")
+    if not attrDisplay then return nil end
+
+    local monsterTitleDisplay = attrDisplay:FindFirstChild("MonsterTitleDispaly")
+    if not monsterTitleDisplay then return nil end
+
+    local frame = monsterTitleDisplay:FindFirstChild("Frame")
+    if not frame then return nil end
+
+    local progress = frame:FindFirstChild("Progress")
+    if not progress then return nil end
+
+    local label = progress:FindFirstChild("Label")
+    if label and label:IsA("TextLabel") then
+        return label
+    end
+
+    return nil
+end
+
+--- ============================================
+--- FUNCIÓN: Monitorear cambio de texto en el Label
+--- ============================================
+local function setupUITracker(monster)
+    if not monster or not monster:IsA("Model") then return nil end
+
+    local label = getMonsterLabel(monster)
+    if not label then return nil end
+
+    local monsterId = monster:GetAttribute("EntityId") or monster.Name
+
+    local tracker = {
+        monster = monster,
+        label = label,
+        originalText = label.Text or "",
+        monsterId = monsterId,
+        changed = false,
+        newText = ""
+    }
+
+    local connection
+    connection = label:GetPropertyChangedSignal("Text"):Connect(function()
+        if not tracker.changed then
+            local newText = label.Text
+
+            if newText and newText ~= tracker.originalText and newText ~= "" then
+                tracker.changed = true
+                tracker.newText = newText
+                -- Notificación de skill encontrado se mantiene (es importante, ocurre 1 sola vez)
+            end
+        end
+    end)
+
+    tracker.connection = connection
+    return tracker
+end
+
+--- ============================================
+--- FUNCIÓN: Obtener monstruos del workspace
+--- ============================================
+local function getMonsters()
+    local monsters = {}
+    local monsterFolder = workspace:FindFirstChild("MonsterFolder")
+
+    if monsterFolder then
+        for _, monster in ipairs(monsterFolder:GetChildren()) do
+            if monster:IsA("Model") then
+                local entityId = monster:GetAttribute("EntityId")
+                if entityId then
+                    table.insert(monsters, {
+                        name = monster.Name,
+                        id = entityId,
+                        ref = monster
+                    })
+                end
+            end
+        end
+    end
+
+    return monsters
+end
+
+--- ============================================
+--- FUNCIÓN: Golpear un monstruo específico con un skillId
+--- ============================================
+local function hitMonsterWithSkill(monsterId, skillId)
+    local args = {
+        [1] = {
+            ["data"] = {
+                ["ownerId"] = game.Players.LocalPlayer.UserId,
+                ["hitIds"] = {monsterId},
+                ["skillId"] = skillId
+            },
+            ["protoId"] = 5502
+        }
+    }
+
+    game:GetService("ReplicatedStorage").RemoteEvent.Main:FireServer(table.unpack(args, 1, #args))
+end
+
+--- ============================================
+--- FUNCIÓN: Probar un skill ID en un monstruo
+--- ⚡ OPTIMIZADO: timeout más corto + polling por Heartbeat (más preciso que task.wait)
+--- ============================================
+local function testSkillOnMonster(skillId, monster)
+    if not monster or not monster.ref or not monster.ref.Parent then
+        return false, "Monstruo no disponible"
+    end
+
+    local monsterRef = monster.ref
+    local monsterName = monster.name
+
+    local tracker = setupUITracker(monsterRef)
+    if not tracker then
+        return false, "No se pudo acceder a la UI del monstruo"
+    end
+
+    table.insert(uiMonitors, tracker)
+
+    tracker.changed = false
+    local textBefore = tracker.originalText
+
+    -- Golpear al monstruo
+    hitMonsterWithSkill(monster.id, skillId)
+
+    -- ⚡ Espera activa usando Heartbeat en vez de task.wait(0.05)
+    -- Esto revisa en CADA frame en lugar de cada 50ms, detectando el cambio casi al instante
+    local startTime = tick()
+    while tick() - startTime < SKILL_TEST_TIMEOUT do
+        if tracker.changed then
+            JmodsLib:Notify({
+                Title = "✅ ¡SKILL VÁLIDO!",
+                Content = "Skill ID: " .. skillId .. " - Texto cambió de '" .. textBefore .. "' a '" .. tracker.label.Text .. "'",
+                Duration = 3
+            })
+            return true, "Skill válido - texto cambiado"
+        end
+        RunService.Heartbeat:Wait()
+    end
+
+    return false, "Skill no funcionó - texto no cambió"
+end
+
+--- ============================================
+--- LOOP PRINCIPAL DE AUTO HIT (con skill encontrado)
+--- ============================================
+local function startAutoHitLoop()
+    if autoHitThread then
+        task.cancel(autoHitThread)
+        autoHitThread = nil
+    end
+
+    autoHitThread = task.spawn(function()
+        JmodsLib:Notify({
+            Title = "⚔️ Auto Hit Activado",
+            Content = "Usando Skill ID: " .. validSkillId,
+            Duration = 3
+        })
+
+        while autoHitEnabled and foundValidSkill do
+            local monsters = getMonsters()
+
+            if #monsters > 0 then
+                for _, monster in ipairs(monsters) do
+                    if not autoHitEnabled or not foundValidSkill then
+                        break
+                    end
+
+                    hitMonsterWithSkill(monster.id, validSkillId)
+                    task.wait(hitDelay)
+                end
+            else
+                task.wait(0.3)
+            end
+        end
+
+        if not autoHitEnabled then
+            JmodsLib:Notify({
+                Title = "⏹️ Auto Hit Detenido",
+                Content = "El toggle fue desactivado",
+                Duration = 2
+            })
+        end
+    end)
+end
+
+--- ============================================
+--- LOOP DE PRUEBA DE SKILL IDs
+--- ⚡ OPTIMIZADO: sin notificación por cada intento (solo cada N intentos)
+--- ============================================
+local function startSkillTestLoop()
+    if testLoopRunning then
+        JmodsLib:Notify({
+            Title = "⚠️ Ya está en ejecución",
+            Content = "Espera a que termine la búsqueda",
+            Duration = 2
+        })
+        return
+    end
+
+    testLoopRunning = true
+    foundValidSkill = false
+    currentSkillId = 1
+    validSkillId = 0
+    autoHitEnabled = true
+
+    for _, tracker in ipairs(uiMonitors) do
+        if tracker.connection then
+            tracker.connection:Disconnect()
+        end
+    end
+    uiMonitors = {}
+
+    testLoopThread = task.spawn(function()
+        JmodsLib:Notify({
+            Title = "🔍 Iniciando Búsqueda",
+            Content = "Cargando..." .. maxSkillId,
+            Duration = 5
+        })
+
+        while testLoopRunning and currentSkillId <= maxSkillId and not foundValidSkill do
+            local monsters = getMonsters()
+
+            if #monsters > 0 then
+                local testMonster = monsters[1]
+
+                local success, message = testSkillOnMonster(currentSkillId, testMonster)
+
+                if success then
+                    foundValidSkill = true
+                    validSkillId = currentSkillId
+
+                    JmodsLib:Notify({
+                        Title = "🎯ENCONTRADO!",
+                        Content = "Skill ID: " .. validSkillId .. " - Iniciando Auto Hit",
+                        Duration = 5
+                    })
+
+                    startAutoHitLoop()
+                    testLoopRunning = false
+                    break
+                else
+                    -- ⚡ Solo notifica progreso cada PROGRESS_NOTIFY_INTERVAL intentos
+                    if currentSkillId % PROGRESS_NOTIFY_INTERVAL == 0 then
+                        JmodsLib:Notify({
+                            Title = "🔎 Progreso",
+                            Content = "Probado hasta Skill ID: " .. currentSkillId .. " / " .. maxSkillId,
+                            Duration = 1
+                        })
+                    end
+                    currentSkillId = currentSkillId + 1
+                end
+            else
+                JmodsLib:Notify({
+                    Title = "⚠️ Esperando monstruos...",
+                    Content = "No hay monstruos disponibles",
+                    Duration = 1
+                })
+                task.wait(0.3)
+            end
+        end
+
+        if not foundValidSkill and currentSkillId > maxSkillId then
+            JmodsLib:Notify({
+                Title = "❌ Búsqueda completada",
+                Content = "No se encontró ningún skill válido del 1 al " .. maxSkillId,
+                Duration = 5
+            })
+            autoHitEnabled = false
+        end
+
+        testLoopRunning = false
+    end)
+end
+
+--- ============================================
+--- 🎮 TOGGLE PRINCIPAL
+--- ============================================
+MainTab:CreateToggle({
+    Name = "🔍 Buscar",
+    CurrentValue = false,
+    Callback = function(state)
+        if state then
+            if not testLoopRunning and not foundValidSkill then
+                autoHitEnabled = true
+                foundValidSkill = false
+                validSkillId = 0
+                startSkillTestLoop()
+            elseif foundValidSkill then
+                autoHitEnabled = true
+                startAutoHitLoop()
+                JmodsLib:Notify({
+                    Title = "⚔️ Auto Hit Activado",
+                    Content = "Usando Skill ID: " .. validSkillId,
+                    Duration = 3
+                })
+            else
+                JmodsLib:Notify({
+                    Title = "⚠️ Búsqueda en progreso",
+                    Content = "Espera a que termine la búsqueda actual",
+                    Duration = 3
+                })
+            end
+        else
+            autoHitEnabled = false
+            testLoopRunning = false
+
+            if testLoopThread then
+                task.cancel(testLoopThread)
+                testLoopThread = nil
+            end
+
+            if autoHitThread then
+                task.cancel(autoHitThread)
+                autoHitThread = nil
+            end
+
+            for _, tracker in ipairs(uiMonitors) do
+                if tracker.connection then
+                    tracker.connection:Disconnect()
+                end
+            end
+            uiMonitors = {}
+
+            JmodsLib:Notify({
+                Title = "⏹️ Detenido",
+                Content = "Búsqueda y Auto Hit desactivados",
+                Duration = 2
+            })
+        end
+    end
+})
+
+--- ============================================
+--- 🎚️ SLIDERS
+--- ⚡ Rango bajado a 0.01 - 0.3 para permitir golpes más rápidos
+--- ============================================
+MainTab:CreateSlider({
+    Name = "Delay entre golpes",
+    Range = {0, 0.3},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = 0.05,
+    Callback = function(value)
+        hitDelay = value
+    end
+})
+
+--- ============================================
+--- 📊 INFORMACIÓN
+--- ============================================
+MainTab:CreateButton({
+    Name = "🔄 Reiniciar Búsqueda",
+    Callback = function()
+        autoHitEnabled = false
+        testLoopRunning = false
+
+        if testLoopThread then
+            task.cancel(testLoopThread)
+            testLoopThread = nil
+        end
+
+        if autoHitThread then
+            task.cancel(autoHitThread)
+            autoHitThread = nil
+        end
+
+        for _, tracker in ipairs(uiMonitors) do
+            if tracker.connection then
+                tracker.connection:Disconnect()
+            end
+        end
+        uiMonitors = {}
+
+        foundValidSkill = false
+        validSkillId = 0
+        currentSkillId = 1
+
+        JmodsLib:Notify({
+            Title = "🔄 Reiniciado",
+            Content = "Listo para nueva búsqueda",
+            Duration = 3
+        })
+    end
+})
+
+MainTab:CreateButton({
+    Name = "📋 Info del Skill Encontrado",
+    Callback = function()
+        if foundValidSkill then
+            JmodsLib:Notify({
+                Title = "📊 Skill Activo",
+                Content = "Skill ID: " .. validSkillId .. " | Status: " .. (autoHitEnabled and "Activo" or "Inactivo"),
+                Duration = 3
+            })
+        else
+            JmodsLib:Notify({
+                Title = "❌ Sin Skill Activo",
+                Content = "No se ha encontrado ningún skill válido aún",
+                Duration = 3
+            })
+        end
+    end
+})
+
