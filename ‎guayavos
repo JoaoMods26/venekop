@@ -8426,6 +8426,32 @@ function B.scaleObjectExact(targetItems,targetObject,data)
     return true,refreshed or targetObject,nil
 end
 
+function B.restoreSavedPlacementAfterScale(targetItems,targetObject,data,point,height,rotation,context)
+    if not targetObject or not targetObject.Parent or not point then return false,targetObject,"missing-object-or-point" end
+    local pitch=math.round(tonumber(data.PlacePitch) or 0)%ROTATION_UNITS
+    local roll=math.round(tonumber(data.PlaceRoll) or 0)%ROTATION_UNITS
+    local stretch=vec3Data(data.Stretch,0,0,0)
+    local bias=vec3Data(data.Bias,0,0,0)
+    local ok,result=callRoute("TransformItem",{
+        key=tostring(targetObject.Name),
+        point={x=point.x,z=point.z},
+        height=height,
+        rotation=rotation,
+        pitch=pitch,
+        roll=roll,
+        stretch=stretch,
+        bias=bias,
+        surface=data.Surface,
+        stand=B.dataStand(data)
+    },context or ("restore-placement:"..tostring(targetObject.Name)))
+    if not ok then
+        debugLog("RESTORE_PLACEMENT_FAIL",targetObject.Name,point,height,rotation,result)
+        return false,targetObject,result
+    end
+    local refreshed=targetItems and targetItems:FindFirstChild(tostring(targetObject.Name)) or nil
+    return true,refreshed or targetObject,nil
+end
+
 local function supportPointDistanceStuds(base,a,b)
     local layout=GridMath.layout(base)
     local dx=((tonumber(a.x) or 0)-(tonumber(b.x) or 0))/POINT_UNIT*layout.cell.X
@@ -8925,7 +8951,13 @@ function B.processLateScaleQueue(queue,targetItems,base,targetPlot)
                     local retryOK,retryObject,scaleReason=B.scaleObjectExact(targetItems,currentObject,entry.data)
                     currentObject=retryObject or currentObject
                     if retryOK then
-                        debugLog("LATE_SCALE_OK",entry.index,entry.data.ItemId,currentObject.Name,currentObject:GetAttribute("Stretch"),currentObject:GetAttribute("StretchBias") or currentObject:GetAttribute("Bias"))
+                        local restoreOK,restoredObject,restoreReason=B.restoreSavedPlacementAfterScale(targetItems,currentObject,entry.data,entry.point,entry.height,entry.rotation,"late-restore:"..tostring(entry.index))
+                        currentObject=restoredObject or currentObject
+                        retryOK=restoreOK
+                        scaleReason=restoreReason
+                    end
+                    if retryOK then
+                        debugLog("LATE_SCALE_AND_POSITION_OK",entry.index,entry.data.ItemId,currentObject.Name,currentObject:GetAttribute("Stretch"),currentObject:GetAttribute("StretchBias") or currentObject:GetAttribute("Bias"))
                         if entry.data.Paint then applyPaint("Item",tostring(currentObject.Name),entry.data.Paint,"late-item-paint:"..tostring(entry.index)) end
                         if entry.data.ArtworkImage then setArtwork(currentObject,entry.data.ArtworkImage) end
                     else
@@ -8936,7 +8968,13 @@ function B.processLateScaleQueue(queue,targetItems,base,targetPlot)
                             local retry2OK,retry2Object=B.scaleObjectExact(targetItems,currentObject,entry.data)
                             currentObject=retry2Object or currentObject
                             if retry2OK then
-                                debugLog("LATE_SCALE_RETRY_OK",entry.index,entry.data.ItemId,currentObject.Name)
+                                local restore2OK,restored2Object,restore2Reason=B.restoreSavedPlacementAfterScale(targetItems,currentObject,entry.data,entry.point,entry.height,entry.rotation,"late-restore-retry:"..tostring(entry.index))
+                                currentObject=restored2Object or currentObject
+                                retry2OK=restore2OK
+                                retry2Object=restore2Reason
+                            end
+                            if retry2OK then
+                                debugLog("LATE_SCALE_AND_POSITION_RETRY_OK",entry.index,entry.data.ItemId,currentObject.Name)
                                 if entry.data.Paint then applyPaint("Item",tostring(currentObject.Name),entry.data.Paint,"late-item-paint-retry:"..tostring(entry.index)) end
                             else
                                 debugLog("LATE_SCALE_RETRY_FAIL",entry.index,entry.data.ItemId)
@@ -9542,8 +9580,14 @@ local function pasteCacheToPlotInternal(targetPlot)
                 if scaleNeeded then
                     local scaleOK,scaledObject,scaleReason=B.scaleObjectExact(TargetItems,placedObject,data)
                     placedObject=scaledObject or placedObject
+                    if scaleOK then
+                        local restoreOK,restoredObject,restoreReason=B.restoreSavedPlacementAfterScale(TargetItems,placedObject,data,point,height,rotation,"object-restore:"..tostring(index))
+                        placedObject=restoredObject or placedObject
+                        scaleOK=restoreOK
+                        scaleReason=restoreReason
+                    end
                     if not scaleOK then
-                        local reason=tostring(scaleReason or "scale-failed")
+                        local reason=tostring(scaleReason or "scale-or-position-failed")
                         if reason=="out-of-bounds" or reason=="bad-scale" then
                             debugLog("OBJECT_SCALE_SKIPPED_INVALID",index,data.ItemId,reason,data.Stretch,data.Bias)
                         else
