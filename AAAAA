@@ -88,8 +88,11 @@ local function DestroyPhysicsClone()
         physicsPoseConnection = nil
     end
     for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
+        local copiedAnimation
+        pcall(function() copiedAnimation = cloneTrack.Animation end)
         pcall(function() cloneTrack:Stop(0) end)
         pcall(function() cloneTrack:Destroy() end)
+        if copiedAnimation then pcall(function() copiedAnimation:Destroy() end) end
         physicsMirroredTracks[sourceTrack] = nil
     end
     local character = LocalPlayer.Character
@@ -178,11 +181,11 @@ local function CreatePhysicsClone()
                     if not cloneTrack then
                         local ok, result = pcall(function()
                             local copiedAnimation = animation:Clone()
+                            copiedAnimation.Parent = cloneAnimator
                             local newTrack = cloneAnimator:LoadAnimation(copiedAnimation)
                             newTrack.Priority = sourceTrack.Priority
                             newTrack.Looped = sourceTrack.Looped
                             newTrack:Play(0, sourceTrack.WeightCurrent, sourceTrack.Speed)
-                            copiedAnimation:Destroy()
                             return newTrack
                         end)
                         if ok then
@@ -202,8 +205,11 @@ local function CreatePhysicsClone()
             end
             for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
                 if not activeSourceTracks[sourceTrack] then
+                    local copiedAnimation
+                    pcall(function() copiedAnimation = cloneTrack.Animation end)
                     pcall(function() cloneTrack:Stop(0) end)
                     pcall(function() cloneTrack:Destroy() end)
+                    if copiedAnimation then pcall(function() copiedAnimation:Destroy() end) end
                     physicsMirroredTracks[sourceTrack] = nil
                 end
             end
@@ -244,11 +250,8 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
         end
     end
     local ok = pcall(function()
-        local relativeCFrame = targetRoot.CFrame:ToObjectSpace(desiredCFrame)
         sethiddenproperty(root, "PhysicsRepRootPart", targetRoot)
-        root.CFrame = relativeCFrame
-        root.AssemblyLinearVelocity = Vector3.zero
-        root.AssemblyAngularVelocity = Vector3.zero
+        root.CFrame = desiredCFrame
         physicsClone:PivotTo(desiredCFrame)
     end)
     if not ok then
@@ -850,6 +853,10 @@ JugadoresTab:CreateToggle({
         if state then
             if type(sethiddenproperty) ~= "function" then
                 Rayfield:Notify({Title = "En tiempo real", Content = "Este entorno no admite sethiddenproperty.", Duration = 3, Image = 4483362458})
+                return
+            end
+            if not selectedPlayer or selectedPlayer == LocalPlayer then
+                Rayfield:Notify({Title = "En tiempo real", Content = "Selecciona otro jugador primero.", Duration = 3, Image = 4483362458})
                 return
             end
             physicsModeEnabled = true
@@ -1496,8 +1503,10 @@ JugadoresTab:CreateToggle({
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
 
             ApplyPlayerPlacement(root, targetRoot, head.CFrame * CFrame.new(0, sitDistance, 0))
-        root.AssemblyLinearVelocity = Vector3.zero
-        root.AssemblyAngularVelocity = Vector3.zero
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
 
             sitConnection = RunService.Heartbeat:Connect(function()
                 if not sitToggle or not selectedPlayer then return end
@@ -1512,12 +1521,12 @@ JugadoresTab:CreateToggle({
                 if not currentHumanoid or not currentRoot or not currentHead or not currentTargetRoot then
                     return
                 end
-        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentHead.CFrame * CFrame.new(0, sitDistance, 0))
-        currentRoot.AssemblyLinearVelocity = Vector3.zero
-        currentRoot.AssemblyAngularVelocity = Vector3.zero
-        currentRoot.Velocity = Vector3.zero
-        currentRoot.RotVelocity = Vector3.zero
-        currentHumanoid.Sit = true
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentHead.CFrame * CFrame.new(0, sitDistance, 0))
+                currentRoot.AssemblyLinearVelocity = Vector3.zero
+                currentRoot.AssemblyAngularVelocity = Vector3.zero
+                currentRoot.Velocity = Vector3.zero
+                currentRoot.RotVelocity = Vector3.zero
+                currentHumanoid.Sit = true
                 currentHumanoid.WalkSpeed = 0
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
@@ -2107,8 +2116,6 @@ local function ReapplySitHead()
         ApplyPlayerPlacement(root, targetRoot, head.CFrame * CFrame.new(0, sitDistance, 0))
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
 sitConnection = RunService.Heartbeat:Connect(function()
         if not sitToggle or not selectedPlayer then
             return
