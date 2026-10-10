@@ -1,4 +1,4 @@
----fling arreglado xddd
+---fling apruebadd
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -330,37 +330,45 @@ local function CreatePhysicsClone()
     return true
 end
 
+local standFlingMv = 0.1
+local standFlingThread = nil
+
+local function ApplyStandFling(root)
+    if not root or not root.Parent then return end
+    pcall(function()
+        local vel = root.Velocity
+        root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+        RunService.RenderStepped:Wait()
+        if root and root.Parent then
+            root.Velocity = vel
+            RunService.Stepped:Wait()
+        end
+        if root and root.Parent then
+            root.Velocity = vel + Vector3.new(0, standFlingMv, 0)
+            standFlingMv = -standFlingMv
+        end
+    end)
+end
+
 local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
+
+ 
     if not root or not desiredCFrame then return end
     EnsureStabilityGround(root)
     if not physicsModeEnabled then
         root.CFrame = desiredCFrame
         if not preserveVelocity then ZeroPlacementVelocity(root) end
-        if fling and standFlingEnabled and standAttacking then
-            pcall(function()
-                local vel = root.Velocity
-                root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-                RunService.RenderStepped:Wait()
-                root.Velocity = vel
-                RunService.Stepped:Wait()
-                root.Velocity = vel + Vector3.new(0, 0.1, 0)
-            end)
-        end
+if fling and standFlingEnabled and standAttacking then
+    ApplyStandFling(root)
+end
         return
     end
     if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
         root.CFrame = desiredCFrame
         if not preserveVelocity then ZeroPlacementVelocity(root) end
-        if fling and standFlingEnabled and standAttacking then
-            pcall(function()
-                local vel = root.Velocity
-                root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-                RunService.RenderStepped:Wait()
-                root.Velocity = vel
-                RunService.Stepped:Wait()
-                root.Velocity = vel + Vector3.new(0, 0.1, 0)
-            end)
-        end
+if fling and standFlingEnabled and standAttacking then
+    ApplyStandFling(root)
+end
         return
     end
     if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
@@ -391,16 +399,9 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
     if not preserveVelocity then ZeroPlacementVelocity(root) end
 
 
-    if fling and standFlingEnabled and standAttacking then
-        pcall(function()
-            local vel = root.Velocity
-            root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-            RunService.RenderStepped:Wait()
-            root.Velocity = vel
-            RunService.Stepped:Wait()
-            root.Velocity = vel + Vector3.new(0, 0.1, 0)
-        end)
-    end
+if fling and standFlingEnabled and standAttacking then
+    ApplyStandFling(root)
+end
 end
 
 local function NormalizeAnimId(id)
@@ -2499,7 +2500,7 @@ local standSide = 3.2
 local standAutoRange = 25 
 
 local standReturnSide = 4.5 
-local standAttackBehindDistance = 1.8 
+local standAttackBehindDistance = 0.4 
 local standAttackTravelDistance = 3.8 
 local standAttackTravelTime = 0.28 
 
@@ -2518,9 +2519,9 @@ local standAttackIds = {
 local standIdleTrack = nil 
 local standAttackTrack = nil 
 
-local standAttacking = false 
 local standAttackTarget = nil 
-local standFlingEnabled = false
+
+
 
 local standTargetAnimatorConnection = nil 
 local standTargetCharacterConnection = nil 
