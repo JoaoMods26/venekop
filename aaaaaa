@@ -1,0 +1,4253 @@
+local ENV = (type(getgenv) == "function" and getgenv()) or _G
+local Window = ENV.Window or _G.Window
+local Rayfield = ENV.Rayfield or _G.Rayfield
+
+if not Window then
+    warn("[Jugadores] _G.Window es nil, abortando")
+    return
+end
+if not Rayfield then
+    warn("[Jugadores] _G.Rayfield es nil, abortando")
+    return
+end
+
+local JugadoresTab = Window:CreateTab("Jugadores")
+JugadoresTab:CreateSection("Acciones")
+
+local RunService  = game:GetService("RunService")
+local Players     = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local selectedPlayer = nil
+local characterAddedConnection
+local mochilaToggle = false
+local mochilaConnection = nil
+local mochilaDistance = 1.5
+local PlayMochila
+local aimlockEnabled = false
+local aimlockConnection
+local orbitConnection
+local followConnection
+local isSitting = false
+local sitConnection = nil
+local orbitSpeed = 20
+local orbitDistance = 10
+local followOffsetZ = 5
+local orbitEnabled = false
+local followEnabled = false
+local doggyEnabled = false
+local doggyConnection
+local doggyAnimId = 13694096724
+local doggyAnimTime = 2.6
+local doggySpeed = 1
+local doggyDirection = 1
+local doggyCurrentDistance = 2.7
+local doggyTargetDistance = 4
+
+local pataEnabled = false
+local pataConnection
+local pataAnimId = 18526288497
+local pataAnimTime = 2.44
+local pataSpeed = 1
+local pataDirection = 1
+local pataCurrentDistance = 3
+local pataTargetDistance = 4
+
+local cariEnabled = false
+local cariConnection
+local cariAnimId = 15679624464
+local cariAnimTime = 2.6
+local cariSpeed = 5
+local cariDirection = 1
+local cariCurrentDistance = 2.7
+local cariTargetDistance = 4
+
+local wataEnabled = false
+local wataConnection
+local wataAnimId = 12992262118
+local wataAnimTime = 5.6
+local wataSpeed = 5
+local wataDirection = 1
+local wataCurrentDistance = 2
+local wataTargetDistance = 3
+local movementDistance = 4
+local movementDistanceChanged = false
+local savedCollisions = {}
+local physicsModeEnabled = false
+local physicsClone = nil
+local physicsCloneHumanoid = nil
+local physicsPoseConnection = nil
+local physicsMirroredTracks = {}
+local physicsCameraSubject = nil
+local physicsCameraType = nil
+local physicsCharacter = nil
+
+local function DestroyPhysicsClone()
+    if physicsPoseConnection then
+        physicsPoseConnection:Disconnect()
+        physicsPoseConnection = nil
+    end
+    for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
+        local copiedAnimation
+        pcall(function() copiedAnimation = cloneTrack.Animation end)
+        pcall(function() cloneTrack:Stop(0) end)
+        pcall(function() cloneTrack:Destroy() end)
+        if copiedAnimation then pcall(function() copiedAnimation:Destroy() end) end
+        physicsMirroredTracks[sourceTrack] = nil
+    end
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    if character and physicsClone and physicsClone.Parent and physicsCharacter == character then
+        pcall(function() character:PivotTo(physicsClone:GetPivot()) end)
+    end
+    if root and type(sethiddenproperty) == "function" then
+        pcall(function() sethiddenproperty(root, "PhysicsRepRootPart", root) end)
+    end
+    local camera = workspace.CurrentCamera
+    if camera then
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        camera.CameraSubject = humanoid or physicsCameraSubject
+        camera.CameraType = physicsCameraType or Enum.CameraType.Custom
+    end
+    if physicsClone then
+        pcall(function() physicsClone:Destroy() end)
+    end
+    physicsClone = nil
+    physicsCloneHumanoid = nil
+    physicsCharacter = nil
+    physicsCameraSubject = nil
+    physicsCameraType = nil
+end
+
+local function CreatePhysicsClone()
+    local character = LocalPlayer.Character
+    if not character then return false end
+    if physicsClone and physicsClone.Parent and physicsCharacter == character then return true end
+    DestroyPhysicsClone()
+    local oldArchivable = character.Archivable
+    character.Archivable = true
+    local ok, clone = pcall(function() return character:Clone() end)
+    character.Archivable = oldArchivable
+    if not ok or not clone then return false end
+    clone.Name = "Jmods_ReturnCopy"
+    for _, object in ipairs(clone:GetDescendants()) do
+        if object:IsA("Script") or object:IsA("LocalScript") then
+            object:Destroy()
+        elseif object:IsA("BasePart") then
+            object.Anchored = true
+            object.CanCollide = false
+            object.CanTouch = false
+            object.CanQuery = false
+        end
+    end
+    local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
+    local cloneHumanoid = clone:FindFirstChildOfClass("Humanoid")
+    if not cloneRoot or not cloneHumanoid then
+        clone:Destroy()
+        return false
+    end
+    clone.Parent = workspace
+    clone:PivotTo(character:GetPivot())
+    cloneHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    cloneHumanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+    physicsClone = clone
+    physicsCloneHumanoid = cloneHumanoid
+    physicsCharacter = character
+    local camera = workspace.CurrentCamera
+    if camera then
+        physicsCameraSubject = camera.CameraSubject
+        physicsCameraType = camera.CameraType
+        camera.CameraSubject = cloneHumanoid
+    end
+    physicsPoseConnection = RunService.RenderStepped:Connect(function()
+        if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
+        local currentCharacter = LocalPlayer.Character
+        if not currentCharacter or currentCharacter ~= physicsCharacter then return end
+        local sourceHumanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
+        local cloneHumanoid = physicsClone:FindFirstChildOfClass("Humanoid")
+        local sourceAnimator = sourceHumanoid and sourceHumanoid:FindFirstChildOfClass("Animator")
+        local cloneAnimator = cloneHumanoid and cloneHumanoid:FindFirstChildOfClass("Animator")
+        if cloneHumanoid and not cloneAnimator then
+            cloneAnimator = Instance.new("Animator")
+            cloneAnimator.Parent = cloneHumanoid
+        end
+        if sourceAnimator and cloneAnimator then
+            local activeSourceTracks = {}
+            for _, sourceTrack in ipairs(sourceAnimator:GetPlayingAnimationTracks()) do
+                local animation = sourceTrack.Animation
+                if animation then
+                    activeSourceTracks[sourceTrack] = true
+                    local cloneTrack = physicsMirroredTracks[sourceTrack]
+                    if not cloneTrack then
+                        local ok, result = pcall(function()
+                            local copiedAnimation = animation:Clone()
+                            copiedAnimation.Parent = cloneAnimator
+                            local newTrack = cloneAnimator:LoadAnimation(copiedAnimation)
+                            newTrack.Priority = sourceTrack.Priority
+                            newTrack.Looped = sourceTrack.Looped
+                            newTrack:Play(0, sourceTrack.WeightCurrent, sourceTrack.Speed)
+                            return newTrack
+                        end)
+                        if ok then
+                            cloneTrack = result
+                            physicsMirroredTracks[sourceTrack] = cloneTrack
+                        end
+                    end
+                    if cloneTrack then
+                        pcall(function()
+                            cloneTrack:AdjustSpeed(0)
+                            cloneTrack.TimePosition = sourceTrack.TimePosition
+                            cloneTrack:AdjustWeight(sourceTrack.WeightCurrent, 0)
+                            cloneTrack:AdjustSpeed(sourceTrack.Speed)
+                        end)
+                    end
+                end
+            end
+            for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
+                if not activeSourceTracks[sourceTrack] then
+                    local copiedAnimation
+                    pcall(function() copiedAnimation = cloneTrack.Animation end)
+                    pcall(function() cloneTrack:Stop(0) end)
+                    pcall(function() cloneTrack:Destroy() end)
+                    if copiedAnimation then pcall(function() copiedAnimation:Destroy() end) end
+                    physicsMirroredTracks[sourceTrack] = nil
+                end
+            end
+        end
+        local function motorKey(motor)
+            return table.concat({motor.Name, motor.Part0 and motor.Part0.Name or "", motor.Part1 and motor.Part1.Name or ""}, "|")
+        end
+        local originalMotors = {}
+        for _, object in ipairs(currentCharacter:GetDescendants()) do
+            if object:IsA("Motor6D") then
+                originalMotors[motorKey(object)] = object
+            end
+        end
+        for _, object in ipairs(physicsClone:GetDescendants()) do
+            if object:IsA("Motor6D") then
+                local source = originalMotors[motorKey(object)]
+                if source then object.Transform = source.Transform end
+            end
+        end
+    end)
+    return true
+end
+
+local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
+    if not root or not desiredCFrame then return end
+    if not physicsModeEnabled then
+        root.CFrame = desiredCFrame
+        return
+    end
+    if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
+        root.CFrame = desiredCFrame
+        return
+    end
+    if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
+        if not CreatePhysicsClone() then
+            root.CFrame = desiredCFrame
+            return
+        end
+    end
+    local relativeCFrame
+    local relativeOk = pcall(function()
+        relativeCFrame = targetRoot.CFrame:ToObjectSpace(desiredCFrame)
+    end)
+    if not relativeOk or not relativeCFrame then
+        root.CFrame = desiredCFrame
+        return
+    end
+    local ok = pcall(function()
+        sethiddenproperty(root, "PhysicsRepRootPart", targetRoot)
+        root.CFrame = relativeCFrame
+        physicsClone:PivotTo(desiredCFrame)
+    end)
+    if not ok then
+        pcall(function()
+            root.CFrame = relativeCFrame
+        end)
+        pcall(function()
+            physicsClone:PivotTo(desiredCFrame)
+        end)
+    end
+end
+
+local function NormalizeAnimId(id)
+    local value = tostring(id or "")
+    return value:match("%d+") or value
+end
+
+local function StopAnimationTracksById(humanoid, animationId)
+    if not humanoid then return end
+    local wanted = NormalizeAnimId(animationId)
+    pcall(function()
+        for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+            local currentId = ""
+            pcall(function()
+                if track.Animation then
+                    currentId = track.Animation.AnimationId
+                end
+            end)
+            if NormalizeAnimId(currentId) == wanted then
+                pcall(function() track:Stop(0) end)
+                pcall(function() track:Destroy() end)
+            end
+        end
+    end)
+end
+
+local function DisconnectAnimationConnection(connection)
+    if connection then
+        pcall(function() connection:Disconnect() end)
+    end
+    return nil
+end
+
+local perroEnabled = false
+local perroConnection
+local perroAnimId = 123646621028812
+local perroAnimTime = 1.44
+local perroSpeed = 1
+local perroDirection = 1
+local perroCurrentDistance = 3
+local perroTargetDistance = 4
+
+ function SetNoCollision(char, state)
+    if state then
+        savedCollisions[char] = {}
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                savedCollisions[char][part] = part.CanCollide
+                part.CanCollide = false
+            end
+        end
+    else
+        if savedCollisions[char] then
+            for part, original in pairs(savedCollisions[char]) do
+                if part and part:IsA("BasePart") then
+                    part.CanCollide = original
+                end
+            end
+            savedCollisions[char] = nil
+        end
+    end
+end
+
+ function PlayWata(target)
+    if not target or not target.Character then return end
+    wataConnection = DisconnectAnimationConnection(wataConnection)
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
+    if not humanoid or not root or not targetRoot then return end
+
+    StopAnimationTracksById(humanoid, wataAnimId)
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. wataAnimId
+    local track = humanoid:LoadAnimation(anim)
+    track:Play()
+    track.TimePosition = wataAnimTime
+    track:AdjustSpeed(0)
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    SetNoCollision(char, true)
+
+    do
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * wataCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end
+
+    wataConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+        if not targetRoot.Parent then
+            wataConnection = DisconnectAnimationConnection(wataConnection)
+            return
+        end
+
+        wataCurrentDistance = wataCurrentDistance + (wataSpeed * wataDirection * dt)
+
+        if wataCurrentDistance >= (movementDistanceChanged and movementDistance or wataTargetDistance) then
+            wataDirection = -1
+        elseif wataCurrentDistance <= 1.2 then
+            wataDirection = 1
+        end
+
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * wataCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end)
+end
+
+ function StopWata()
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChild("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    if wataConnection then
+        wataConnection:Disconnect()
+        wataConnection = nil
+    end
+
+    if humanoid then
+        humanoid.AutoRotate = true
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        StopAnimationTracksById(humanoid, wataAnimId)
+    end
+
+    if char then
+        SetNoCollision(char, false)
+    end
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+end
+
+ function PlayCari(target)
+    if not target or not target.Character then return end
+    cariConnection = DisconnectAnimationConnection(cariConnection)
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
+    if not humanoid or not root or not targetRoot then return end
+
+    StopAnimationTracksById(humanoid, cariAnimId)
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. cariAnimId
+    local track = humanoid:LoadAnimation(anim)
+    track:Play()
+    track.TimePosition = cariAnimTime
+    track:AdjustSpeed(0)
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    SetNoCollision(char, true)
+
+    do
+        local offsetPosition = targetRoot.Position - targetRoot.CFrame.LookVector * cariCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end
+
+    cariConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+        if not targetRoot.Parent then
+            cariConnection = DisconnectAnimationConnection(cariConnection)
+            return
+        end
+
+        cariCurrentDistance = cariCurrentDistance + (cariSpeed * cariDirection * dt)
+
+        if cariCurrentDistance >= (movementDistanceChanged and movementDistance or cariTargetDistance) then
+            cariDirection = -1
+        elseif cariCurrentDistance <= 1.2 then
+            cariDirection = 1
+        end
+
+        local offsetPosition = targetRoot.Position - targetRoot.CFrame.LookVector * cariCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end)
+end
+
+ function StopCari()
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChild("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    if cariConnection then
+        cariConnection:Disconnect()
+        cariConnection = nil
+    end
+
+    if humanoid then
+        humanoid.AutoRotate = true
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        StopAnimationTracksById(humanoid, cariAnimId)
+    end
+
+    if char then
+        SetNoCollision(char, false)
+    end
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+end
+
+ function findPlayerByPartialName(name)
+    name = name:lower()
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        local usernameMatch = player.Name:lower():sub(1, #name) == name
+        local displaynameMatch = player.DisplayName:lower():sub(1, #name) == name
+        if usernameMatch or displaynameMatch then
+            return player
+        end
+    end
+end
+
+function PlayPata(target)
+    if not target or not target.Character then return end
+    pataConnection = DisconnectAnimationConnection(pataConnection)
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
+    if not humanoid or not root or not targetRoot then return end
+
+    StopAnimationTracksById(humanoid, pataAnimId)
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. pataAnimId
+    local track = humanoid:LoadAnimation(anim)
+    track:Play()
+    track.TimePosition = pataAnimTime
+    track:AdjustSpeed(0)
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    SetNoCollision(char, true)
+
+    do
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * pataCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end
+
+    pataConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+        if not targetRoot.Parent then
+            pataConnection = DisconnectAnimationConnection(pataConnection)
+            return
+        end
+
+        pataCurrentDistance = pataCurrentDistance + (pataSpeed * pataDirection * dt)
+
+        if pataCurrentDistance >= (movementDistanceChanged and movementDistance or pataTargetDistance) then
+            pataDirection = -1
+        elseif pataCurrentDistance <= 2.7 then
+            pataDirection = 1
+        end
+
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * pataCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end)
+end
+
+function StopPata()
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChild("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    if pataConnection then
+        pataConnection:Disconnect()
+        pataConnection = nil
+    end
+
+    if humanoid then
+        humanoid.AutoRotate = true
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        StopAnimationTracksById(humanoid, pataAnimId)
+    end
+
+    if char then
+        SetNoCollision(char, false)
+    end
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+end
+
+function PlayDoggy(target)
+    if not target or not target.Character then return end
+    doggyConnection = DisconnectAnimationConnection(doggyConnection)
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
+    if not humanoid or not root or not targetRoot then return end
+
+    StopAnimationTracksById(humanoid, doggyAnimId)
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. doggyAnimId
+    local track = humanoid:LoadAnimation(anim)
+    track:Play()
+    track.TimePosition = doggyAnimTime
+    track:AdjustSpeed(0)
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    SetNoCollision(char, true)
+
+    do
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * doggyCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end
+
+    doggyConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+        if not targetRoot.Parent then
+            doggyConnection = DisconnectAnimationConnection(doggyConnection)
+            return
+        end
+
+        doggyCurrentDistance = doggyCurrentDistance + (doggySpeed * doggyDirection * dt)
+
+        if doggyCurrentDistance >= (movementDistanceChanged and movementDistance or doggyTargetDistance) then
+            doggyDirection = -1
+        elseif doggyCurrentDistance <= 2.7 then
+            doggyDirection = 1
+        end
+
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * doggyCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position))
+end)
+end
+
+function StopDoggy()
+    local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChild("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    if doggyConnection then
+        doggyConnection:Disconnect()
+        doggyConnection = nil
+    end
+
+    if humanoid then
+        humanoid.AutoRotate = true
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        StopAnimationTracksById(humanoid, doggyAnimId)
+    end
+
+    if char then
+        SetNoCollision(char, false)
+    end
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+end
+
+local characterAddedConnection
+
+local infoRowTarget = LocalPlayer
+
+local function BuildContentLineDeJugador(jugador)
+    local lines = {}
+
+    if jugador.Character then
+        local hum = jugador.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            table.insert(lines, "❤️ HP: " .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth))
+        end
+    end
+
+    table.insert(lines, "🆔 ID: " .. jugador.UserId)
+    table.insert(lines, "📅 Cuenta: " .. jugador.AccountAge .. " días")
+
+    local membership = jugador.MembershipType == Enum.MembershipType.Premium and "⭐ Premium" or "Sin Premium"
+    table.insert(lines, "💎 " .. membership)
+
+    table.insert(lines, "🏳️ Equipo: " .. (jugador.Team and jugador.Team.Name or "Ninguno"))
+
+    if jugador.Character and jugador.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = jugador.Character.HumanoidRootPart.Position
+        table.insert(lines, string.format("📍 Pos: %.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z))
+
+        local tuChar = LocalPlayer.Character
+        if tuChar and tuChar:FindFirstChild("HumanoidRootPart") then
+            local dist = (tuChar.HumanoidRootPart.Position - pos).Magnitude
+            table.insert(lines, string.format("📏 Distancia: %.1f studs", dist))
+        end
+    end
+
+    local leaderstats = jugador:FindFirstChild("leaderstats")
+    if leaderstats then
+        for _, stat in ipairs(leaderstats:GetChildren()) do
+            if stat:IsA("ValueBase") then
+                local val = stat.Value
+                if type(val) == "number" then val = math.floor(val) end
+                table.insert(lines, "📊 " .. stat.Name .. ": " .. tostring(val))
+            end
+        end
+    end
+
+    return table.concat(lines, "\n")
+end
+
+local InfoRow = JugadoresTab:CreateImageRow({
+    Image       = LocalPlayer.UserId,
+    PlayerImage = true,
+    ImgSize     = 56,
+    Height      = 74,
+    Title       = LocalPlayer.Name .. " (@" .. LocalPlayer.DisplayName .. ")",
+    Content     = "Cargando estadísticas..."
+})
+
+function ActualizarInfoRow(jugador)
+    jugador = jugador or infoRowTarget
+    infoRowTarget = jugador
+
+    InfoRow:SetPlayerThumbnail(jugador.UserId)
+    InfoRow:UpdateTitle(jugador.Name .. " (@" .. jugador.DisplayName .. ")")
+    InfoRow:UpdateContent(BuildContentLineDeJugador(jugador))
+end
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        pcall(function()
+            InfoRow:UpdateContent(BuildContentLineDeJugador(infoRowTarget))
+        end)
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    pcall(function() ActualizarInfoRow(infoRowTarget) end)
+end)
+
+JugadoresTab:CreateInput({
+    Name = "Nombre del Jugador",
+    PlaceholderText = "Ej. juan, maria...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local player = findPlayerByPartialName(text)
+        if player then
+            selectedPlayer = player
+ActualizarInfoRow(selectedPlayer)
+
+            if characterAddedConnection then
+                characterAddedConnection:Disconnect()
+            end
+            
+             function onTargetCharacterAdded(character)
+                task.wait(0.5)
+                
+                if doggyEnabled then
+                    PlayDoggy(selectedPlayer)
+                end
+                if pataEnabled then
+                    PlayPata(selectedPlayer)
+                end
+                if cariEnabled then
+                    PlayCari(selectedPlayer)
+                end
+                if wataEnabled then
+                    PlayWata(selectedPlayer)
+                end
+                if perroEnabled then
+                    PlayPerro(selectedPlayer)
+                end
+                if mochilaToggle then
+                    PlayMochila(selectedPlayer)
+                end
+            end
+            
+            characterAddedConnection = selectedPlayer.CharacterAdded:Connect(onTargetCharacterAdded)
+            
+            Rayfield:Notify({
+                Title = "Jugador Seleccionado",
+                Content = player.Name .. " ha sido seleccionado.",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            Rayfield:Notify({
+                Title = "Error",
+                Content = "No se encontró el jugador.",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+local selectorTool = nil
+local isToolActive = false
+
+ function CreateSelectorTool()
+    if selectorTool then
+        selectorTool:Destroy()
+        selectorTool = nil
+    end
+    
+    selectorTool = Instance.new("Tool")
+    selectorTool.Name = "Selector de Jugadores"
+    selectorTool.RequiresHandle = false
+    
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(0.2, 0.2, 1)
+    handle.Material = Enum.Material.Neon
+    handle.BrickColor = BrickColor.new("Bright blue")
+    handle.CanCollide = false
+    handle.Parent = selectorTool
+    
+    selectorTool.Activated:Connect(function()
+        local player = game.Players.LocalPlayer
+        local mouse = player:GetMouse()
+        
+        if mouse.Target and mouse.Target.Parent then
+            local targetCharacter = mouse.Target.Parent
+            local targetPlayer = nil
+            
+            for _, plr in ipairs(game.Players:GetPlayers()) do
+                if plr.Character == targetCharacter then
+                    targetPlayer = plr
+                    break
+                end
+            end
+            
+            if targetPlayer and targetPlayer ~= player then
+                selectedPlayer = targetPlayer
+ActualizarInfoRow(selectedPlayer)
+
+                Rayfield:Notify({
+                    Title = "Jugador Seleccionado",
+                    Content = targetPlayer.DisplayName .. " (" .. targetPlayer.Name .. ") ha sido seleccionado.",
+                    Duration = 3,
+                    Image = 4483362458
+                })
+                
+                selectorTool.Parent = player.Backpack
+            else
+                Rayfield:Notify({
+                    Title = "Error",
+                    Content = "No has clickeado en un jugador válido.",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+            end
+        end
+    end)
+    
+    selectorTool.Equipped:Connect(function()
+        Rayfield:Notify({
+            Title = "Herramienta Equipada",
+            Content = "Haz click en cualquier jugador para seleccionarlo.",
+            Duration = 3,
+            Image = 4483362458
+        })
+    end)
+    
+    selectorTool.Unequipped:Connect(function()
+        Rayfield:Notify({
+            Title = "Herramienta Guardada",
+            Content = "Selector de jugadores guardado en el inventario.",
+            Duration = 2,
+            Image = 4483362458
+        })
+    end)
+    
+    return selectorTool
+end
+
+JugadoresTab:CreateButton({
+    Name = "Herramienta Selector",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        
+        local tool = CreateSelectorTool()
+        
+        tool.Parent = player.Backpack
+        
+        Rayfield:Notify({
+            Title = "Herramienta Creada",
+            Content = "Revisa tu inventario y equipa el 'Selector de Jugadores'.",
+            Duration = 4,
+            Image = 4483362458
+        })
+    end
+})
+
+local pruebaEnabled = false
+
+JugadoresTab:CreateToggle({
+    Name = "En tiempo real",
+    CurrentValue = false,
+    Callback = function(state)
+        if state then
+            if type(sethiddenproperty) ~= "function" then
+                Rayfield:Notify({Title = "En tiempo real", Content = "Este entorno no admite sethiddenproperty.", Duration = 3, Image = 4483362458})
+                return
+            end
+            if not selectedPlayer or selectedPlayer == LocalPlayer then
+                Rayfield:Notify({Title = "En tiempo real", Content = "Selecciona otro jugador primero.", Duration = 3, Image = 4483362458})
+                return
+            end
+            physicsModeEnabled = true
+            pruebaEnabled = true
+        else
+            physicsModeEnabled = false
+            pruebaEnabled = false
+            DestroyPhysicsClone()
+        end
+    end
+})
+
+local espectando = false
+local cameraSubjectBackup
+
+JugadoresTab:CreateToggle({
+    Name = "Espectar",
+    CurrentValue = false,
+    Callback = function(Value)
+        local camera = workspace.CurrentCamera
+        local localPlayer = game.Players.LocalPlayer
+
+        if Value then
+            if selectedPlayer and selectedPlayer.Character then
+                cameraSubjectBackup = camera.CameraSubject
+                camera.CameraSubject = selectedPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+                espectando = true
+            end
+        else
+            if localPlayer and localPlayer.Character then
+                camera.CameraSubject = localPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+                espectando = false
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateButton({
+    Name = "Teleportarse",
+    Callback = function()
+        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = selectedPlayer.Character.HumanoidRootPart.Position
+            game.Players.LocalPlayer.Character:MoveTo(targetPos)
+        end
+    end
+})
+
+function SaveCollisions(char)
+    savedCollisions[char] = {}
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            savedCollisions[char][part] = part.CanCollide
+        end
+    end
+end
+
+function RestoreCollisions(char)
+    if savedCollisions[char] then
+        for part, original in pairs(savedCollisions[char]) do
+            if part and part:IsA("BasePart") then
+                part.CanCollide = original
+            end
+        end
+        savedCollisions[char] = nil
+    end
+end
+
+local espEnabled = false
+local espTarget = nil
+local espType = "Highlight" -- se actualiza con el dropdown
+local espCharacterAddedConnection = nil
+
+local espHighlight = nil
+ 
+local function ApplyESPHighlight(character)
+    if not character then return end
+ 
+    if espHighlight then
+        espHighlight:Destroy()
+        espHighlight = nil
+    end
+ 
+    espHighlight = Instance.new("Highlight")
+    espHighlight.Name = "SelectedPlayerESP"
+    espHighlight.FillColor = Color3.fromRGB(255, 60, 60)
+    espHighlight.FillTransparency = 0.5
+    espHighlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    espHighlight.OutlineTransparency = 0
+    espHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    espHighlight.Parent = character
+end
+ 
+local function RemoveESPHighlight()
+    if espHighlight then
+        espHighlight:Destroy()
+        espHighlight = nil
+    end
+end
+
+local espBoxDrawing = nil
+local espNameDrawing = nil
+local espBoxConnection = nil
+ 
+local function CreateESPBoxDrawings()
+    espBoxDrawing = Drawing.new("Square")
+    espBoxDrawing.Thickness = 1.5
+    espBoxDrawing.Color = Color3.fromRGB(255, 60, 60)
+    espBoxDrawing.Filled = false
+    espBoxDrawing.Visible = false
+ 
+    espNameDrawing = Drawing.new("Text")
+    espNameDrawing.Size = 14
+    espNameDrawing.Center = true
+    espNameDrawing.Outline = true
+    espNameDrawing.Color = Color3.fromRGB(255, 255, 255)
+    espNameDrawing.Visible = false
+end
+ 
+local function RemoveESPBoxDrawings()
+    if espBoxDrawing then
+        espBoxDrawing:Remove()
+        espBoxDrawing = nil
+    end
+    if espNameDrawing then
+        espNameDrawing:Remove()
+        espNameDrawing = nil
+    end
+end
+ 
+local function StartESPBox()
+    if type(Drawing) ~= "table" or type(Drawing.new) ~= "function" then
+        Rayfield:Notify({
+            Title = "ESP Box",
+            Content = "Tu executor no soporta la librería Drawing.",
+            Duration = 3,
+            Image = 4483362458
+        })
+        return
+    end
+ 
+    CreateESPBoxDrawings()
+ 
+    espBoxConnection = RunService.RenderStepped:Connect(function()
+        if not espEnabled or not espTarget then
+            if espBoxDrawing then espBoxDrawing.Visible = false end
+            if espNameDrawing then espNameDrawing.Visible = false end
+            return
+        end
+ 
+        local char = espTarget.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local head = char and char:FindFirstChild("Head")
+ 
+        if not hrp or not head then
+            espBoxDrawing.Visible = false
+            espNameDrawing.Visible = false
+            return
+        end
+ 
+        local camera = workspace.CurrentCamera
+        local topPos, topVisible = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.4, 0))
+        local botPos = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+ 
+        if not topVisible or topPos.Z < 0 then
+            espBoxDrawing.Visible = false
+            espNameDrawing.Visible = false
+            return
+        end
+ 
+        local height = math.abs(topPos.Y - botPos.Y)
+        local width = height * 0.55
+ 
+        espBoxDrawing.Size = Vector2.new(width, height)
+        espBoxDrawing.Position = Vector2.new(topPos.X - width / 2, topPos.Y)
+        espBoxDrawing.Visible = true
+ 
+        espNameDrawing.Text = espTarget.Name
+        espNameDrawing.Position = Vector2.new(topPos.X, topPos.Y - 16)
+        espNameDrawing.Visible = true
+    end)
+end
+ 
+local function StopESPBox()
+    if espBoxConnection then
+        espBoxConnection:Disconnect()
+        espBoxConnection = nil
+    end
+    RemoveESPBoxDrawings()
+end
+
+local function ApplyESPForType(character)
+    if espType == "Highlight" or espType == "Ambos" then
+        ApplyESPHighlight(character)
+    end
+    if espType == "Box" or espType == "Ambos" then
+        if not espBoxConnection then
+            StartESPBox()
+        end
+    end
+end
+ 
+local function RemoveAllESP()
+    RemoveESPHighlight()
+    StopESPBox()
+end
+
+JugadoresTab:CreateDropdown({
+    Name = "Tipo de ESP",
+    Options = {"Highlight", "Box", "Ambos"},
+    Callback = function(option)
+        espType = option
+ 
+        if espEnabled and espTarget then
+            RemoveAllESP()
+            if espTarget.Character then
+                ApplyESPForType(espTarget.Character)
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "ESP (jugador seleccionado)",
+    CurrentValue = false,
+    Callback = function(state)
+        espEnabled = state
+ 
+        if espCharacterAddedConnection then
+            espCharacterAddedConnection:Disconnect()
+            espCharacterAddedConnection = nil
+        end
+ 
+        if state then
+            if not selectedPlayer then
+                Rayfield:Notify({
+                    Title = "Error",
+                    Content = "Selecciona un jugador primero!",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                espEnabled = false
+                return
+            end
+ 
+            espTarget = selectedPlayer
+ 
+            if espTarget.Character then
+                ApplyESPForType(espTarget.Character)
+            end
+ 
+            espCharacterAddedConnection = espTarget.CharacterAdded:Connect(function(newChar)
+                task.wait(0.3)
+                if espEnabled and espTarget then
+                    RemoveESPHighlight()
+                    if espType == "Highlight" or espType == "Ambos" then
+                        ApplyESPHighlight(newChar)
+                    end
+                end
+            end)
+ 
+            Rayfield:Notify({
+                Title = "ESP Activado",
+                Content = "Tipo: " .. espType .. "  •  Objetivo: " .. espTarget.Name,
+                Duration = 2,
+                Image = 4483362458
+            })
+        else
+            RemoveAllESP()
+            espTarget = nil
+ 
+            Rayfield:Notify({
+                Title = "ESP Desactivado",
+                Content = "ESP detenido",
+                Duration = 2,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+local AIMLOCK_BIND_NAME = "AimlockCamaraJugadorSeleccionado"
+ 
+local aimlockEnabled = false
+local aimlockTarget = nil
+local aimlockCharacterAddedConnection = nil
+ 
+local function GetAimlockLookPosition()
+    if not aimlockTarget or not aimlockTarget.Character then return nil end
+    local targetRoot = aimlockTarget.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then return nil end
+    return targetRoot.Position + Vector3.new(0, 1.5, 0)
+end
+ 
+local function StartAimlock()
+    RunService:BindToRenderStep(AIMLOCK_BIND_NAME, Enum.RenderPriority.Camera.Value + 1, function()
+        if not aimlockEnabled then return end
+ 
+        local lookPos = GetAimlockLookPosition()
+        if not lookPos then return end
+ 
+        local camera = workspace.CurrentCamera
+        if not camera then return end
+ 
+        camera.CFrame = CFrame.new(camera.CFrame.Position, lookPos)
+    end)
+end
+ 
+local function StopAimlock()
+    pcall(function()
+        RunService:UnbindFromRenderStep(AIMLOCK_BIND_NAME)
+    end)
+end
+ 
+JugadoresTab:CreateToggle({
+    Name = "Aimlock (cámara)",
+    CurrentValue = false,
+    Callback = function(state)
+        aimlockEnabled = state
+ 
+        if aimlockCharacterAddedConnection then
+            aimlockCharacterAddedConnection:Disconnect()
+            aimlockCharacterAddedConnection = nil
+        end
+ 
+        StopAimlock()
+ 
+        if state then
+            if not selectedPlayer then
+                Rayfield:Notify({
+                    Title = "Error",
+                    Content = "Selecciona un jugador primero!",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                aimlockEnabled = false
+                return
+            end
+ 
+            aimlockTarget = selectedPlayer
+
+            aimlockCharacterAddedConnection = aimlockTarget.CharacterAdded:Connect(function()
+                task.wait(0.3)
+            end)
+ 
+            StartAimlock()
+ 
+            Rayfield:Notify({
+                Title = "Aimlock Activado",
+                Content = "Mirando siempre a " .. aimlockTarget.Name,
+                Duration = 2,
+                Image = 4483362458
+            })
+        else
+            aimlockTarget = nil
+ 
+            Rayfield:Notify({
+                Title = "Aimlock Desactivado",
+                Content = "Cámara liberada",
+                Duration = 2,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+function SaveCollisions(char)
+    savedCollisions[char] = {}
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            savedCollisions[char][part] = part.CanCollide
+        end
+    end
+end
+
+function RestoreCollisions(char)
+    if savedCollisions[char] then
+        for part, original in pairs(savedCollisions[char]) do
+            if part and part:IsA("BasePart") then
+                part.CanCollide = original
+            end
+        end
+        savedCollisions[char] = nil
+    end
+end
+
+local followConnection
+local characterAddedConnection
+local localCharacterAddedConnection
+local followPlayerOn = false
+
+function stopFollowingPlayer()
+    followPlayerOn = false
+
+    if followConnection then
+        followConnection:Disconnect()
+        followConnection = nil
+    end
+
+    if characterAddedConnection then
+        characterAddedConnection:Disconnect()
+        characterAddedConnection = nil
+    end
+
+    if localCharacterAddedConnection then
+        localCharacterAddedConnection:Disconnect()
+        localCharacterAddedConnection = nil
+    end
+
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+
+        if hum and hrp then
+            hum:MoveTo(hrp.Position)
+        end
+    end
+end
+
+function startFollowingPlayer(targetPlayer)
+    stopFollowingPlayer()
+
+    if not targetPlayer then
+        return
+    end
+
+    followPlayerOn = true
+
+    characterAddedConnection = targetPlayer.CharacterAdded:Connect(function()
+        task.wait(0.5)
+
+        if followPlayerOn then
+            startFollowingPlayer(targetPlayer)
+        end
+    end)
+
+    localCharacterAddedConnection = LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(0.5)
+
+        if followPlayerOn then
+            startFollowingPlayer(targetPlayer)
+        end
+    end)
+
+    followConnection = RunService.Heartbeat:Connect(function()
+        if not followPlayerOn then
+            return
+        end
+
+        local localChar = LocalPlayer.Character
+        local targetChar = targetPlayer.Character
+
+        if not localChar or not targetChar then
+            return
+        end
+
+        local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+        local humanoid = localChar:FindFirstChildOfClass("Humanoid")
+
+        if not localHRP or not targetHRP or not humanoid then
+            return
+        end
+
+        humanoid.PlatformStand = false
+
+        local distance = (targetHRP.Position - localHRP.Position).Magnitude
+
+        if distance > 3 then
+            local direction = (targetHRP.Position - localHRP.Position).Unit
+            local targetPos = targetHRP.Position - direction * 3
+
+            humanoid:MoveTo(targetPos)
+            humanoid.WalkSpeed = 16
+        else
+            humanoid:MoveTo(localHRP.Position)
+        end
+    end)
+end
+
+JugadoresTab:CreateToggle({
+    Name = "Seguir",
+    CurrentValue = false,
+    Callback = function(state)
+        if state then
+            if not selectedPlayer then
+                Rayfield:Notify({
+                    Title = "Error",
+                    Content = "Selecciona un jugador primero!",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                return
+            end
+
+            startFollowingPlayer(selectedPlayer)
+
+            Rayfield:Notify({
+                Title = "Siguiendo",
+                Content = "Siguiendo a " .. selectedPlayer.Name,
+                Duration = 2,
+                Image = 4483362458
+            })
+        else
+            stopFollowingPlayer()
+            if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+
+            Rayfield:Notify({
+                Title = "Seguimiento",
+                Content = "Detenido",
+                Duration = 2,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Velocidad de Órbita",
+    Range = {1, 200},
+    Increment = 1,
+    Suffix = "vel",
+    CurrentValue = orbitSpeed,
+    Callback = function(value)
+        orbitSpeed = value
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Distancia de Órbita",
+    Range = {1, 40},
+    Increment = 1,
+    Suffix = "studs",
+    CurrentValue = orbitDistance,
+    Callback = function(value)
+        orbitDistance = value
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "Órbita (girar alrededor del jugador)",
+    CurrentValue = false,
+    Callback = function(value)
+        orbitEnabled = value
+
+        if orbitConnection then
+            orbitConnection:Disconnect()
+            orbitConnection = nil
+        end
+
+        if orbitEnabled and selectedPlayer and selectedPlayer.Character then
+            local localChar = game.Players.LocalPlayer.Character
+            if not localChar then return end
+
+            local angle = 0
+            SaveCollisions(localChar)
+
+            orbitConnection = RunService.Heartbeat:Connect(function(dt)
+                if not orbitEnabled or not selectedPlayer then return end
+
+                local currentChar = LocalPlayer.Character
+                local targetChar = selectedPlayer.Character
+                local hrp = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+                local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+                if not hrp or not targetHRP then return end
+
+                angle = angle + orbitSpeed * dt
+
+                local offset = Vector3.new(
+                    math.cos(angle) * orbitDistance,
+                    0,
+                    math.sin(angle) * orbitDistance
+                )
+ApplyPlayerPlacement(hrp, targetHRP, CFrame.new(targetHRP.Position + offset, targetHRP.Position))
+end)
+
+            for _, part in pairs(localChar:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        elseif not orbitEnabled then
+            local returnedToClone = physicsModeEnabled and physicsClone ~= nil
+            if returnedToClone then DestroyPhysicsClone() end
+            local localChar = LocalPlayer.Character
+            if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+                if not returnedToClone then
+                    local safePos = localChar.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+                    localChar.HumanoidRootPart.CFrame = CFrame.new(safePos)
+                end
+                RestoreCollisions(localChar)
+            end
+        end
+    end
+})
+
+local sitToggle = false
+local isSitting = false
+local sitDistance = 2.5
+local originalStats = {}
+local underToggle = false
+local underConnection = nil
+local underDistance = 5
+
+JugadoresTab:CreateToggle({
+    Name = "Sentarse en la cabeza",
+    Default = false,
+    Callback = function(state)
+        local player = LocalPlayer
+        if not player then return end
+
+        sitToggle = state
+
+        if sitConnection then
+            sitConnection:Disconnect()
+            sitConnection = nil
+        end
+
+        local localChar = player.Character
+        local humanoid = localChar and localChar:FindFirstChildOfClass("Humanoid")
+        local root = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
+        if not humanoid or not root then return end
+
+        if sitToggle and selectedPlayer and selectedPlayer.Character then
+            local head = selectedPlayer.Character:FindFirstChild("Head")
+            local targetRoot = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+            if not head or not targetRoot then return end
+
+            originalStats = {
+                WalkSpeed = humanoid.WalkSpeed,
+                JumpPower = humanoid.JumpPower,
+                JumpHeight = humanoid.JumpHeight
+            }
+
+            humanoid.Sit = true
+            humanoid.WalkSpeed = 0
+            humanoid.JumpPower = 0
+            humanoid.JumpHeight = 0
+            humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+
+            ApplyPlayerPlacement(root, targetRoot, head.CFrame * CFrame.new(0, sitDistance, 0))
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+
+            sitConnection = RunService.Heartbeat:Connect(function()
+                if not sitToggle or not selectedPlayer then return end
+
+                local currentChar = player.Character
+                local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
+                local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+                local targetChar = selectedPlayer.Character
+                local currentHead = targetChar and targetChar:FindFirstChild("Head")
+                local currentTargetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+                if not currentHumanoid or not currentRoot or not currentHead or not currentTargetRoot then
+                    return
+                end
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentHead.CFrame * CFrame.new(0, sitDistance, 0))
+                currentRoot.AssemblyLinearVelocity = Vector3.zero
+                currentRoot.AssemblyAngularVelocity = Vector3.zero
+                currentRoot.Velocity = Vector3.zero
+                currentRoot.RotVelocity = Vector3.zero
+                currentHumanoid.Sit = true
+                currentHumanoid.WalkSpeed = 0
+                currentHumanoid.JumpPower = 0
+                currentHumanoid.JumpHeight = 0
+            end)
+
+            isSitting = true
+        elseif not sitToggle then
+            if humanoid and humanoid.Parent then
+                if originalStats.WalkSpeed then
+                    humanoid.WalkSpeed = originalStats.WalkSpeed
+                    humanoid.JumpPower = originalStats.JumpPower
+                    humanoid.JumpHeight = originalStats.JumpHeight
+                else
+                    humanoid.WalkSpeed = 16
+                    humanoid.JumpPower = 50
+                    humanoid.JumpHeight = 7.2
+                end
+
+                if humanoid.Health > 0 then
+                    humanoid.Sit = false
+                    pcall(function()
+                        humanoid:ChangeState(Enum.HumanoidStateType.Standing)
+                    end)
+                end
+
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+            end
+
+            if physicsModeEnabled and physicsClone then
+                DestroyPhysicsClone()
+            end
+            isSitting = false
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Distancia al sentarse",
+    Range = {0.1, 5},
+    Increment = 0.1,
+    Suffix = "studs",
+    CurrentValue = sitDistance,
+    Callback = function(value)
+        sitDistance = value
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "Pegarse debajo del jugador",
+    CurrentValue = false,
+    Callback = function(value)
+        underToggle = value
+
+        if underConnection then
+            underConnection:Disconnect()
+            underConnection = nil
+        end
+
+        local player = LocalPlayer
+        local localChar = player and player.Character
+        local humanoid = localChar and localChar:FindFirstChildOfClass("Humanoid")
+        local root = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
+        if not humanoid or not root then
+            return
+        end
+
+        if underToggle and selectedPlayer and selectedPlayer.Character then
+            local targetRoot = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not targetRoot then
+                return
+            end
+
+            originalStats = {
+                WalkSpeed = humanoid.WalkSpeed,
+                JumpPower = humanoid.JumpPower,
+                JumpHeight = humanoid.JumpHeight
+            }
+
+            humanoid.AutoRotate = false
+            humanoid.WalkSpeed = 0
+            humanoid.JumpPower = 0
+            humanoid.JumpHeight = 0
+            humanoid.Sit = true
+
+            pcall(function()
+                humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+            end)
+
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+        ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+            underConnection = RunService.Heartbeat:Connect(function()
+                if not underToggle or not selectedPlayer then
+                    return
+                end
+
+                local currentChar = player.Character
+                local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
+                local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+                local targetChar = selectedPlayer.Character
+                local currentTargetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+                if not currentHumanoid or not currentRoot or not currentTargetRoot then
+                    return
+                end
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+currentHumanoid.AutoRotate = false
+                currentHumanoid.WalkSpeed = 0
+                currentHumanoid.JumpPower = 0
+                currentHumanoid.JumpHeight = 0
+                currentHumanoid.Sit = true
+            end)
+
+        elseif not underToggle then
+            if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+            humanoid.AutoRotate = true
+
+            if originalStats.WalkSpeed then
+                humanoid.WalkSpeed = originalStats.WalkSpeed
+                humanoid.JumpPower = originalStats.JumpPower
+                humanoid.JumpHeight = originalStats.JumpHeight
+            else
+                humanoid.WalkSpeed = 16
+                humanoid.JumpPower = 50
+                humanoid.JumpHeight = 7.2
+            end
+
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+
+            if humanoid.Health > 0 then
+                humanoid.Sit = false
+                pcall(function()
+                    humanoid:ChangeState(Enum.HumanoidStateType.Standing)
+                end)
+            end
+
+            if root and root.Parent then
+end
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Distancia debajo",
+    Range = {2, 10},
+    Increment = 0.1,
+    Suffix = "studs",
+    CurrentValue = underDistance,
+    Callback = function(value)
+        underDistance = value
+    end
+})
+
+local function StopMochila()
+    if mochilaConnection then
+        mochilaConnection:Disconnect()
+        mochilaConnection = nil
+    end
+
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+
+    if humanoid then
+        humanoid.AutoRotate = true
+
+        if originalStats.WalkSpeed ~= nil then
+            humanoid.WalkSpeed = originalStats.WalkSpeed
+            humanoid.JumpPower = originalStats.JumpPower
+            humanoid.JumpHeight = originalStats.JumpHeight
+        else
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+            humanoid.JumpHeight = 7.2
+        end
+
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+
+        if humanoid.Health > 0 then
+            humanoid.Sit = false
+            pcall(function()
+                humanoid:ChangeState(Enum.HumanoidStateType.Standing)
+            end)
+        end
+    end
+
+    if root then
+end
+end
+
+PlayMochila = function(target)
+    if not target or not target.Character then
+        return
+    end
+
+    if mochilaConnection then
+        mochilaConnection:Disconnect()
+        mochilaConnection = nil
+    end
+
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local targetCharacter = target.Character
+    local targetRoot = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
+
+    if not humanoid or not root or not targetRoot then
+        return
+    end
+
+    originalStats = {
+        WalkSpeed = humanoid.WalkSpeed,
+        JumpPower = humanoid.JumpPower,
+        JumpHeight = humanoid.JumpHeight
+    }
+
+    humanoid.Sit = true
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+
+    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+
+    mochilaConnection = RunService.Heartbeat:Connect(function()
+        if not mochilaToggle or not selectedPlayer then
+            return
+        end
+
+        local currentCharacter = LocalPlayer.Character
+        local currentHumanoid = currentCharacter and currentCharacter:FindFirstChildOfClass("Humanoid")
+        local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+        local currentTargetCharacter = selectedPlayer.Character
+        local currentTargetRoot = currentTargetCharacter and currentTargetCharacter:FindFirstChild("HumanoidRootPart")
+
+        if not currentHumanoid or not currentRoot or not currentTargetRoot then
+            return
+        end
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+currentHumanoid.Sit = true
+        currentHumanoid.WalkSpeed = 0
+        currentHumanoid.JumpPower = 0
+        currentHumanoid.JumpHeight = 0
+    end)
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+end
+
+JugadoresTab:CreateToggle({
+    Name = "Mochila",
+    CurrentValue = false,
+    Callback = function(value)
+        mochilaToggle = value
+
+        if mochilaConnection then
+            mochilaConnection:Disconnect()
+            mochilaConnection = nil
+        end
+
+        if mochilaToggle then
+            if not selectedPlayer then
+                Rayfield:Notify({
+                    Title = "Mochila",
+                    Content = "Selecciona un jugador primero.",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                return
+            end
+
+            if not selectedPlayer.Character then
+                Rayfield:Notify({
+                    Title = "Mochila",
+                    Content = "El jugador no tiene personaje.",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                return
+            end
+
+            PlayMochila(selectedPlayer)
+        else
+            StopMochila()
+        end
+    end
+})
+
+JugadoresTab:CreateSection("Distancia de Movimientos")
+
+JugadoresTab:CreateSlider({
+    Name = "Distancia",
+    Range = {1, 10},
+    Increment = 0.1,
+    Suffix = "studs",
+    CurrentValue = movementDistance,
+    Callback = function(value)
+        movementDistance = value
+        movementDistanceChanged = true
+
+        if wataEnabled then
+            wataTargetDistance = value
+        end
+
+        if cariEnabled then
+            cariTargetDistance = value
+        end
+
+        if pataEnabled then
+            pataTargetDistance = value
+        end
+
+        if doggyEnabled then
+            doggyTargetDistance = value
+        end
+
+        if perroEnabled then
+            perroTargetDistance = value
+        end
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "Movimiento de boca",
+    CurrentValue = false,
+    Callback = function(value)
+        doggyEnabled = value
+
+        if doggyEnabled and selectedPlayer then
+            PlayDoggy(selectedPlayer)
+        else
+            StopDoggy()
+
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Velocidad",
+    Range = {1, 15},
+    Increment = 0.1,
+    Suffix = "vel",
+    CurrentValue = doggySpeed,
+    Callback = function(value)
+        doggySpeed = value
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "Movimiento de pata",
+    CurrentValue = false,
+    Callback = function(value)
+        pataEnabled = value
+
+        if pataEnabled and selectedPlayer then
+            PlayPata(selectedPlayer)
+        else
+            StopPata()
+
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Velocidad",
+    Range = {1, 15},
+    Increment = 0.1,
+    Suffix = "vel",
+    CurrentValue = pataSpeed,
+    Callback = function(value)
+        pataSpeed = value
+    end
+})
+
+RunService = game:GetService("RunService")
+Players = game:GetService("Players")
+
+local perroAnim = Instance.new("Animation")
+perroAnim.AnimationId = "rbxassetid://" .. perroAnimId
+
+function PlayPerro(target)
+    if not target or not target.Character then return end
+    perroConnection = DisconnectAnimationConnection(perroConnection)
+    local char = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
+    if not humanoid or not root or not targetRoot then return end
+
+    StopAnimationTracksById(humanoid, perroAnimId)
+
+    local track = humanoid:LoadAnimation(perroAnim)
+    track:Play()
+    track.TimePosition = perroAnimTime
+    track:AdjustSpeed(0)
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    SetNoCollision(char, true)
+
+    do
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * perroCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position) * CFrame.Angles(0, math.rad(180), 0))
+end
+
+    perroConnection = RunService.Heartbeat:Connect(function(dt)
+        if not targetRoot.Parent then
+            perroConnection = DisconnectAnimationConnection(perroConnection)
+            return
+        end
+
+        perroCurrentDistance = perroCurrentDistance + (perroSpeed * perroDirection * dt)
+
+        if perroCurrentDistance >= (movementDistanceChanged and movementDistance or perroTargetDistance) then
+            perroDirection = -1
+        elseif perroCurrentDistance <= 2 then
+            perroDirection = 1
+        end
+
+        local offsetPosition = targetRoot.Position + targetRoot.CFrame.LookVector * perroCurrentDistance + Vector3.new(0, 0.23, 0)
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(offsetPosition, targetRoot.Position) * CFrame.Angles(0, math.rad(180), 0))
+end)
+end
+
+function StopPerro()
+    local char = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChild("Humanoid")
+
+    if perroConnection then
+        perroConnection:Disconnect()
+        perroConnection = nil
+    end
+
+    if humanoid then
+        humanoid.AutoRotate = true
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        StopAnimationTracksById(humanoid, perroAnimId)
+    end
+
+    SetNoCollision(char, false)
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+end
+
+JugadoresTab:CreateToggle({
+    Name = "Movimiento de perro",
+    CurrentValue = false,
+    Callback = function(value)
+        perroEnabled = value
+        if perroEnabled and selectedPlayer then
+            PlayPerro(selectedPlayer)
+        else
+            StopPerro()
+            local humanoid = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Velocidad",
+    Range = {1, 15},
+    Increment = 0.1,
+    Suffix = "vel",
+    CurrentValue = perroSpeed,
+    Callback = function(value)
+        perroSpeed = value
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "Dar Cariño",
+    CurrentValue = false,
+    Callback = function(value)
+        cariEnabled = value
+
+        if cariEnabled and selectedPlayer then
+            PlayCari(selectedPlayer)
+        else
+            StopCari()
+
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Velocidad",
+    Range = {1, 20},
+    Increment = 0.1,
+    Suffix = "vel",
+    CurrentValue = cariSpeed,
+    Callback = function(value)
+        cariSpeed = value
+    end
+})
+
+JugadoresTab:CreateToggle({
+    Name = "Dar Wata",
+    CurrentValue = false,
+    Callback = function(value)
+        wataEnabled = value
+
+        if wataEnabled and selectedPlayer then
+            PlayWata(selectedPlayer)
+        else
+            StopWata()
+
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+})
+
+JugadoresTab:CreateSlider({
+    Name = "Velocidad",
+    Range = {1, 20},
+    Increment = 0.1,
+    Suffix = "vel",
+    CurrentValue = wataSpeed,
+    Callback = function(value)
+        wataSpeed = value
+    end
+})
+
+local function ReapplySitHead()
+    if not sitToggle or not selectedPlayer or not selectedPlayer.Character then
+        return
+    end
+
+    if sitConnection then
+        sitConnection:Disconnect()
+        sitConnection = nil
+    end
+
+    local player = LocalPlayer
+    local localChar = player.Character
+    local humanoid = localChar and localChar:FindFirstChildOfClass("Humanoid")
+    local root = localChar and localChar:FindFirstChild("HumanoidRootPart")
+    local targetChar = selectedPlayer.Character
+    local head = targetChar and targetChar:FindFirstChild("Head")
+    local targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+    if not humanoid or not root or not head or not targetRoot then
+        return
+    end
+
+    humanoid.Sit = true
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+        ApplyPlayerPlacement(root, targetRoot, head.CFrame * CFrame.new(0, sitDistance, 0))
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+sitConnection = RunService.Heartbeat:Connect(function()
+        if not sitToggle or not selectedPlayer then
+            return
+        end
+
+        local currentChar = player.Character
+        local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
+        local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+        local currentTargetChar = selectedPlayer.Character
+        local currentHead = currentTargetChar and currentTargetChar:FindFirstChild("Head")
+        local currentTargetRoot = currentTargetChar and currentTargetChar:FindFirstChild("HumanoidRootPart")
+
+        if not currentHumanoid or not currentRoot or not currentHead or not currentTargetRoot then
+            return
+        end
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentHead.CFrame * CFrame.new(0, sitDistance, 0))
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+        currentHumanoid.Sit = true
+        currentHumanoid.WalkSpeed = 0
+        currentHumanoid.JumpPower = 0
+        currentHumanoid.JumpHeight = 0
+    end)
+end
+
+local function ReapplyUnder()
+    if not underToggle or not selectedPlayer or not selectedPlayer.Character then
+        return
+    end
+
+    if underConnection then
+        underConnection:Disconnect()
+        underConnection = nil
+    end
+
+    local player = LocalPlayer
+    local localChar = player.Character
+    local humanoid = localChar and localChar:FindFirstChildOfClass("Humanoid")
+    local root = localChar and localChar:FindFirstChild("HumanoidRootPart")
+    local targetChar = selectedPlayer.Character
+    local targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+    if not humanoid or not root or not targetRoot then
+        return
+    end
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+    humanoid.Sit = true
+    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+        ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+            underConnection = RunService.Heartbeat:Connect(function()
+        if not underToggle or not selectedPlayer then
+            return
+        end
+
+        local currentChar = player.Character
+        local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
+        local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+        local currentTargetChar = selectedPlayer.Character
+        local currentTargetRoot = currentTargetChar and currentTargetChar:FindFirstChild("HumanoidRootPart")
+
+        if not currentHumanoid or not currentRoot or not currentTargetRoot then
+            return
+        end
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+currentHumanoid.AutoRotate = false
+        currentHumanoid.WalkSpeed = 0
+        currentHumanoid.JumpPower = 0
+        currentHumanoid.JumpHeight = 0
+        currentHumanoid.Sit = true
+        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+    end)
+end
+
+local function ReapplyOrbit()
+    if not orbitEnabled or not selectedPlayer or not selectedPlayer.Character then
+        return
+    end
+
+    if orbitConnection then
+        orbitConnection:Disconnect()
+        orbitConnection = nil
+    end
+
+    local localChar = LocalPlayer.Character
+    if not localChar then
+        return
+    end
+
+    local angle = 0
+    SaveCollisions(localChar)
+
+    orbitConnection = RunService.Heartbeat:Connect(function(dt)
+        if not orbitEnabled or not selectedPlayer then
+            return
+        end
+
+        local currentChar = LocalPlayer.Character
+        local targetChar = selectedPlayer.Character
+        local hrp = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+        local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+        if not hrp or not targetHRP then
+            return
+        end
+
+        angle = angle + orbitSpeed * dt
+
+        local offset = Vector3.new(
+            math.cos(angle) * orbitDistance,
+            0,
+            math.sin(angle) * orbitDistance
+        )
+ApplyPlayerPlacement(hrp, targetHRP, CFrame.new(targetHRP.Position + offset, targetHRP.Position))
+end)
+
+    for _, part in pairs(localChar:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+local localRespawnConnection
+
+if localRespawnConnection then
+    localRespawnConnection:Disconnect()
+end
+
+localRespawnConnection = LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    local humanoid = newCharacter:WaitForChild("Humanoid", 5)
+    local root = newCharacter:WaitForChild("HumanoidRootPart", 5)
+
+    if not humanoid or not root then
+        return
+    end
+
+    task.wait(0.15)
+
+    if not selectedPlayer then
+        return
+    end
+
+    if wataEnabled then
+        StopWata()
+        task.wait(0.05)
+        PlayWata(selectedPlayer)
+    end
+
+    if cariEnabled then
+        StopCari()
+        task.wait(0.05)
+        PlayCari(selectedPlayer)
+    end
+
+    if pataEnabled then
+        StopPata()
+        task.wait(0.05)
+        PlayPata(selectedPlayer)
+    end
+
+    if doggyEnabled then
+        StopDoggy()
+        task.wait(0.05)
+        PlayDoggy(selectedPlayer)
+    end
+
+    if perroEnabled then
+        StopPerro()
+        task.wait(0.05)
+        PlayPerro(selectedPlayer)
+    end
+
+    if orbitEnabled then
+        ReapplyOrbit()
+    end
+
+    if sitToggle then
+        ReapplySitHead()
+    end
+
+    if underToggle then
+        ReapplyUnder()
+    end
+
+    if mochilaToggle then
+        StopMochila()
+        task.wait(0.05)
+        PlayMochila(selectedPlayer)
+    end
+end)
+
+   local standEnabled = false 
+local standConnection = nil 
+
+local standTarget = nil 
+local standMode = "Normal" 
+
+local standStatusGui = nil
+local standStatusLabel = nil
+
+local function UpdateStandStatus()
+    if not standEnabled then
+        if standStatusGui then
+            standStatusGui:Destroy()
+            standStatusGui = nil
+            standStatusLabel = nil
+        end
+        return
+    end
+
+    if not standStatusGui then
+        local parent
+        pcall(function()
+            parent = gethui and gethui() or game:GetService("CoreGui")
+        end)
+        if not parent then
+            return
+        end
+
+        standStatusGui = Instance.new("ScreenGui")
+        standStatusGui.Name = "JmodsStandStatus"
+        standStatusGui.ResetOnSpawn = false
+        standStatusGui.IgnoreGuiInset = true
+        standStatusGui.Parent = parent
+
+        standStatusLabel = Instance.new("TextLabel")
+        standStatusLabel.Name = "Status"
+        standStatusLabel.AnchorPoint = Vector2.new(1, 0)
+        standStatusLabel.Position = UDim2.new(1, -18, 0, 12)
+        standStatusLabel.Size = UDim2.new(0, 190, 0, 24)
+        standStatusLabel.BackgroundTransparency = 1
+        standStatusLabel.TextSize = 13
+        standStatusLabel.Font = Enum.Font.GothamMedium
+        standStatusLabel.TextXAlignment = Enum.TextXAlignment.Right
+        standStatusLabel.TextYAlignment = Enum.TextYAlignment.Center
+        standStatusLabel.TextStrokeTransparency = 0.7
+        standStatusLabel.Parent = standStatusGui
+    end
+
+    if standStatusLabel then
+        if standMode == "Auto" then
+            standStatusLabel.Text = "STAND: AUTOMÁTICO"
+        else
+            standStatusLabel.Text = "STAND: SOLO DELANTE"
+        end
+    end
+end
+
+local standDistance = 2 
+local standSide = 3.2 
+local standAutoRange = 25 
+
+local standReturnSide = 4.5 
+local standAttackBehindDistance = 1.8 
+local standAttackTravelDistance = 3.8 
+local standAttackTravelTime = 0.28 
+
+local standIdleIds = { 
+    "rbxassetid://119810104205917", 
+    "rbxassetid://123349905320515", 
+    "rbxassetid://134550482478614" 
+} 
+
+local standAttackIds = {
+    "rbxassetid://135011559207475",
+    "rbxassetid://82599509502243",
+    "rbxassetid://133566007754001"
+} 
+
+local standIdleTrack = nil 
+local standAttackTrack = nil 
+
+local standAttacking = false 
+local standAttackTarget = nil 
+
+local standTargetAnimatorConnection = nil 
+local standTargetCharacterConnection = nil 
+local standTargetStateConnection = nil 
+local standTargetChatConnection = nil 
+local standTargetTextChatConnection = nil 
+local standLocalCharacterConnection = nil 
+
+local standDebug = false 
+local standPreviousJumpState = false 
+
+local standBaselineAnimationIds = {} 
+
+local standWF = false 
+local standWFNoclipConnection = nil 
+local standWFCharacterConnection = nil 
+local standWFThread = nil 
+
+local function StandDebug(...) 
+    if standDebug then 
+        print("[Jmods Stand]", ...) 
+    end 
+end 
+
+local function StandHeader(text) 
+    if not standDebug then 
+        return 
+    end 
+
+    print("") 
+    print("[Jmods Stand] ========================================") 
+    print("[Jmods Stand] " .. tostring(text)) 
+    print("[Jmods Stand] ========================================") 
+end 
+
+local function NormalizeAnimationId(id) 
+    if not id then 
+        return "" 
+    end 
+
+    local number = tostring(id):match("%d+") 
+
+    return number or tostring(id) 
+end 
+
+local function GetTrackAnimationId(track) 
+    if not track then 
+        return "" 
+    end 
+
+    local animation = track.Animation 
+
+    if not animation then 
+        return "" 
+    end 
+
+    return animation.AnimationId or "" 
+end 
+
+local function GetStandCharacter() 
+    return LocalPlayer.Character 
+end 
+
+local function GetStandHumanoid() 
+    local character = GetStandCharacter() 
+
+    return character 
+        and character:FindFirstChildOfClass("Humanoid") 
+end 
+
+local function GetStandRoot() 
+    local character = GetStandCharacter() 
+
+    return character 
+        and character:FindFirstChild("HumanoidRootPart") 
+end 
+
+local function GetPlayerHumanoid(player) 
+    local character = player and player.Character 
+
+    return character 
+        and character:FindFirstChildOfClass("Humanoid") 
+end 
+
+local function GetPlayerRoot(player) 
+    local character = player and player.Character 
+
+    return character 
+        and character:FindFirstChild("HumanoidRootPart") 
+end 
+
+local function IsOurStandAnimation(track) 
+
+    local id = 
+        NormalizeAnimationId( 
+            GetTrackAnimationId(track) 
+        ) 
+
+    if id == "" then 
+        return false 
+    end 
+
+    for _, standId in ipairs( 
+        standIdleIds 
+    ) do 
+
+        if id == 
+            NormalizeAnimationId( 
+                standId 
+            ) then 
+
+            return true 
+        end 
+    end 
+
+    for _, standId in ipairs(standAttackIds) do
+        if id == NormalizeAnimationId(standId) then
+            return true
+        end
+    end 
+
+    return false 
+end 
+
+local function GetPriorityName(track) 
+
+    if not track then 
+        return "NIL" 
+    end 
+
+    local priority = 
+        track.Priority 
+
+    if priority == 
+        Enum.AnimationPriority.Core then 
+
+        return "Core" 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Idle then 
+
+        return "Idle" 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Movement then 
+
+        return "Movement" 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Action then 
+
+        return "Action" 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Action2 then 
+
+        return "Action2" 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Action3 then 
+
+        return "Action3" 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Action4 then 
+
+        return "Action4" 
+    end 
+
+    return tostring(priority) 
+end 
+
+local function PrintAnimationDebug( 
+    track, 
+    result 
+) 
+
+    if not standDebug then 
+        return 
+    end 
+
+    local animation = 
+        track 
+        and track.Animation 
+
+    local id = 
+        animation 
+        and animation.AnimationId 
+        or "NIL" 
+
+    local name = 
+        animation 
+        and animation.Name 
+        or "NIL" 
+
+    print("") 
+    print("[Jmods Stand] >>> TARGET ANIMATION") 
+    print("[Jmods Stand] Name:", name) 
+    print("[Jmods Stand] ID:", id) 
+    print("[Jmods Stand] Normalized:", NormalizeAnimationId(id)) 
+    print("[Jmods Stand] Priority:", GetPriorityName(track)) 
+    print("[Jmods Stand] Looped:", track and track.Looped) 
+    print("[Jmods Stand] IsPlaying:", track and track.IsPlaying) 
+    print("[Jmods Stand] Speed:", track and track.Speed) 
+    print("[Jmods Stand] TimePosition:", track and track.TimePosition) 
+    print("[Jmods Stand] Nuestra:", IsOurStandAnimation(track)) 
+    print("[Jmods Stand] Baseline ID:", standBaselineAnimationIds[ 
+        NormalizeAnimationId(id) 
+    ] == true) 
+    print("[Jmods Stand] RESULTADO:", result) 
+    print("[Jmods Stand] MODE:", standMode) 
+    print("[Jmods Stand] <<< FIN") 
+    print("") 
+end 
+
+local function SaveTargetBaseline(target) 
+
+    standBaselineAnimationIds = {} 
+
+    local humanoid = 
+        GetPlayerHumanoid( 
+            target 
+        ) 
+
+    if not humanoid then 
+        return 
+    end 
+
+    for _, track in ipairs( 
+        humanoid:GetPlayingAnimationTracks() 
+    ) do 
+
+        local id = 
+            NormalizeAnimationId( 
+                GetTrackAnimationId(track) 
+            ) 
+
+        if id ~= "" then 
+            standBaselineAnimationIds[id] = true 
+        end 
+    end 
+end 
+
+local function IsJumpingTarget() 
+
+    if not standTarget then 
+        return false 
+    end 
+
+    local humanoid = 
+        GetPlayerHumanoid( 
+            standTarget 
+        ) 
+
+    if not humanoid then 
+        return false 
+    end 
+
+    local state = 
+        humanoid:GetState() 
+
+    return state == 
+        Enum.HumanoidStateType.Jumping 
+        or state == 
+        Enum.HumanoidStateType.Freefall 
+end 
+
+local function ToggleStandModeFromJump(reason)
+    if not standEnabled then
+        return
+    end
+
+    if standMode == "Normal" then
+        standMode = "Auto"
+        UpdateStandStatus()
+        StandHeader(
+            "MODO AUTO ACTIVADO -> "
+            .. tostring(reason or "salto")
+        )
+    else
+        standMode = "Normal"
+        UpdateStandStatus()
+        StandHeader(
+            "MODO NORMAL ACTIVADO -> "
+            .. tostring(reason or "salto")
+        )
+    end
+end
+
+local function IsLikelyEmote(track) 
+
+    if not track then 
+        return false 
+    end 
+
+    if not track.IsPlaying then 
+        return false 
+    end 
+
+    if IsOurStandAnimation(track) then 
+        return false 
+    end 
+
+    local priority = 
+        track.Priority 
+
+    if priority == 
+        Enum.AnimationPriority.Core then 
+
+        return false 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Movement then 
+
+        return false 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Action 
+    or priority == 
+        Enum.AnimationPriority.Action2 
+    or priority == 
+        Enum.AnimationPriority.Action3 
+    or priority == 
+        Enum.AnimationPriority.Action4 then 
+
+        return true 
+    end 
+
+    if priority == 
+        Enum.AnimationPriority.Idle 
+    and track.Looped == false then 
+
+        return true 
+    end 
+
+    return false 
+end 
+
+local function StopStandIdle() 
+
+    if standIdleTrack then 
+
+        pcall(function() 
+            standIdleTrack:Stop(0.1) 
+        end) 
+
+        standIdleTrack = nil 
+    end 
+end 
+
+local function StopStandAttack() 
+
+    if standAttackTrack then 
+
+        pcall(function() 
+            standAttackTrack:Stop(0.1) 
+        end) 
+
+        standAttackTrack = nil 
+    end 
+end 
+
+local function PlayStandIdle() 
+
+    if not standEnabled 
+    or standAttacking then 
+        return 
+    end 
+
+    local humanoid = 
+        GetStandHumanoid() 
+
+    if not humanoid then 
+        return 
+    end 
+
+    StopStandIdle() 
+
+    local id = 
+        standIdleIds[ 
+            math.random( 
+                1, 
+                #standIdleIds 
+            ) 
+        ] 
+
+    local animation = 
+        Instance.new("Animation") 
+
+    animation.AnimationId = 
+        id 
+
+    local success, track = 
+        pcall(function() 
+            return humanoid:LoadAnimation( 
+                animation 
+            ) 
+        end) 
+
+    animation:Destroy() 
+
+    if not success 
+    or not track then 
+        return 
+    end 
+
+    standIdleTrack = 
+        track 
+
+    track.Looped = true 
+
+    track:Play(0.15) 
+
+    StandDebug( 
+        "Idle:", 
+        NormalizeAnimationId(id) 
+    ) 
+end 
+
+local function GetTargetDirection(target) 
+
+    local root = 
+        GetPlayerRoot(target) 
+
+    if not root then 
+        return nil 
+    end 
+
+    local look = 
+        root.CFrame.LookVector 
+
+    local direction = 
+        Vector3.new( 
+            look.X, 
+            0, 
+            look.Z 
+        ) 
+
+    if direction.Magnitude < 0.05 then 
+        return nil 
+    end 
+
+    return direction.Unit 
+end 
+
+local function SetStandBehindTarget( 
+    target 
+) 
+
+    local root = 
+        GetStandRoot() 
+
+    local targetRoot = 
+        GetPlayerRoot(target) 
+
+    if not root 
+    or not targetRoot then 
+        return false 
+    end
+    local direction = GetTargetDirection(target)
+    if not direction then return false end 
+
+    local position = 
+        targetRoot.Position 
+        - direction * standDistance 
+        + targetRoot.CFrame.RightVector 
+        * standSide 
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(
+            position,
+            targetRoot.Position
+        )) 
+return true 
+end 
+
+local function SetStandBehindAttackTarget( 
+    target 
+) 
+
+    local root = 
+        GetStandRoot() 
+
+    local targetRoot = 
+        GetPlayerRoot(target) 
+
+    if not root 
+    or not targetRoot then 
+        return false 
+    end 
+
+    local direction = 
+        GetTargetDirection( 
+            target 
+        ) 
+
+    if not direction then 
+        return false 
+    end 
+
+    local position = 
+        targetRoot.Position 
+        - direction 
+        * standAttackBehindDistance 
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(
+            position,
+            position + direction
+        )) 
+return true 
+end 
+
+local function GetAttackDirectionFromAnchor() 
+
+    if not standTarget then 
+        return nil 
+    end 
+
+    return GetTargetDirection( 
+        standTarget 
+    ) 
+end 
+
+local function GetPlayerInFrontOfTarget() 
+
+    if not standTarget then 
+        return nil 
+    end 
+
+    local targetRoot = 
+        GetPlayerRoot( 
+            standTarget 
+        ) 
+
+    if not targetRoot then 
+        return nil 
+    end 
+
+    local direction = 
+        GetTargetDirection( 
+            standTarget 
+        ) 
+
+    if not direction then 
+        return nil 
+    end 
+
+    local closestPlayer = nil 
+    local closestDistance = math.huge 
+
+    for _, player in ipairs( 
+        Players:GetPlayers() 
+    ) do 
+
+        if player ~= LocalPlayer 
+        and player ~= standTarget then 
+
+            local playerRoot = 
+                GetPlayerRoot( 
+                    player 
+                ) 
+
+            local humanoid = 
+                GetPlayerHumanoid( 
+                    player 
+                ) 
+
+            if playerRoot 
+            and humanoid 
+            and humanoid.Health > 0 then 
+
+                local offset = 
+                    playerRoot.Position 
+                    - targetRoot.Position 
+
+                local flat = 
+                    Vector3.new( 
+                        offset.X, 
+                        0, 
+                        offset.Z 
+                    ) 
+
+                local distance = 
+                    flat.Magnitude 
+
+                if distance > 0.5 
+                and distance <= standAutoRange then 
+
+                    local toPlayer = 
+                        flat.Unit 
+
+                    local dot = 
+                        direction:Dot( 
+                            toPlayer 
+                        ) 
+
+                    if dot >= 0.90 
+                    and distance < closestDistance then 
+
+                        closestDistance = 
+                            distance 
+
+                        closestPlayer = 
+                            player 
+                    end 
+                end 
+            end 
+        end 
+    end 
+
+    return closestPlayer 
+end 
+
+local function GetRandomPlayerNearTarget() 
+
+    local candidates = {} 
+
+    if not standTarget then 
+        return nil 
+    end 
+
+    local anchorRoot = 
+        GetPlayerRoot( 
+            standTarget 
+        ) 
+
+    if not anchorRoot then 
+        return nil 
+    end 
+
+    for _, player in ipairs( 
+        Players:GetPlayers() 
+    ) do 
+
+        if player ~= LocalPlayer 
+        and player ~= standTarget then 
+
+            local root = 
+                GetPlayerRoot( 
+                    player 
+                ) 
+
+            local humanoid = 
+                GetPlayerHumanoid( 
+                    player 
+                ) 
+
+            if root 
+            and humanoid 
+            and humanoid.Health > 0 then 
+
+                local distance = 
+                    ( 
+                        root.Position 
+                        - anchorRoot.Position 
+                    ).Magnitude 
+
+                if distance <= standAutoRange then 
+
+                    table.insert( 
+                        candidates, 
+                        player 
+                    ) 
+                end 
+            end 
+        end 
+    end 
+
+    if #candidates == 0 then 
+        return nil 
+    end 
+
+    local selected = 
+        candidates[ 
+            math.random( 
+                1, 
+                #candidates 
+            ) 
+        ] 
+
+    StandDebug( 
+        "Random:", 
+        selected.Name 
+    ) 
+
+    return selected 
+end 
+
+local function IsPlayerInsideTargetRange( 
+    player 
+) 
+
+    if not standTarget then 
+        return false 
+    end 
+
+    local anchorRoot = 
+        GetPlayerRoot( 
+            standTarget 
+        ) 
+
+    local playerRoot = 
+        GetPlayerRoot( 
+            player 
+        ) 
+
+    if not anchorRoot 
+    or not playerRoot then 
+        return false 
+    end 
+
+    return ( 
+        playerRoot.Position 
+        - anchorRoot.Position 
+    ).Magnitude <= 
+        standAutoRange 
+end 
+
+local function MoveAttackForward( 
+    direction 
+) 
+
+    local root = 
+        GetStandRoot() 
+
+    if not root 
+    or not direction then 
+        return 
+    end 
+
+    direction = 
+        Vector3.new( 
+            direction.X, 
+            0, 
+            direction.Z 
+        ) 
+
+    if direction.Magnitude < 0.05 then 
+        return 
+    end 
+
+    direction = 
+        direction.Unit 
+
+    local startPosition = 
+        root.Position 
+
+    local endPosition = 
+        startPosition 
+        + direction 
+        * standAttackTravelDistance 
+
+    local startTime = 
+        os.clock() 
+
+    while standEnabled 
+    and standAttacking 
+    and os.clock() - startTime < 
+        standAttackTravelTime do 
+
+        local alpha = 
+            math.clamp( 
+                ( 
+                    os.clock() 
+                    - startTime 
+                ) 
+                / standAttackTravelTime, 
+                0, 
+                1 
+            ) 
+
+        local position = 
+            startPosition:Lerp( 
+                endPosition, 
+                alpha 
+            ) 
+
+        if root 
+        and root.Parent then 
+
+            ApplyPlayerPlacement(root, standTarget and GetPlayerRoot(standTarget), CFrame.lookAt(
+                position,
+                position + direction
+            )) 
+        end 
+
+        RunService.Heartbeat:Wait() 
+    end 
+
+    if root 
+    and root.Parent then 
+
+        ApplyPlayerPlacement(root, standTarget and GetPlayerRoot(standTarget), CFrame.lookAt(
+            endPosition,
+            endPosition + direction
+        )) 
+    end 
+end 
+
+local function ReturnToMainTarget() 
+
+    if not standEnabled then 
+        return 
+    end 
+
+    if not standTarget 
+    or not standTarget.Character then 
+        return 
+    end 
+
+    local root = 
+        GetStandRoot() 
+
+    local targetRoot = 
+        GetPlayerRoot( 
+            standTarget 
+        ) 
+
+    if not root 
+    or not targetRoot then 
+        return 
+    end 
+local direction = 
+        GetTargetDirection( 
+            standTarget 
+        ) 
+
+    if not direction then 
+        return 
+    end 
+
+    local safePosition = 
+        targetRoot.Position 
+        - direction 
+        * standReturnSide 
+        + targetRoot.CFrame.RightVector 
+        * standSide 
+
+    ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(
+        safePosition,
+        targetRoot.Position
+    )) 
+RunService.Heartbeat:Wait() 
+
+    if not standEnabled then 
+        return 
+    end 
+
+    if standTarget 
+    and standTarget.Character then 
+
+        SetStandBehindTarget( 
+            standTarget 
+        ) 
+    end 
+
+    local finalRoot = 
+        GetStandRoot() 
+
+    if finalRoot then 
+end 
+
+    if standEnabled 
+    and not standAttacking then 
+
+        PlayStandIdle() 
+    end 
+end 
+
+local function PlayStandAttack( 
+    target, 
+    directionOverride 
+) 
+
+    if not standEnabled then 
+        return 
+    end 
+
+    if standAttacking then 
+        return 
+    end 
+
+    if target 
+    and target == standTarget then 
+
+        target = nil 
+    end 
+
+    local root = 
+        GetStandRoot() 
+
+    local humanoid = 
+        GetStandHumanoid() 
+
+    if not root 
+    or not humanoid then 
+        return 
+    end 
+
+    local targetRoot = 
+        target 
+        and GetPlayerRoot(target) 
+
+    local direction 
+
+    if targetRoot then 
+
+        direction = 
+            GetTargetDirection( 
+                target 
+            ) 
+
+        if not direction then 
+            direction = 
+                directionOverride 
+        end 
+
+        if not direction then 
+            return 
+        end 
+        ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame)
+
+    else 
+
+        direction = 
+            directionOverride 
+            or GetAttackDirectionFromAnchor() 
+
+        if not direction then 
+            return 
+        end 
+
+        direction = 
+            direction.Unit 
+
+        ApplyPlayerPlacement(root, targetRoot or (standTarget and GetPlayerRoot(standTarget)), CFrame.lookAt(
+            root.Position,
+            root.Position + direction
+        )) 
+    end 
+
+    standAttacking = true 
+    standAttackTarget = target 
+
+    StopStandIdle() 
+        ApplyPlayerPlacement(root, targetRoot or (standTarget and GetPlayerRoot(standTarget)), CFrame.lookAt(
+            root.Position,
+            root.Position + direction
+        )) 
+
+    local animation = 
+        Instance.new("Animation")
+
+    local selectedAttackId =
+        standAttackIds[math.random(1, #standAttackIds)]
+
+    animation.AnimationId =
+        selectedAttackId 
+
+    local success, track = 
+        pcall( 
+            function() 
+                return humanoid:LoadAnimation( 
+                    animation 
+                ) 
+            end 
+        ) 
+
+    animation:Destroy() 
+
+    if not success 
+    or not track then 
+
+        standAttacking = false 
+        standAttackTarget = nil 
+        ReturnToMainTarget() 
+
+        return 
+    end 
+
+    standAttackTrack = 
+        track 
+
+    track.Looped = false
+    track:Play(0.05) 
+
+    StandHeader( 
+        target 
+        and ( 
+            "ATAQUE -> " 
+            .. target.Name 
+        ) 
+        or 
+        "GOLPE FANTASMA HACIA DELANTE" 
+    ) 
+
+    if target then
+        task.spawn(
+            function()
+                while standEnabled
+                and standAttacking
+                and standAttackTarget == target do
+                    local currentRoot = GetStandRoot()
+                    local currentTargetRoot = GetPlayerRoot(target)
+
+                    if not currentRoot
+                    or not currentRoot.Parent
+                    or not currentTargetRoot
+                    or not currentTargetRoot.Parent then
+                        break
+                    end
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame)
+
+                    RunService.Heartbeat:Wait()
+                end
+            end
+        )
+    else
+        task.spawn(
+            function()
+                MoveAttackForward(
+                    direction
+                )
+            end
+        )
+    end
+
+    local finished = false 
+    local stoppedConnection 
+
+    local function FinishAttack() 
+
+        if finished then 
+            return 
+        end 
+
+        finished = true 
+
+        if stoppedConnection then 
+
+            stoppedConnection:Disconnect() 
+
+            stoppedConnection = nil 
+        end 
+        local currentRoot = 
+            GetStandRoot() 
+
+        if currentRoot then 
+end 
+
+        standAttackTrack = nil 
+        standAttacking = false 
+        standAttackTarget = nil 
+
+        ReturnToMainTarget() 
+    end 
+
+    stoppedConnection = 
+        track.Stopped:Connect( 
+            function() 
+
+                StandDebug( 
+                    "Animacion de ataque TERMINADA" 
+                ) 
+
+                FinishAttack() 
+            end 
+        ) 
+
+    task.spawn( 
+        function() 
+
+            while standEnabled 
+            and standAttacking 
+            and track 
+            and track.IsPlaying do 
+
+                RunService.Heartbeat:Wait() 
+            end 
+
+            if standEnabled 
+            and standAttacking 
+            and not finished 
+            and track 
+            and not track.IsPlaying then 
+
+                FinishAttack() 
+            end 
+        end 
+    ) 
+end 
+
+local standLastChatCommand = ""
+local standLastChatCommandTime = 0
+
+local function IsAttackChatMessage(message)
+    if not message then
+        return false
+    end
+
+    local text = string.lower(tostring(message))
+
+    text = text:gsub("%s+", " ")
+    text = text:gsub("^%s+", "")
+    text = text:gsub("%s+$", "")
+
+    return text:match("%f[%a]ataca%f[%A]") ~= nil
+        or text:match("%f[%a]atacar%f[%A]") ~= nil
+        or text:match("%f[%a]attack%f[%A]") ~= nil
+end
+
+local function TriggerStandAttackFromChat()
+    if not standEnabled then
+        return
+    end
+
+    if not standTarget then
+        return
+    end
+
+    if standAttacking then
+        return
+    end
+
+    local attackTarget
+
+    if standMode == "Normal" then
+        attackTarget = GetPlayerInFrontOfTarget()
+    else
+        attackTarget = GetRandomPlayerNearTarget()
+    end
+
+    local direction = GetAttackDirectionFromAnchor()
+
+    if attackTarget then
+        if attackTarget == standTarget then
+            return
+        end
+
+        if not IsPlayerInsideTargetRange(attackTarget) then
+            return
+        end
+    end
+
+    StandHeader(
+        attackTarget
+        and ("CHAT -> ATAQUE -> " .. attackTarget.Name)
+        or "CHAT -> GOLPE HACIA DELANTE"
+    )
+
+    PlayStandAttack(
+        attackTarget,
+        direction
+    )
+end
+
+local function HandleStandChatMessage(message)
+    if not standEnabled then
+        return
+    end
+
+    if not standTarget then
+        return
+    end
+
+    if not IsAttackChatMessage(message) then
+        return
+    end
+
+    local text = string.lower(tostring(message))
+    local now = os.clock()
+    local key = text
+
+    if key == standLastChatCommand
+    and now - standLastChatCommandTime < 0.2 then
+        return
+    end
+
+    standLastChatCommand = key
+    standLastChatCommandTime = now
+
+    StandDebug(
+        "COMANDO DE CHAT DETECTADO:",
+        tostring(message)
+    )
+
+    TriggerStandAttackFromChat()
+end
+
+local function DisconnectTargetConnections() 
+
+    if standTargetAnimatorConnection then 
+
+        standTargetAnimatorConnection:Disconnect() 
+
+        standTargetAnimatorConnection = 
+            nil 
+    end 
+
+    if standTargetCharacterConnection then 
+
+        standTargetCharacterConnection:Disconnect() 
+
+        standTargetCharacterConnection = 
+            nil 
+    end 
+
+    if standTargetStateConnection then 
+
+        standTargetStateConnection:Disconnect() 
+
+        standTargetStateConnection = 
+            nil 
+    end 
+
+    if standTargetChatConnection then
+        standTargetChatConnection:Disconnect()
+        standTargetChatConnection = nil
+    end
+
+    if standTargetTextChatConnection then
+        standTargetTextChatConnection:Disconnect()
+        standTargetTextChatConnection = nil
+    end
+end 
+
+local function ConnectTargetAnimator( 
+    target 
+) 
+
+    DisconnectTargetConnections() 
+
+    if not target 
+    or not target.Character then 
+        return 
+    end 
+
+    local humanoid = 
+        GetPlayerHumanoid( 
+            target 
+        ) 
+
+    if not humanoid then 
+        return 
+    end 
+
+    local animator = 
+        humanoid:FindFirstChildOfClass( 
+            "Animator" 
+        ) 
+
+    if not animator then 
+
+        animator = 
+            humanoid:WaitForChild( 
+                "Animator", 
+                3 
+            ) 
+    end 
+
+    if not animator then 
+        return 
+    end 
+
+    SaveTargetBaseline( 
+        target 
+    ) 
+
+    StandDebug( 
+        "ESCUCHANDO SOLO AL TARGET:", 
+        target.Name 
+    ) 
+
+    standTargetStateConnection = 
+        humanoid.StateChanged:Connect( 
+            function( 
+                _, 
+                newState 
+            ) 
+
+                if not standEnabled then 
+                    return 
+                end 
+
+                if standTarget ~= target then 
+                    return 
+                end 
+
+                if newState == 
+                    Enum.HumanoidStateType.Jumping then 
+
+                    if not standPreviousJumpState then
+                        ToggleStandModeFromJump(
+                            "StateChanged Jumping"
+                        )
+                        standPreviousJumpState = true
+                    end
+
+                elseif newState == 
+                    Enum.HumanoidStateType.Landed 
+                or newState == 
+                    Enum.HumanoidStateType.Running 
+                or newState == 
+                    Enum.HumanoidStateType.Climbing 
+                or newState == 
+                    Enum.HumanoidStateType.Seated then 
+
+                    standPreviousJumpState = false
+                end 
+            end 
+        ) 
+
+    standTargetChatConnection = target.Chatted:Connect(
+        function(message)
+            HandleStandChatMessage(message)
+        end
+    )
+
+    local textChatService = game:GetService("TextChatService")
+
+    if textChatService then
+        standTargetTextChatConnection = textChatService.MessageReceived:Connect(
+            function(message)
+                if not message then
+                    return
+                end
+
+                local source = message.TextSource
+
+                if not source then
+                    return
+                end
+
+                if source.UserId ~= target.UserId then
+                    return
+                end
+
+                HandleStandChatMessage(message.Text)
+            end
+        )
+    end
+
+    standTargetAnimatorConnection = 
+        animator.AnimationPlayed:Connect( 
+            function(track) 
+
+                if not standEnabled then 
+                    return 
+                end 
+
+                if not track then 
+                    return 
+                end 
+
+                if IsOurStandAnimation( 
+                    track 
+                ) then 
+
+                    PrintAnimationDebug( 
+                        track, 
+                        "NO EMOTE - STAND" 
+                    ) 
+
+                    return 
+                end 
+
+                local isEmote = 
+                    IsLikelyEmote( 
+                        track 
+                    ) 
+
+                local result 
+
+                if track.Priority == 
+                    Enum.AnimationPriority.Core then 
+
+                    result = 
+                        "NO EMOTE - CORE" 
+
+                elseif track.Priority == 
+                    Enum.AnimationPriority.Movement then 
+
+                    result = 
+                        "NO EMOTE - MOVEMENT" 
+
+                elseif track.Priority == 
+                    Enum.AnimationPriority.Idle 
+                and track.Looped then 
+
+                    result = 
+                        "NO EMOTE - IDLE LOOP" 
+
+                elseif isEmote then 
+
+                    result = 
+                        "EMOTE" 
+
+                else 
+
+                    result = 
+                        "NO EMOTE" 
+                end 
+
+                PrintAnimationDebug( 
+                    track, 
+                    result 
+                ) 
+
+                if not isEmote then 
+                    return 
+                end 
+
+                if standAttacking then 
+                    return 
+                end 
+
+                local attackTarget 
+
+                if standMode == 
+                    "Normal" then 
+
+                    attackTarget = 
+                        GetPlayerInFrontOfTarget() 
+
+                else 
+
+                    attackTarget = 
+                        GetRandomPlayerNearTarget() 
+                end 
+
+                local direction = 
+                    GetAttackDirectionFromAnchor() 
+
+                if attackTarget then 
+
+                    if attackTarget == 
+                        standTarget then 
+
+                        return 
+                    end 
+
+                    if not IsPlayerInsideTargetRange( 
+                        attackTarget 
+                    ) then 
+
+                        return 
+                    end 
+
+                    StandHeader( 
+                        "EMOTE TARGET -> ATAQUE JUGADOR" 
+                    ) 
+
+                    PlayStandAttack( 
+                        attackTarget, 
+                        direction 
+                    ) 
+
+                else 
+
+                    StandHeader( 
+                        "EMOTE TARGET -> GOLPE HACIA DELANTE" 
+                    ) 
+
+                    PlayStandAttack( 
+                        nil, 
+                        direction 
+                    ) 
+                end 
+            end 
+        ) 
+
+    standTargetCharacterConnection = 
+        target.CharacterAdded:Connect( 
+            function() 
+
+                if not standEnabled then 
+                    return 
+                end 
+
+                task.wait(0.5) 
+
+                if standEnabled 
+                and standTarget == target then 
+
+                    ConnectTargetAnimator( 
+                        target 
+                    ) 
+
+                    PlayStandIdle() 
+                end 
+            end 
+        ) 
+end 
+
+local function RebuildLocalCharacter() 
+
+    if not standEnabled then 
+        return 
+    end 
+    StopStandIdle() 
+    StopStandAttack() 
+
+    standAttacking = false 
+    standAttackTarget = nil 
+
+    local character = 
+        LocalPlayer.Character 
+
+    if not character then 
+        return 
+    end 
+
+    character:WaitForChild( 
+        "Humanoid", 
+        5 
+    ) 
+
+    character:WaitForChild( 
+        "HumanoidRootPart", 
+        5 
+    ) 
+
+    if not standEnabled then 
+        return 
+    end 
+
+    task.wait(0.3) 
+
+    if not standEnabled then 
+        return 
+    end 
+
+    if standTarget 
+    and standTarget.Character then 
+
+        SetStandBehindTarget( 
+            standTarget 
+        ) 
+
+        PlayStandIdle() 
+    end 
+end 
+
+local function StartLocalCharacterMonitor() 
+
+    if standLocalCharacterConnection then 
+
+        standLocalCharacterConnection:Disconnect() 
+
+        standLocalCharacterConnection = 
+            nil 
+    end 
+
+    standLocalCharacterConnection = 
+        LocalPlayer.CharacterAdded:Connect( 
+            function() 
+
+                if not standEnabled then 
+                    return 
+                end 
+
+                StandHeader( 
+                    "RESPAWN -> RECONSTRUYENDO STAND" 
+                ) 
+
+                task.spawn( 
+                    RebuildLocalCharacter 
+                ) 
+            end 
+        ) 
+end 
+
+local function StartStand( 
+    target 
+) 
+
+    if standConnection then 
+
+        standConnection:Disconnect() 
+
+        standConnection = nil 
+    end 
+
+    DisconnectTargetConnections() 
+    standTarget = target 
+    standMode = "Normal" 
+    UpdateStandStatus()
+
+    standAttacking = false 
+    standAttackTarget = nil 
+    standPreviousJumpState = false 
+    standBaselineAnimationIds = {} 
+    standLastChatCommand = ""
+    standLastChatCommandTime = 0
+
+    StandHeader( 
+        "STAND ACTIVADO -> " 
+        .. tostring( 
+            target 
+            and target.Name 
+            or "nil" 
+        ) 
+    ) 
+
+    StartLocalCharacterMonitor() 
+
+    ConnectTargetAnimator( 
+        target 
+    ) 
+
+    task.spawn( 
+        function() 
+
+            task.wait(0.2) 
+
+            if not standEnabled then 
+                return 
+            end 
+
+            if standTarget 
+            and standTarget.Character then 
+
+                SetStandBehindTarget( 
+                    standTarget 
+                ) 
+
+                PlayStandIdle() 
+            end 
+        end 
+    ) 
+
+    standConnection = 
+        RunService.Heartbeat:Connect( 
+            function() 
+
+                if not standEnabled then 
+                    return 
+                end 
+
+                if not standTarget then 
+                    return 
+                end 
+
+                if not standTarget.Character then 
+                    return 
+                end 
+
+                if standAttacking then 
+                    return 
+                end 
+
+                local humanoid = 
+                    GetPlayerHumanoid( 
+                        standTarget 
+                    ) 
+
+                local root = 
+                    GetPlayerRoot( 
+                        standTarget 
+                    ) 
+
+                if not humanoid 
+                or not root then 
+                    return 
+                end 
+
+                if humanoid.Health <= 0 then 
+                    return 
+                end 
+
+                SetStandBehindTarget( 
+                    standTarget 
+                ) 
+
+                local jumping = 
+                    IsJumpingTarget() 
+
+                if jumping 
+                and not standPreviousJumpState then 
+
+                    ToggleStandModeFromJump(
+                        "Heartbeat Jump"
+                    )
+                end 
+
+                standPreviousJumpState = 
+                    jumping 
+            end 
+        ) 
+end 
+
+local function StopStand() 
+
+    StandHeader( 
+        "STAND DESACTIVADO" 
+    ) 
+
+    standEnabled = false 
+    UpdateStandStatus()
+
+    standTarget = nil 
+    standMode = "Normal" 
+
+    standAttacking = false 
+    standAttackTarget = nil 
+    standPreviousJumpState = false 
+    standBaselineAnimationIds = {} 
+    standLastChatCommand = ""
+    standLastChatCommandTime = 0
+    if standConnection then 
+
+        standConnection:Disconnect() 
+
+        standConnection = nil 
+    end 
+
+    DisconnectTargetConnections() 
+
+    if standLocalCharacterConnection then 
+
+        standLocalCharacterConnection:Disconnect() 
+
+        standLocalCharacterConnection = 
+            nil 
+    end 
+
+    StopStandIdle() 
+    StopStandAttack() 
+    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+
+    local root = 
+        GetStandRoot() 
+
+    if root then 
+end 
+end 
+
+JugadoresTab:CreateSection( 
+    "Stand" 
+) 
+
+JugadoresTab:CreateSlider({ 
+    Name = "Distancia del Stand", 
+    Range = {1, 5}, 
+    Increment = 0.1, 
+    Suffix = "studs", 
+    CurrentValue = standDistance, 
+
+    Callback = function(value) 
+        standDistance = value 
+    end 
+}) 
+
+JugadoresTab:CreateSlider({ 
+    Name = "Lado del Stand", 
+    Range = {1, 8}, 
+    Increment = 0.1, 
+    Suffix = "studs", 
+    CurrentValue = standSide, 
+
+    Callback = function(value) 
+        standSide = value 
+    end 
+}) 
+
+JugadoresTab:CreateSlider({ 
+    Name = "Rango del Stand", 
+    Range = {5, 100}, 
+    Increment = 1, 
+    Suffix = "studs", 
+    CurrentValue = standAutoRange, 
+
+    Callback = function(value) 
+        standAutoRange = value 
+    end 
+}) 
+
+JugadoresTab:CreateToggle({ 
+    Name = "Stand automático", 
+    CurrentValue = false, 
+
+    Callback = function(value) 
+
+        if value then 
+
+            if not selectedPlayer then 
+
+                Rayfield:Notify({ 
+                    Title = "Stand", 
+                    Content = "Selecciona un jugador primero.", 
+                    Duration = 2, 
+                    Image = 4483362458 
+                }) 
+
+                return 
+            end 
+
+            if not selectedPlayer.Character then 
+
+                Rayfield:Notify({ 
+                    Title = "Stand", 
+                    Content = "El jugador no tiene personaje.", 
+                    Duration = 2, 
+                    Image = 4483362458 
+                }) 
+
+                return 
+            end 
+
+            standEnabled = true 
+
+            StartStand( 
+                selectedPlayer 
+            ) 
+
+            Rayfield:Notify({ 
+                Title = "Stand", 
+                Content = "Stand activado.", 
+                Duration = 2, 
+                Image = 4483362458 
+            }) 
+
+        else 
+
+            StopStand() 
+
+            Rayfield:Notify({ 
+                Title = "Stand", 
+                Content = "Stand desactivado.", 
+                Duration = 2, 
+                Image = 4483362458 
+            }) 
+        end 
+    end 
+})
