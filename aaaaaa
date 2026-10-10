@@ -1,3 +1,5 @@
+----xDDD
+
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
 local Rayfield = ENV.Rayfield or _G.Rayfield
@@ -81,42 +83,62 @@ local physicsMirroredTracks = {}
 local physicsCameraSubject = nil
 local physicsCameraType = nil
 local physicsCharacter = nil
+local CleanupPhysicsCloneIfIdle
 
 local function DestroyPhysicsClone()
+    local clone = physicsClone
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local returnCFrame
+    if clone and clone.Parent then
+        pcall(function() returnCFrame = clone:GetPivot() end)
+    end
     if physicsPoseConnection then
         physicsPoseConnection:Disconnect()
         physicsPoseConnection = nil
     end
     for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
-        local copiedAnimation
-        pcall(function() copiedAnimation = cloneTrack.Animation end)
         pcall(function() cloneTrack:Stop(0) end)
         pcall(function() cloneTrack:Destroy() end)
-        if copiedAnimation then pcall(function() copiedAnimation:Destroy() end) end
         physicsMirroredTracks[sourceTrack] = nil
     end
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if character and physicsClone and physicsClone.Parent and physicsCharacter == character then
-        pcall(function() character:PivotTo(physicsClone:GetPivot()) end)
+    if root then
+        if type(sethiddenproperty) == "function" then
+            pcall(function() sethiddenproperty(root, "PhysicsRepRootPart", root) end)
+        end
+        pcall(function()
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+        end)
     end
-    if root and type(sethiddenproperty) == "function" then
-        pcall(function() sethiddenproperty(root, "PhysicsRepRootPart", root) end)
+    if character and returnCFrame and physicsCharacter == character then
+        pcall(function() character:PivotTo(returnCFrame) end)
+        if root and root.Parent then
+            pcall(function()
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+                root.Velocity = Vector3.zero
+                root.RotVelocity = Vector3.zero
+            end)
+        end
     end
     local camera = workspace.CurrentCamera
     if camera then
         local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        camera.CameraSubject = humanoid or physicsCameraSubject
-        camera.CameraType = physicsCameraType or Enum.CameraType.Custom
+        pcall(function()
+            camera.CameraSubject = humanoid or physicsCameraSubject
+            camera.CameraType = physicsCameraType or Enum.CameraType.Custom
+        end)
     end
-    if physicsClone then
-        pcall(function() physicsClone:Destroy() end)
-    end
+    if clone then pcall(function() clone:Destroy() end) end
     physicsClone = nil
     physicsCloneHumanoid = nil
     physicsCharacter = nil
     physicsCameraSubject = nil
     physicsCameraType = nil
+    table.clear(physicsMirroredTracks)
 end
 
 local function CreatePhysicsClone()
@@ -159,61 +181,10 @@ local function CreatePhysicsClone()
         physicsCameraType = camera.CameraType
         camera.CameraSubject = cloneHumanoid
     end
-    physicsPoseConnection = RunService.RenderStepped:Connect(function()
+    physicsPoseConnection = RunService.PreSimulation:Connect(function()
         if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
         local currentCharacter = LocalPlayer.Character
         if not currentCharacter or currentCharacter ~= physicsCharacter then return end
-        local sourceHumanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
-        local cloneHumanoid = physicsClone:FindFirstChildOfClass("Humanoid")
-        local sourceAnimator = sourceHumanoid and sourceHumanoid:FindFirstChildOfClass("Animator")
-        local cloneAnimator = cloneHumanoid and cloneHumanoid:FindFirstChildOfClass("Animator")
-        if cloneHumanoid and not cloneAnimator then
-            cloneAnimator = Instance.new("Animator")
-            cloneAnimator.Parent = cloneHumanoid
-        end
-        if sourceAnimator and cloneAnimator then
-            local activeSourceTracks = {}
-            for _, sourceTrack in ipairs(sourceAnimator:GetPlayingAnimationTracks()) do
-                local animation = sourceTrack.Animation
-                if animation then
-                    activeSourceTracks[sourceTrack] = true
-                    local cloneTrack = physicsMirroredTracks[sourceTrack]
-                    if not cloneTrack then
-                        local ok, result = pcall(function()
-                            local copiedAnimation = animation:Clone()
-                            copiedAnimation.Parent = cloneAnimator
-                            local newTrack = cloneAnimator:LoadAnimation(copiedAnimation)
-                            newTrack.Priority = sourceTrack.Priority
-                            newTrack.Looped = sourceTrack.Looped
-                            newTrack:Play(0, sourceTrack.WeightCurrent, sourceTrack.Speed)
-                            return newTrack
-                        end)
-                        if ok then
-                            cloneTrack = result
-                            physicsMirroredTracks[sourceTrack] = cloneTrack
-                        end
-                    end
-                    if cloneTrack then
-                        pcall(function()
-                            cloneTrack:AdjustSpeed(0)
-                            cloneTrack.TimePosition = sourceTrack.TimePosition
-                            cloneTrack:AdjustWeight(sourceTrack.WeightCurrent, 0)
-                            cloneTrack:AdjustSpeed(sourceTrack.Speed)
-                        end)
-                    end
-                end
-            end
-            for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
-                if not activeSourceTracks[sourceTrack] then
-                    local copiedAnimation
-                    pcall(function() copiedAnimation = cloneTrack.Animation end)
-                    pcall(function() cloneTrack:Stop(0) end)
-                    pcall(function() cloneTrack:Destroy() end)
-                    if copiedAnimation then pcall(function() copiedAnimation:Destroy() end) end
-                    physicsMirroredTracks[sourceTrack] = nil
-                end
-            end
-        end
         local function motorKey(motor)
             return table.concat({motor.Name, motor.Part0 and motor.Part0.Name or "", motor.Part1 and motor.Part1.Name or ""}, "|")
         end
@@ -225,8 +196,10 @@ local function CreatePhysicsClone()
         end
         for _, object in ipairs(physicsClone:GetDescendants()) do
             if object:IsA("Motor6D") then
-                local source = originalMotors[motorKey(object)]
-                if source then object.Transform = source.Transform end
+                local sourceMotor = originalMotors[motorKey(object)]
+                if sourceMotor then
+                    object.Transform = sourceMotor.Transform
+                end
             end
         end
     end)
@@ -400,7 +373,7 @@ end
     if char then
         SetNoCollision(char, false)
     end
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
  function PlayCari(target)
@@ -470,7 +443,7 @@ end
     if char then
         SetNoCollision(char, false)
     end
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
  function findPlayerByPartialName(name)
@@ -551,7 +524,7 @@ function StopPata()
     if char then
         SetNoCollision(char, false)
     end
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
 function PlayDoggy(target)
@@ -621,7 +594,7 @@ function StopDoggy()
     if char then
         SetNoCollision(char, false)
     end
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
 local characterAddedConnection
@@ -1375,7 +1348,7 @@ JugadoresTab:CreateToggle({
             })
         else
             stopFollowingPlayer()
-            if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 
             Rayfield:Notify({
                 Title = "Seguimiento",
@@ -1453,11 +1426,11 @@ end)
                 end
             end
         elseif not orbitEnabled then
-            local returnedToClone = physicsModeEnabled and physicsClone ~= nil
-            if returnedToClone then DestroyPhysicsClone() end
+            local hadPhysicsClone = physicsModeEnabled and physicsClone ~= nil
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
             local localChar = LocalPlayer.Character
             if localChar and localChar:FindFirstChild("HumanoidRootPart") then
-                if not returnedToClone then
+                if not hadPhysicsClone then
                     local safePos = localChar.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
                     localChar.HumanoidRootPart.CFrame = CFrame.new(safePos)
                 end
@@ -1470,7 +1443,25 @@ end)
 local sitToggle = false
 local isSitting = false
 local sitDistance = 2.5
-local originalStats = {}
+local movementStatsByAction = {}
+local function SaveMovementStats(action, humanoid)
+    if not humanoid then return end
+    movementStatsByAction[action] = {
+        WalkSpeed = humanoid.WalkSpeed,
+        JumpPower = humanoid.JumpPower,
+        JumpHeight = humanoid.JumpHeight,
+        AutoRotate = humanoid.AutoRotate
+    }
+end
+local function RestoreMovementStats(action, humanoid)
+    if not humanoid then return end
+    local stats = movementStatsByAction[action]
+    humanoid.WalkSpeed = stats and stats.WalkSpeed or 16
+    humanoid.JumpPower = stats and stats.JumpPower or 50
+    humanoid.JumpHeight = stats and stats.JumpHeight or 7.2
+    if stats and stats.AutoRotate ~= nil then humanoid.AutoRotate = stats.AutoRotate end
+    movementStatsByAction[action] = nil
+end
 local underToggle = false
 local underConnection = nil
 local underDistance = 5
@@ -1501,11 +1492,7 @@ JugadoresTab:CreateToggle({
 
             if not head or not targetRoot then return end
 
-            originalStats = {
-                WalkSpeed = humanoid.WalkSpeed,
-                JumpPower = humanoid.JumpPower,
-                JumpHeight = humanoid.JumpHeight
-            }
+            SaveMovementStats("sit", humanoid)
 
             humanoid.Sit = true
             humanoid.WalkSpeed = 0
@@ -1548,15 +1535,7 @@ JugadoresTab:CreateToggle({
             isSitting = true
         elseif not sitToggle then
             if humanoid and humanoid.Parent then
-                if originalStats.WalkSpeed then
-                    humanoid.WalkSpeed = originalStats.WalkSpeed
-                    humanoid.JumpPower = originalStats.JumpPower
-                    humanoid.JumpHeight = originalStats.JumpHeight
-                else
-                    humanoid.WalkSpeed = 16
-                    humanoid.JumpPower = 50
-                    humanoid.JumpHeight = 7.2
-                end
+                RestoreMovementStats("sit", humanoid)
 
                 if humanoid.Health > 0 then
                     humanoid.Sit = false
@@ -1569,9 +1548,7 @@ JugadoresTab:CreateToggle({
                 humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
             end
 
-            if physicsModeEnabled and physicsClone then
-                DestroyPhysicsClone()
-            end
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
             isSitting = false
         end
     end
@@ -1614,11 +1591,7 @@ JugadoresTab:CreateToggle({
                 return
             end
 
-            originalStats = {
-                WalkSpeed = humanoid.WalkSpeed,
-                JumpPower = humanoid.JumpPower,
-                JumpHeight = humanoid.JumpHeight
-            }
+            SaveMovementStats("under", humanoid)
 
             humanoid.AutoRotate = false
             humanoid.WalkSpeed = 0
@@ -1656,18 +1629,10 @@ currentHumanoid.AutoRotate = false
             end)
 
         elseif not underToggle then
-            if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
             humanoid.AutoRotate = true
 
-            if originalStats.WalkSpeed then
-                humanoid.WalkSpeed = originalStats.WalkSpeed
-                humanoid.JumpPower = originalStats.JumpPower
-                humanoid.JumpHeight = originalStats.JumpHeight
-            else
-                humanoid.WalkSpeed = 16
-                humanoid.JumpPower = 50
-                humanoid.JumpHeight = 7.2
-            end
+            RestoreMovementStats("under", humanoid)
 
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
@@ -1709,15 +1674,7 @@ local function StopMochila()
     if humanoid then
         humanoid.AutoRotate = true
 
-        if originalStats.WalkSpeed ~= nil then
-            humanoid.WalkSpeed = originalStats.WalkSpeed
-            humanoid.JumpPower = originalStats.JumpPower
-            humanoid.JumpHeight = originalStats.JumpHeight
-        else
-            humanoid.WalkSpeed = 16
-            humanoid.JumpPower = 50
-            humanoid.JumpHeight = 7.2
-        end
+        RestoreMovementStats("mochila", humanoid)
 
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
@@ -1731,7 +1688,14 @@ local function StopMochila()
     end
 
     if root then
-end
+        pcall(function()
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+        end)
+    end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
 PlayMochila = function(target)
@@ -1754,11 +1718,7 @@ PlayMochila = function(target)
         return
     end
 
-    originalStats = {
-        WalkSpeed = humanoid.WalkSpeed,
-        JumpPower = humanoid.JumpPower,
-        JumpHeight = humanoid.JumpHeight
-    }
+    SaveMovementStats("mochila", humanoid)
 
     humanoid.Sit = true
     humanoid.WalkSpeed = 0
@@ -1788,9 +1748,8 @@ PlayMochila = function(target)
 currentHumanoid.Sit = true
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
-        currentHumanoid.JumpHeight = 0
+                currentHumanoid.JumpHeight = 0
     end)
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
 end
 
 JugadoresTab:CreateToggle({
@@ -2000,7 +1959,7 @@ function StopPerro()
     end
 
     SetNoCollision(char, false)
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
 JugadoresTab:CreateToggle({
@@ -2428,6 +2387,14 @@ local standWF = false
 local standWFNoclipConnection = nil 
 local standWFCharacterConnection = nil 
 local standWFThread = nil 
+
+CleanupPhysicsCloneIfIdle = function()
+    local actionActive = wataEnabled or cariEnabled or pataEnabled or doggyEnabled or perroEnabled
+        or sitToggle or underToggle or mochilaToggle or standEnabled or orbitEnabled or followEnabled
+    if not actionActive and physicsClone then
+        DestroyPhysicsClone()
+    end
+end
 
 local function StandDebug(...) 
     if standDebug then 
@@ -3336,7 +3303,8 @@ local function PlayStandAttack(
         if not direction then 
             return 
         end 
-        ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame)
+        local attackPosition = targetRoot.Position + targetRoot.CFrame.LookVector * standAttackBehindDistance
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position))
 
     else 
 
@@ -3411,37 +3379,6 @@ local function PlayStandAttack(
         or 
         "GOLPE FANTASMA HACIA DELANTE" 
     ) 
-
-    if target then
-        task.spawn(
-            function()
-                while standEnabled
-                and standAttacking
-                and standAttackTarget == target do
-                    local currentRoot = GetStandRoot()
-                    local currentTargetRoot = GetPlayerRoot(target)
-
-                    if not currentRoot
-                    or not currentRoot.Parent
-                    or not currentTargetRoot
-                    or not currentTargetRoot.Parent then
-                        break
-                    end
-        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame)
-
-                    RunService.Heartbeat:Wait()
-                end
-            end
-        )
-    else
-        task.spawn(
-            function()
-                MoveAttackForward(
-                    direction
-                )
-            end
-        )
-    end
 
     local finished = false 
     local stoppedConnection 
@@ -4144,13 +4081,17 @@ local function StopStand()
 
     StopStandIdle() 
     StopStandAttack() 
-    if physicsModeEnabled and physicsClone then DestroyPhysicsClone() end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 
-    local root = 
-        GetStandRoot() 
-
-    if root then 
-end 
+    local root = GetStandRoot()
+    if root then
+        pcall(function()
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+        end)
+    end
 end 
 
 JugadoresTab:CreateSection( 
