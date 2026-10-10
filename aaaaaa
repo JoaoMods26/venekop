@@ -1,4 +1,4 @@
-----xDDD
+----owao
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -21,6 +21,40 @@ local Players     = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local selectedPlayer = nil
+local movementStatsByAction = {}
+local function SaveMovementStats(action, humanoid)
+    if not humanoid then return end
+    local baseline
+    for _, saved in pairs(movementStatsByAction) do
+        baseline = saved
+        break
+    end
+    local walkSpeed = humanoid.WalkSpeed
+    local jumpPower = humanoid.JumpPower
+    local jumpHeight = humanoid.JumpHeight
+    local autoRotate = humanoid.AutoRotate
+    if baseline then
+        walkSpeed = baseline.WalkSpeed
+        jumpPower = baseline.JumpPower
+        jumpHeight = baseline.JumpHeight
+        if baseline.AutoRotate ~= nil then autoRotate = baseline.AutoRotate end
+    end
+    movementStatsByAction[action] = {
+        WalkSpeed = walkSpeed,
+        JumpPower = jumpPower,
+        JumpHeight = jumpHeight,
+        AutoRotate = autoRotate
+    }
+end
+local function RestoreMovementStats(action, humanoid)
+    if not humanoid then return end
+    local stats = movementStatsByAction[action]
+    humanoid.WalkSpeed = stats and stats.WalkSpeed or 16
+    humanoid.JumpPower = stats and stats.JumpPower or 50
+    humanoid.JumpHeight = stats and stats.JumpHeight or 7.2
+    if stats and stats.AutoRotate ~= nil then humanoid.AutoRotate = stats.AutoRotate end
+    movementStatsByAction[action] = nil
+end
 local characterAddedConnection
 local mochilaToggle = false
 local mochilaConnection = nil
@@ -84,6 +118,80 @@ local physicsCameraSubject = nil
 local physicsCameraType = nil
 local physicsCharacter = nil
 local CleanupPhysicsCloneIfIdle
+local physicsVisualFolder = nil
+local stabilityGround = nil
+local stabilityGroundConnection = nil
+local physicsVisualFolderName = "JmodsUniversal_LocalVisuals_" .. tostring(LocalPlayer.UserId)
+
+local function EnsurePhysicsVisualFolder()
+    if physicsVisualFolder and physicsVisualFolder.Parent then
+        return physicsVisualFolder
+    end
+    local existing = workspace:FindFirstChild(physicsVisualFolderName)
+    if existing and existing:IsA("Folder") then
+        physicsVisualFolder = existing
+    else
+        physicsVisualFolder = Instance.new("Folder")
+        physicsVisualFolder.Name = physicsVisualFolderName
+        physicsVisualFolder.Parent = workspace
+    end
+    return physicsVisualFolder
+end
+
+local function ZeroPlacementVelocity(root)
+    if not root or not root.Parent then return end
+    pcall(function()
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+        root.Velocity = Vector3.zero
+        root.RotVelocity = Vector3.zero
+    end)
+end
+
+local function EnsureStabilityGround(root)
+    if not root or not root.Parent then return end
+    local folder = EnsurePhysicsVisualFolder()
+    if not stabilityGround or not stabilityGround.Parent then
+        stabilityGround = Instance.new("Part")
+        stabilityGround.Name = "JmodsUniversal_InvisibleStabilityFloor_" .. tostring(LocalPlayer.UserId)
+        stabilityGround.Size = Vector3.new(6, 1, 6)
+        stabilityGround.Transparency = 1
+        stabilityGround.Anchored = true
+        stabilityGround.CanCollide = true
+        stabilityGround.CanTouch = false
+        stabilityGround.CanQuery = false
+        stabilityGround.CastShadow = false
+        stabilityGround.TopSurface = Enum.SurfaceType.Smooth
+        stabilityGround.BottomSurface = Enum.SurfaceType.Smooth
+        stabilityGround.Parent = folder
+    end
+    stabilityGround.CFrame = root.CFrame * CFrame.new(0, -3.5, 0)
+    if not stabilityGroundConnection then
+        stabilityGroundConnection = RunService.Heartbeat:Connect(function()
+            local character = LocalPlayer.Character
+            local currentRoot = character and character:FindFirstChild("HumanoidRootPart")
+            if not currentRoot or not currentRoot.Parent then return end
+            if stabilityGround and stabilityGround.Parent then
+                stabilityGround.CFrame = currentRoot.CFrame * CFrame.new(0, -3.5, 0)
+            end
+        end)
+    end
+end
+
+local function RemoveStabilityGround()
+    if stabilityGroundConnection then
+        stabilityGroundConnection:Disconnect()
+        stabilityGroundConnection = nil
+    end
+    if stabilityGround then
+        pcall(function() stabilityGround:Destroy() end)
+        stabilityGround = nil
+    end
+    if physicsVisualFolder and physicsVisualFolder.Parent and #physicsVisualFolder:GetChildren() == 0 then
+        pcall(function() physicsVisualFolder:Destroy() end)
+        physicsVisualFolder = nil
+    end
+end
 
 local function DestroyPhysicsClone()
     local clone = physicsClone
@@ -98,8 +206,11 @@ local function DestroyPhysicsClone()
         physicsPoseConnection = nil
     end
     for sourceTrack, cloneTrack in pairs(physicsMirroredTracks) do
+        local animationObject
+        pcall(function() animationObject = cloneTrack.Animation end)
         pcall(function() cloneTrack:Stop(0) end)
         pcall(function() cloneTrack:Destroy() end)
+        if animationObject then pcall(function() animationObject:Destroy() end) end
         physicsMirroredTracks[sourceTrack] = nil
     end
     if root then
@@ -151,7 +262,7 @@ local function CreatePhysicsClone()
     local ok, clone = pcall(function() return character:Clone() end)
     character.Archivable = oldArchivable
     if not ok or not clone then return false end
-    clone.Name = "Jmods_ReturnCopy"
+    clone.Name = "JmodsUniversal_AnimationClone_" .. tostring(LocalPlayer.UserId)
     for _, object in ipairs(clone:GetDescendants()) do
         if object:IsA("Script") or object:IsA("LocalScript") then
             object:Destroy()
@@ -168,7 +279,7 @@ local function CreatePhysicsClone()
         clone:Destroy()
         return false
     end
-    clone.Parent = workspace
+    clone.Parent = EnsurePhysicsVisualFolder()
     clone:PivotTo(character:GetPivot())
     cloneHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
     cloneHumanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
@@ -185,20 +296,33 @@ local function CreatePhysicsClone()
         if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
         local currentCharacter = LocalPlayer.Character
         if not currentCharacter or currentCharacter ~= physicsCharacter then return end
-        local function motorKey(motor)
-            return table.concat({motor.Name, motor.Part0 and motor.Part0.Name or "", motor.Part1 and motor.Part1.Name or ""}, "|")
+        local sourceRoot = currentCharacter:FindFirstChild("HumanoidRootPart")
+        local cloneRoot = physicsClone:FindFirstChild("HumanoidRootPart")
+        if not sourceRoot or not cloneRoot then return end
+        local function relativePath(object, model)
+            local names = {}
+            local node = object
+            while node and node ~= model do
+                table.insert(names, 1, node.Name)
+                node = node.Parent
+            end
+            return table.concat(names, "\31")
         end
-        local originalMotors = {}
-        for _, object in ipairs(currentCharacter:GetDescendants()) do
-            if object:IsA("Motor6D") then
-                originalMotors[motorKey(object)] = object
+        local cloneParts = {}
+        for _, object in ipairs(physicsClone:GetDescendants()) do
+            if object:IsA("BasePart") then
+                cloneParts[relativePath(object, physicsClone)] = object
             end
         end
-        for _, object in ipairs(physicsClone:GetDescendants()) do
-            if object:IsA("Motor6D") then
-                local sourceMotor = originalMotors[motorKey(object)]
-                if sourceMotor then
-                    object.Transform = sourceMotor.Transform
+        local rootCFrame = cloneRoot.CFrame
+        local sourceRootCFrame = sourceRoot.CFrame
+        for _, sourcePart in ipairs(currentCharacter:GetDescendants()) do
+            if sourcePart:IsA("BasePart") and sourcePart ~= sourceRoot then
+                local clonePart = cloneParts[relativePath(sourcePart, currentCharacter)]
+                if clonePart and clonePart.Parent then
+                    pcall(function()
+                        clonePart.CFrame = rootCFrame * sourceRootCFrame:ToObjectSpace(sourcePart.CFrame)
+                    end)
                 end
             end
         end
@@ -206,19 +330,23 @@ local function CreatePhysicsClone()
     return true
 end
 
-local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
+local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity)
     if not root or not desiredCFrame then return end
+    EnsureStabilityGround(root)
     if not physicsModeEnabled then
         root.CFrame = desiredCFrame
+        if not preserveVelocity then ZeroPlacementVelocity(root) end
         return
     end
     if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
         root.CFrame = desiredCFrame
+        if not preserveVelocity then ZeroPlacementVelocity(root) end
         return
     end
     if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
         if not CreatePhysicsClone() then
             root.CFrame = desiredCFrame
+            if not preserveVelocity then ZeroPlacementVelocity(root) end
             return
         end
     end
@@ -228,6 +356,7 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
     end)
     if not relativeOk or not relativeCFrame then
         root.CFrame = desiredCFrame
+        if not preserveVelocity then ZeroPlacementVelocity(root) end
         return
     end
     local ok = pcall(function()
@@ -236,13 +365,10 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
         physicsClone:PivotTo(desiredCFrame)
     end)
     if not ok then
-        pcall(function()
-            root.CFrame = relativeCFrame
-        end)
-        pcall(function()
-            physicsClone:PivotTo(desiredCFrame)
-        end)
+        pcall(function() root.CFrame = relativeCFrame end)
+        pcall(function() physicsClone:PivotTo(desiredCFrame) end)
     end
+    if not preserveVelocity then ZeroPlacementVelocity(root) end
 end
 
 local function NormalizeAnimId(id)
@@ -315,6 +441,7 @@ end
     local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
     if not humanoid or not root or not targetRoot then return end
 
+    SaveMovementStats("wata", humanoid)
     StopAnimationTracksById(humanoid, wataAnimId)
 
     local anim = Instance.new("Animation")
@@ -327,6 +454,7 @@ end
     humanoid.AutoRotate = false
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
     SetNoCollision(char, true)
 
     do
@@ -364,9 +492,9 @@ end
     end
 
     if humanoid then
-        humanoid.AutoRotate = true
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
+        RestoreMovementStats("wata", humanoid)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
         StopAnimationTracksById(humanoid, wataAnimId)
     end
 
@@ -385,6 +513,7 @@ end
     local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
     if not humanoid or not root or not targetRoot then return end
 
+    SaveMovementStats("cari", humanoid)
     StopAnimationTracksById(humanoid, cariAnimId)
 
     local anim = Instance.new("Animation")
@@ -397,6 +526,7 @@ end
     humanoid.AutoRotate = false
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
     SetNoCollision(char, true)
 
     do
@@ -434,9 +564,9 @@ end
     end
 
     if humanoid then
-        humanoid.AutoRotate = true
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
+        RestoreMovementStats("cari", humanoid)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
         StopAnimationTracksById(humanoid, cariAnimId)
     end
 
@@ -466,6 +596,7 @@ function PlayPata(target)
     local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
     if not humanoid or not root or not targetRoot then return end
 
+    SaveMovementStats("pata", humanoid)
     StopAnimationTracksById(humanoid, pataAnimId)
 
     local anim = Instance.new("Animation")
@@ -478,6 +609,7 @@ function PlayPata(target)
     humanoid.AutoRotate = false
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
     SetNoCollision(char, true)
 
     do
@@ -515,9 +647,9 @@ function StopPata()
     end
 
     if humanoid then
-        humanoid.AutoRotate = true
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
+        RestoreMovementStats("pata", humanoid)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
         StopAnimationTracksById(humanoid, pataAnimId)
     end
 
@@ -536,6 +668,7 @@ function PlayDoggy(target)
     local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
     if not humanoid or not root or not targetRoot then return end
 
+    SaveMovementStats("doggy", humanoid)
     StopAnimationTracksById(humanoid, doggyAnimId)
 
     local anim = Instance.new("Animation")
@@ -548,6 +681,7 @@ function PlayDoggy(target)
     humanoid.AutoRotate = false
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
     SetNoCollision(char, true)
 
     do
@@ -585,9 +719,9 @@ function StopDoggy()
     end
 
     if humanoid then
-        humanoid.AutoRotate = true
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
+        RestoreMovementStats("doggy", humanoid)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
         StopAnimationTracksById(humanoid, doggyAnimId)
     end
 
@@ -851,6 +985,7 @@ JugadoresTab:CreateToggle({
             physicsModeEnabled = false
             pruebaEnabled = false
             DestroyPhysicsClone()
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
         end
     end
 })
@@ -1443,25 +1578,6 @@ end)
 local sitToggle = false
 local isSitting = false
 local sitDistance = 2.5
-local movementStatsByAction = {}
-local function SaveMovementStats(action, humanoid)
-    if not humanoid then return end
-    movementStatsByAction[action] = {
-        WalkSpeed = humanoid.WalkSpeed,
-        JumpPower = humanoid.JumpPower,
-        JumpHeight = humanoid.JumpHeight,
-        AutoRotate = humanoid.AutoRotate
-    }
-end
-local function RestoreMovementStats(action, humanoid)
-    if not humanoid then return end
-    local stats = movementStatsByAction[action]
-    humanoid.WalkSpeed = stats and stats.WalkSpeed or 16
-    humanoid.JumpPower = stats and stats.JumpPower or 50
-    humanoid.JumpHeight = stats and stats.JumpHeight or 7.2
-    if stats and stats.AutoRotate ~= nil then humanoid.AutoRotate = stats.AutoRotate end
-    movementStatsByAction[action] = nil
-end
 local underToggle = false
 local underConnection = nil
 local underDistance = 5
@@ -1906,6 +2022,7 @@ function PlayPerro(target)
     local targetRoot = target.Character:WaitForChild("HumanoidRootPart")
     if not humanoid or not root or not targetRoot then return end
 
+    SaveMovementStats("perro", humanoid)
     StopAnimationTracksById(humanoid, perroAnimId)
 
     local track = humanoid:LoadAnimation(perroAnim)
@@ -1952,9 +2069,10 @@ function StopPerro()
     end
 
     if humanoid then
+        RestoreMovementStats("perro", humanoid)
         humanoid.AutoRotate = true
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
         StopAnimationTracksById(humanoid, perroAnimId)
     end
 
@@ -2391,8 +2509,9 @@ local standWFThread = nil
 CleanupPhysicsCloneIfIdle = function()
     local actionActive = wataEnabled or cariEnabled or pataEnabled or doggyEnabled or perroEnabled
         or sitToggle or underToggle or mochilaToggle or standEnabled or orbitEnabled or followEnabled
-    if not actionActive and physicsClone then
-        DestroyPhysicsClone()
+    if not actionActive then
+        if physicsClone then DestroyPhysicsClone() end
+        RemoveStabilityGround()
     end
 end
 
