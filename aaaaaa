@@ -1,4 +1,4 @@
-----owao
+---XDKJKJK
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -2488,6 +2488,7 @@ local standAttackTrack = nil
 
 local standAttacking = false 
 local standAttackTarget = nil 
+local standFlingEnabled = false
 
 local standTargetAnimatorConnection = nil 
 local standTargetCharacterConnection = nil 
@@ -3422,8 +3423,8 @@ local function PlayStandAttack(
         if not direction then 
             return 
         end 
-        local attackPosition = targetRoot.Position + targetRoot.CFrame.LookVector * standAttackBehindDistance
-        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position))
+        local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), standFlingEnabled)
 
     else 
 
@@ -3448,10 +3449,15 @@ local function PlayStandAttack(
     standAttackTarget = target 
 
     StopStandIdle() 
-        ApplyPlayerPlacement(root, targetRoot or (standTarget and GetPlayerRoot(standTarget)), CFrame.lookAt(
+    if targetRoot and targetRoot.Parent then
+        local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
+        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), standFlingEnabled)
+    else
+        ApplyPlayerPlacement(root, standTarget and GetPlayerRoot(standTarget), CFrame.lookAt(
             root.Position,
             root.Position + direction
-        )) 
+        ), standFlingEnabled)
+    end
 
     local animation = 
         Instance.new("Animation")
@@ -3488,6 +3494,21 @@ local function PlayStandAttack(
 
     track.Looped = false
     track:Play(0.05) 
+
+    if targetRoot then
+        task.spawn(function()
+            while standEnabled and standAttacking and standAttackTarget == target and track and track.IsPlaying do
+                local currentRoot = GetStandRoot()
+                local currentTargetRoot = target and GetPlayerRoot(target)
+                if not currentRoot or not currentRoot.Parent or not currentTargetRoot or not currentTargetRoot.Parent then
+                    break
+                end
+                local attackPosition = currentTargetRoot.Position - currentTargetRoot.CFrame.LookVector * standAttackBehindDistance
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, CFrame.lookAt(attackPosition, currentTargetRoot.Position), standFlingEnabled)
+                RunService.Heartbeat:Wait()
+            end
+        end)
+    end
 
     StandHeader( 
         target 
@@ -4252,6 +4273,20 @@ JugadoresTab:CreateSlider({
         standAutoRange = value 
     end 
 }) 
+
+JugadoresTab:CreateToggle({
+    Name = "Fling al golpear (Stand)",
+    CurrentValue = false,
+    Callback = function(value)
+        standFlingEnabled = value
+        Rayfield:Notify({
+            Title = "Stand",
+            Content = value and "Fling del golpe activado." or "Fling del golpe desactivado; el Stand solo se pegará al objetivo.",
+            Duration = 2,
+            Image = 4483362458
+        })
+    end
+})
 
 JugadoresTab:CreateToggle({ 
     Name = "Stand automático", 
