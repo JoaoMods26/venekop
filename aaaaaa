@@ -116,6 +116,7 @@ local physicsPoseConnection = nil
 local physicsMirroredTracks = {}
 local physicsCameraSubject = nil
 local physicsCameraType = nil
+local physicsCameraOcclusionMode = nil
 local physicsCharacter = nil
 local CleanupPhysicsCloneIfIdle
 local physicsVisualFolder = nil
@@ -235,14 +236,20 @@ local function DestroyPhysicsClone()
             end)
         end
     end
-    local camera = workspace.CurrentCamera
-    if camera then
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        pcall(function()
-            camera.CameraSubject = humanoid or physicsCameraSubject
-            camera.CameraType = physicsCameraType or Enum.CameraType.Custom
-        end)
+local camera = workspace.CurrentCamera
+if camera then
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    pcall(function()
+        camera.CameraSubject = humanoid or physicsCameraSubject
+        camera.CameraType = physicsCameraType or Enum.CameraType.Custom
+    end)
+end
+pcall(function()
+    if physicsCameraOcclusionMode ~= nil then
+        LocalPlayer.DevCameraOcclusionMode = physicsCameraOcclusionMode
     end
+end)
+physicsCameraOcclusionMode = nil
     if clone then pcall(function() clone:Destroy() end) end
     physicsClone = nil
     physicsCloneHumanoid = nil
@@ -286,12 +293,16 @@ local function CreatePhysicsClone()
     physicsClone = clone
     physicsCloneHumanoid = cloneHumanoid
     physicsCharacter = character
-    local camera = workspace.CurrentCamera
-    if camera then
-        physicsCameraSubject = camera.CameraSubject
-        physicsCameraType = camera.CameraType
-        camera.CameraSubject = cloneHumanoid
-    end
+local camera = workspace.CurrentCamera
+if camera then
+    physicsCameraSubject = camera.CameraSubject
+    physicsCameraType = camera.CameraType
+    pcall(function()
+        physicsCameraOcclusionMode = LocalPlayer.DevCameraOcclusionMode
+        LocalPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
+    end)
+    camera.CameraSubject = cloneHumanoid
+end
     physicsPoseConnection = RunService.PreSimulation:Connect(function()
         if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
         local currentCharacter = LocalPlayer.Character
