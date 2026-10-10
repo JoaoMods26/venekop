@@ -1,4 +1,4 @@
----s12312412412414124
+---sffffffffffffffffffffffffffffffffffff
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -1738,29 +1738,21 @@ JugadoresTab:CreateToggle({
     CurrentValue = false,
     Callback = function(value)
         underToggle = value
-
         if underConnection then
             underConnection:Disconnect()
             underConnection = nil
         end
-
         local player = LocalPlayer
         local localChar = player and player.Character
         local humanoid = localChar and localChar:FindFirstChildOfClass("Humanoid")
         local root = localChar and localChar:FindFirstChild("HumanoidRootPart")
-
-        if not humanoid or not root then
-            return
-        end
-
+        if not humanoid or not root then return end
         if underToggle and selectedPlayer and selectedPlayer.Character then
-            local targetRoot = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if not targetRoot then
-                return
-            end
-
+            local targetCharacter = selectedPlayer.Character
+            local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+            local targetHead = targetCharacter:FindFirstChild("Head")
+            if not targetRoot or not targetHead then return end
             SaveMovementStats("under", humanoid)
-
             humanoid.Sit = true
             humanoid.WalkSpeed = 0
             humanoid.JumpPower = 0
@@ -1768,57 +1760,36 @@ JugadoresTab:CreateToggle({
             humanoid:ChangeState(Enum.HumanoidStateType.Seated)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-
-            ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
-            root.AssemblyLinearVelocity = Vector3.zero
-            root.AssemblyAngularVelocity = Vector3.zero
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-
+            local desiredCFrame = targetHead.CFrame * CFrame.new(0, -(underDistance + 1.5), 0)
+            ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
+            ZeroPlacementVelocity(root)
             underConnection = RunService.Heartbeat:Connect(function()
                 if not underToggle or not selectedPlayer then return end
-
                 local currentChar = player.Character
                 local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
                 local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
-                local targetChar = selectedPlayer.Character
-                local currentTargetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
-
-                if not currentHumanoid or not currentRoot or not currentTargetRoot then
-                    return
-                end
-
-                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
-                currentRoot.AssemblyLinearVelocity = Vector3.zero
-                currentRoot.AssemblyAngularVelocity = Vector3.zero
-                currentRoot.Velocity = Vector3.zero
-                currentRoot.RotVelocity = Vector3.zero
+                local currentTargetCharacter = selectedPlayer.Character
+                local currentTargetRoot = currentTargetCharacter and currentTargetCharacter:FindFirstChild("HumanoidRootPart")
+                local currentTargetHead = currentTargetCharacter and currentTargetCharacter:FindFirstChild("Head")
+                if not currentHumanoid or not currentRoot or not currentTargetRoot or not currentTargetHead then return end
+                local currentDesiredCFrame = currentTargetHead.CFrame * CFrame.new(0, -(underDistance + 1.5), 0)
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentDesiredCFrame)
+                ZeroPlacementVelocity(currentRoot)
                 currentHumanoid.Sit = true
                 currentHumanoid.WalkSpeed = 0
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
             end)
-
         elseif not underToggle then
             if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
             RestoreMovementStats("under", humanoid)
-
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-
             if humanoid.Health > 0 then
                 humanoid.Sit = false
-                pcall(function()
-                    humanoid:ChangeState(Enum.HumanoidStateType.Standing)
-                end)
+                pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Standing) end)
             end
-
-            if root and root.Parent then
-                root.AssemblyLinearVelocity = Vector3.zero
-                root.AssemblyAngularVelocity = Vector3.zero
-                root.Velocity = Vector3.zero
-                root.RotVelocity = Vector3.zero
-            end
+            ZeroPlacementVelocity(root)
         end
     end
 })
@@ -1872,27 +1843,19 @@ local function StopMochila()
 end
 
 PlayMochila = function(target)
-    if not target or not target.Character then
-        return
-    end
-
+    if not target or not target.Character then return end
     if mochilaConnection then
         mochilaConnection:Disconnect()
         mochilaConnection = nil
     end
-
     local character = LocalPlayer.Character
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     local root = character and character:FindFirstChild("HumanoidRootPart")
     local targetCharacter = target.Character
     local targetRoot = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
-
-    if not humanoid or not root or not targetRoot then
-        return
-    end
-
+    local targetHead = targetCharacter and targetCharacter:FindFirstChild("Head")
+    if not humanoid or not root or not targetRoot or not targetHead then return end
     SaveMovementStats("mochila", humanoid)
-
     humanoid.Sit = true
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
@@ -1900,33 +1863,21 @@ PlayMochila = function(target)
     humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-
-    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
-    root.AssemblyLinearVelocity = Vector3.zero
-    root.AssemblyAngularVelocity = Vector3.zero
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
-
+    local desiredCFrame = targetHead.CFrame * CFrame.new(0, -1.5, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0)
+    ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
+    ZeroPlacementVelocity(root)
     mochilaConnection = RunService.Heartbeat:Connect(function()
-        if not mochilaToggle or not selectedPlayer then
-            return
-        end
-
+        if not mochilaToggle or not selectedPlayer then return end
         local currentCharacter = LocalPlayer.Character
         local currentHumanoid = currentCharacter and currentCharacter:FindFirstChildOfClass("Humanoid")
         local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
         local currentTargetCharacter = selectedPlayer.Character
         local currentTargetRoot = currentTargetCharacter and currentTargetCharacter:FindFirstChild("HumanoidRootPart")
-
-        if not currentHumanoid or not currentRoot or not currentTargetRoot then
-            return
-        end
-
-        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
-        currentRoot.AssemblyLinearVelocity = Vector3.zero
-        currentRoot.AssemblyAngularVelocity = Vector3.zero
-        currentRoot.Velocity = Vector3.zero
-        currentRoot.RotVelocity = Vector3.zero
+        local currentTargetHead = currentTargetCharacter and currentTargetCharacter:FindFirstChild("Head")
+        if not currentHumanoid or not currentRoot or not currentTargetRoot or not currentTargetHead then return end
+        local currentDesiredCFrame = currentTargetHead.CFrame * CFrame.new(0, -1.5, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0)
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentDesiredCFrame)
+        ZeroPlacementVelocity(currentRoot)
         currentHumanoid.Sit = true
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
