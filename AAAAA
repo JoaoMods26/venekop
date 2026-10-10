@@ -244,8 +244,11 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
         end
     end
     local ok = pcall(function()
+        local relativeCFrame = targetRoot.CFrame:ToObjectSpace(desiredCFrame)
         sethiddenproperty(root, "PhysicsRepRootPart", targetRoot)
-        root.CFrame = desiredCFrame
+        root.CFrame = relativeCFrame
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
         physicsClone:PivotTo(desiredCFrame)
     end)
     if not ok then
@@ -1520,6 +1523,8 @@ JugadoresTab:CreateToggle({
         ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentHead.CFrame * CFrame.new(0, sitDistance, 0))
         currentRoot.AssemblyLinearVelocity = Vector3.zero
         currentRoot.AssemblyAngularVelocity = Vector3.zero
+        currentRoot.Velocity = Vector3.zero
+        currentRoot.RotVelocity = Vector3.zero
         currentHumanoid.Sit = true
                 currentHumanoid.WalkSpeed = 0
                 currentHumanoid.JumpPower = 0
@@ -2110,6 +2115,8 @@ local function ReapplySitHead()
         ApplyPlayerPlacement(root, targetRoot, head.CFrame * CFrame.new(0, sitDistance, 0))
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
 sitConnection = RunService.Heartbeat:Connect(function()
         if not sitToggle or not selectedPlayer then
             return
