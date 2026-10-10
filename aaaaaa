@@ -355,28 +355,33 @@ end
 local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
     if not root or not desiredCFrame then return end
     EnsureStabilityGround(root)
+    local applyFling = fling == true and standFlingEnabled and standAttacking
     if not physicsModeEnabled then
         root.CFrame = desiredCFrame
-if fling and standFlingEnabled and standAttacking then
-    ApplyStandFling(root)   -- NO limpiamos velocidad: el fling necesita la velocidad acumulada
-elseif not preserveVelocity then
-    ZeroPlacementVelocity(root)
-end
+        if applyFling then
+            ApplyStandFling(root)
+        elseif not preserveVelocity then
+            ZeroPlacementVelocity(root)
+        end
         return
     end
     if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
         root.CFrame = desiredCFrame
-if fling and standFlingEnabled and standAttacking then
-    ApplyStandFling(root)   -- NO limpiamos velocidad: el fling necesita la velocidad acumulada
-elseif not preserveVelocity then
-    ZeroPlacementVelocity(root)
-end
+        if applyFling then
+            ApplyStandFling(root)
+        elseif not preserveVelocity then
+            ZeroPlacementVelocity(root)
+        end
         return
     end
     if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
         if not CreatePhysicsClone() then
             root.CFrame = desiredCFrame
-            if not preserveVelocity then ZeroPlacementVelocity(root) end
+            if applyFling then
+                ApplyStandFling(root)
+            elseif not preserveVelocity then
+                ZeroPlacementVelocity(root)
+            end
             return
         end
     end
@@ -386,7 +391,11 @@ end
     end)
     if not relativeOk or not relativeCFrame then
         root.CFrame = desiredCFrame
-        if not preserveVelocity then ZeroPlacementVelocity(root) end
+        if applyFling then
+            ApplyStandFling(root)
+        elseif not preserveVelocity then
+            ZeroPlacementVelocity(root)
+        end
         return
     end
     local ok = pcall(function()
@@ -398,11 +407,11 @@ end
         pcall(function() root.CFrame = relativeCFrame end)
         pcall(function() physicsClone:PivotTo(desiredCFrame) end)
     end
-if fling and standFlingEnabled and standAttacking then
-    ApplyStandFling(root)
-elseif not preserveVelocity then
-    ZeroPlacementVelocity(root)
-end
+    if applyFling then
+        ApplyStandFling(root)
+    elseif not preserveVelocity then
+        ZeroPlacementVelocity(root)
+    end
 end
 
 ---aca
@@ -3443,42 +3452,27 @@ local function PlayStandAttack(
 
     local direction 
 
-    if targetRoot then 
-
-        direction = 
-            GetTargetDirection( 
-                target 
-            ) 
-
-        if not direction then 
-            direction = 
-                directionOverride 
-        end 
-
-        if not direction then 
-            return 
-        end 
-        local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
-        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), standFlingEnabled)
-
-    else 
-
-        direction = 
-            directionOverride 
-            or GetAttackDirectionFromAnchor() 
-
-        if not direction then 
-            return 
-        end 
-
-        direction = 
-            direction.Unit 
-
-        ApplyPlayerPlacement(root, targetRoot or (standTarget and GetPlayerRoot(standTarget)), CFrame.lookAt(
-            root.Position,
-            root.Position + direction
-        )) 
-    end 
+  if targetRoot then
+    direction = GetTargetDirection(target)
+    if not direction then
+        direction = directionOverride
+    end
+    if not direction then
+        return
+    end
+    local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
+    ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), true, false)
+else
+    direction = directionOverride or GetAttackDirectionFromAnchor()
+    if not direction then
+        return
+    end
+    direction = direction.Unit
+    ApplyPlayerPlacement(root, targetRoot or (standTarget and GetPlayerRoot(standTarget)), CFrame.lookAt(
+        root.Position,
+        root.Position + direction
+    ))
+end
 
     standAttacking = true 
     standAttackTarget = target 
@@ -3493,8 +3487,8 @@ end
     StopStandIdle() 
     if targetRoot and targetRoot.Parent then
         local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
-        ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), standFlingEnabled)
-    else
+ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), false, standFlingEnabled)
+else
         ApplyPlayerPlacement(root, standTarget and GetPlayerRoot(standTarget), CFrame.lookAt(
             root.Position,
             root.Position + direction
@@ -3537,20 +3531,20 @@ end
     track.Looped = false
     track:Play(0.05) 
 
-    if targetRoot then
-        task.spawn(function()
-            while standEnabled and standAttacking and standAttackTarget == target and track and track.IsPlaying do
-                local currentRoot = GetStandRoot()
-                local currentTargetRoot = target and GetPlayerRoot(target)
-                if not currentRoot or not currentRoot.Parent or not currentTargetRoot or not currentTargetRoot.Parent then
-                    break
-                end
-                local attackPosition = currentTargetRoot.Position - currentTargetRoot.CFrame.LookVector * standAttackBehindDistance
-                ApplyPlayerPlacement(currentRoot, currentTargetRoot, CFrame.lookAt(attackPosition, currentTargetRoot.Position), standFlingEnabled)
-                RunService.Heartbeat:Wait()
+if targetRoot then
+    task.spawn(function()
+        while standEnabled and standAttacking and standAttackTarget == target and track and track.IsPlaying do
+            local currentRoot = GetStandRoot()
+            local currentTargetRoot = target and GetPlayerRoot(target)
+            if not currentRoot or not currentRoot.Parent or not currentTargetRoot or not currentTargetRoot.Parent then
+                break
             end
-        end)
-    end
+            local attackPosition = currentTargetRoot.Position - currentTargetRoot.CFrame.LookVector * standAttackBehindDistance
+            ApplyPlayerPlacement(currentRoot, currentTargetRoot, CFrame.lookAt(attackPosition, currentTargetRoot.Position), true, standFlingEnabled)
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
 
     StandHeader( 
         target 
