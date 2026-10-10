@@ -1,4 +1,4 @@
----asdasfa
+----tonto
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -251,13 +251,26 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
             return
         end
     end
+    local relativeCFrame
+    local relativeOk = pcall(function()
+        relativeCFrame = targetRoot.CFrame:ToObjectSpace(desiredCFrame)
+    end)
+    if not relativeOk or not relativeCFrame then
+        root.CFrame = desiredCFrame
+        return
+    end
     local ok = pcall(function()
         sethiddenproperty(root, "PhysicsRepRootPart", targetRoot)
-        root.CFrame = desiredCFrame
+        root.CFrame = relativeCFrame
         physicsClone:PivotTo(desiredCFrame)
     end)
     if not ok then
-        root.CFrame = desiredCFrame
+        pcall(function()
+            root.CFrame = relativeCFrame
+        end)
+        pcall(function()
+            physicsClone:PivotTo(desiredCFrame)
+        end)
     end
 end
 
