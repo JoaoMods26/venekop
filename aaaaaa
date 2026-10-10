@@ -357,18 +357,20 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
     EnsureStabilityGround(root)
     if not physicsModeEnabled then
         root.CFrame = desiredCFrame
-        if not preserveVelocity then ZeroPlacementVelocity(root) end
-        if fling and standFlingEnabled and standAttacking then
-            ApplyStandFling(root)
-        end
+if fling and standFlingEnabled and standAttacking then
+    ApplyStandFling(root)   -- NO limpiamos velocidad: el fling necesita la velocidad acumulada
+elseif not preserveVelocity then
+    ZeroPlacementVelocity(root)
+end
         return
     end
     if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
         root.CFrame = desiredCFrame
-        if not preserveVelocity then ZeroPlacementVelocity(root) end
-        if fling and standFlingEnabled and standAttacking then
-            ApplyStandFling(root)
-        end
+if fling and standFlingEnabled and standAttacking then
+    ApplyStandFling(root)   -- NO limpiamos velocidad: el fling necesita la velocidad acumulada
+elseif not preserveVelocity then
+    ZeroPlacementVelocity(root)
+end
         return
     end
     if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
@@ -396,12 +398,11 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
         pcall(function() root.CFrame = relativeCFrame end)
         pcall(function() physicsClone:PivotTo(desiredCFrame) end)
     end
-    if not preserveVelocity then ZeroPlacementVelocity(root) end
-
-    -- FLING DEL STAND (misma fuerza que WalkFling)
-    if fling and standFlingEnabled and standAttacking then
-        ApplyStandFling(root)
-    end
+if fling and standFlingEnabled and standAttacking then
+    ApplyStandFling(root)
+elseif not preserveVelocity then
+    ZeroPlacementVelocity(root)
+end
 end
 
 ---aca
@@ -3482,6 +3483,13 @@ local function PlayStandAttack(
     standAttacking = true 
     standAttackTarget = target 
 
+do
+    local c = LocalPlayer.Character
+    local r = c and c:FindFirstChild("HumanoidRootPart")
+    if r then r.CanCollide = true end
+end
+
+
     StopStandIdle() 
     if targetRoot and targetRoot.Parent then
         local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
@@ -3577,9 +3585,18 @@ local function PlayStandAttack(
         if currentRoot then 
 end 
 
+-- Restaurar colisión
+do
+    local c = LocalPlayer.Character
+    local r = c and c:FindFirstChild("HumanoidRootPart")
+    if r then r.CanCollide = false end
+end
+
         standAttackTrack = nil 
         standAttacking = false 
-        standAttackTarget = nil 
+        standAttackTarget = nil
+
+
 
         ReturnToMainTarget() 
     end 
