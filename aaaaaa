@@ -1,4 +1,4 @@
----sffffffffffffffffffffffffffffffffffff
+---aaaaaaaaaaaaaaaaaaaaaaaaaaw
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -110,6 +110,7 @@ local movementDistance = 4
 local movementDistanceChanged = false
 local savedCollisions = {}
 local physicsModeEnabled = false
+local UpdateAttachCollisions
 local physicsClone = nil
 local physicsCloneHumanoid = nil
 local physicsPoseConnection = nil
@@ -1033,9 +1034,11 @@ JugadoresTab:CreateToggle({
             end
             physicsModeEnabled = true
             pruebaEnabled = true
+            UpdateAttachCollisions()
         else
             physicsModeEnabled = false
             pruebaEnabled = false
+            UpdateAttachCollisions()
             DestroyPhysicsClone()
             if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
         end
@@ -1633,6 +1636,29 @@ local sitDistance = 2.5
 local underToggle = false
 local underConnection = nil
 local underDistance = 5
+local attachCollisionBackup = {}
+
+UpdateAttachCollisions = function()
+    local character = LocalPlayer and LocalPlayer.Character
+    local shouldDisable = physicsModeEnabled and (underToggle or mochilaToggle)
+    if shouldDisable and character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if attachCollisionBackup[part] == nil then
+                    attachCollisionBackup[part] = part.CanCollide
+                end
+                part.CanCollide = false
+            end
+        end
+    else
+        for part, original in pairs(attachCollisionBackup) do
+            if part and part.Parent then
+                part.CanCollide = original
+            end
+            attachCollisionBackup[part] = nil
+        end
+    end
+end
 
 JugadoresTab:CreateToggle({
     Name = "Sentarse en la cabeza",
@@ -1738,58 +1764,85 @@ JugadoresTab:CreateToggle({
     CurrentValue = false,
     Callback = function(value)
         underToggle = value
+
         if underConnection then
             underConnection:Disconnect()
             underConnection = nil
         end
+
         local player = LocalPlayer
         local localChar = player and player.Character
         local humanoid = localChar and localChar:FindFirstChildOfClass("Humanoid")
         local root = localChar and localChar:FindFirstChild("HumanoidRootPart")
-        if not humanoid or not root then return end
+
+        if not humanoid or not root then
+            return
+        end
+
         if underToggle and selectedPlayer and selectedPlayer.Character then
-            local targetCharacter = selectedPlayer.Character
-            local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-            local targetHead = targetCharacter:FindFirstChild("Head")
-            if not targetRoot or not targetHead then return end
+            local targetRoot = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not targetRoot then
+                return
+            end
+
             SaveMovementStats("under", humanoid)
-            humanoid.Sit = true
+
+            humanoid.AutoRotate = false
             humanoid.WalkSpeed = 0
             humanoid.JumpPower = 0
             humanoid.JumpHeight = 0
-            humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+            humanoid.Sit = true
+
+            pcall(function()
+                humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+            end)
+
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-            local desiredCFrame = targetHead.CFrame * CFrame.new(0, -(underDistance + 1.5), 0)
-            ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
-            ZeroPlacementVelocity(root)
+            UpdateAttachCollisions()
+            ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
             underConnection = RunService.Heartbeat:Connect(function()
-                if not underToggle or not selectedPlayer then return end
+                if not underToggle or not selectedPlayer then
+                    return
+                end
+
                 local currentChar = player.Character
                 local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
                 local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
-                local currentTargetCharacter = selectedPlayer.Character
-                local currentTargetRoot = currentTargetCharacter and currentTargetCharacter:FindFirstChild("HumanoidRootPart")
-                local currentTargetHead = currentTargetCharacter and currentTargetCharacter:FindFirstChild("Head")
-                if not currentHumanoid or not currentRoot or not currentTargetRoot or not currentTargetHead then return end
-                local currentDesiredCFrame = currentTargetHead.CFrame * CFrame.new(0, -(underDistance + 1.5), 0)
-                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentDesiredCFrame)
-                ZeroPlacementVelocity(currentRoot)
-                currentHumanoid.Sit = true
+                local targetChar = selectedPlayer.Character
+                local currentTargetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+                if not currentHumanoid or not currentRoot or not currentTargetRoot then
+                    return
+                end
+                UpdateAttachCollisions()
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+                currentHumanoid.AutoRotate = false
                 currentHumanoid.WalkSpeed = 0
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
+                currentHumanoid.Sit = true
             end)
+
         elseif not underToggle then
+            UpdateAttachCollisions()
             if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
+            humanoid.AutoRotate = true
+
             RestoreMovementStats("under", humanoid)
+
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+
             if humanoid.Health > 0 then
                 humanoid.Sit = false
-                pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Standing) end)
+                pcall(function()
+                    humanoid:ChangeState(Enum.HumanoidStateType.Standing)
+                end)
             end
-            ZeroPlacementVelocity(root)
+
+            if root and root.Parent then
+end
         end
     end
 })
@@ -1839,23 +1892,32 @@ local function StopMochila()
             root.RotVelocity = Vector3.zero
         end)
     end
+    UpdateAttachCollisions()
     if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
 PlayMochila = function(target)
-    if not target or not target.Character then return end
+    if not target or not target.Character then
+        return
+    end
+
     if mochilaConnection then
         mochilaConnection:Disconnect()
         mochilaConnection = nil
     end
+
     local character = LocalPlayer.Character
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     local root = character and character:FindFirstChild("HumanoidRootPart")
     local targetCharacter = target.Character
     local targetRoot = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
-    local targetHead = targetCharacter and targetCharacter:FindFirstChild("Head")
-    if not humanoid or not root or not targetRoot or not targetHead then return end
+
+    if not humanoid or not root or not targetRoot then
+        return
+    end
+
     SaveMovementStats("mochila", humanoid)
+
     humanoid.Sit = true
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
@@ -1863,25 +1925,30 @@ PlayMochila = function(target)
     humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-    local desiredCFrame = targetHead.CFrame * CFrame.new(0, -1.5, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0)
-    ApplyPlayerPlacement(root, targetRoot, desiredCFrame)
-    ZeroPlacementVelocity(root)
+    UpdateAttachCollisions()
+
+    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+
     mochilaConnection = RunService.Heartbeat:Connect(function()
-        if not mochilaToggle or not selectedPlayer then return end
+        if not mochilaToggle or not selectedPlayer then
+            return
+        end
+
         local currentCharacter = LocalPlayer.Character
         local currentHumanoid = currentCharacter and currentCharacter:FindFirstChildOfClass("Humanoid")
         local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
         local currentTargetCharacter = selectedPlayer.Character
         local currentTargetRoot = currentTargetCharacter and currentTargetCharacter:FindFirstChild("HumanoidRootPart")
-        local currentTargetHead = currentTargetCharacter and currentTargetCharacter:FindFirstChild("Head")
-        if not currentHumanoid or not currentRoot or not currentTargetRoot or not currentTargetHead then return end
-        local currentDesiredCFrame = currentTargetHead.CFrame * CFrame.new(0, -1.5, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0)
-        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentDesiredCFrame)
-        ZeroPlacementVelocity(currentRoot)
+
+        if not currentHumanoid or not currentRoot or not currentTargetRoot then
+            return
+        end
+        UpdateAttachCollisions()
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
         currentHumanoid.Sit = true
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
-        currentHumanoid.JumpHeight = 0
+                currentHumanoid.JumpHeight = 0
     end)
 end
 
@@ -2368,6 +2435,7 @@ localRespawnConnection = LocalPlayer.CharacterAdded:Connect(function(newCharacte
     end
 
     task.wait(0.15)
+    UpdateAttachCollisions()
 
     if not selectedPlayer then
         return
