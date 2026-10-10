@@ -852,14 +852,6 @@ JugadoresTab:CreateToggle({
                 Rayfield:Notify({Title = "En tiempo real", Content = "Este entorno no admite sethiddenproperty.", Duration = 3, Image = 4483362458})
                 return
             end
-            if not selectedPlayer or selectedPlayer == LocalPlayer then
-                Rayfield:Notify({Title = "En tiempo real", Content = "Selecciona otro jugador primero.", Duration = 3, Image = 4483362458})
-                return
-            end
-            if not CreatePhysicsClone() then
-                Rayfield:Notify({Title = "En tiempo real", Content = "No se pudo crear el clon del personaje.", Duration = 3, Image = 4483362458})
-                return
-            end
             physicsModeEnabled = true
             pruebaEnabled = true
         else
