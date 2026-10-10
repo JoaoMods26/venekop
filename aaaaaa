@@ -1,4 +1,4 @@
----aaasawwwwwwwwwwwwwww
+---s12312412412414124
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -1761,30 +1761,22 @@ JugadoresTab:CreateToggle({
 
             SaveMovementStats("under", humanoid)
 
-            humanoid.AutoRotate = false
+            humanoid.Sit = true
             humanoid.WalkSpeed = 0
             humanoid.JumpPower = 0
             humanoid.JumpHeight = 0
-            if physicsModeEnabled then
-                humanoid.Sit = false
-                pcall(function()
-                    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-                end)
-            else
-                humanoid.Sit = true
-                pcall(function()
-                    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
-                end)
-            end
-
+            humanoid:ChangeState(Enum.HumanoidStateType.Seated)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-            local underCFrame = CFrame.new(targetRoot.Position + Vector3.new(0, -underDistance, 0)) * targetRoot.CFrame.Rotation
-            ApplyPlayerPlacement(root, targetRoot, underCFrame)
+
+            ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+
             underConnection = RunService.Heartbeat:Connect(function()
-                if not underToggle or not selectedPlayer then
-                    return
-                end
+                if not underToggle or not selectedPlayer then return end
 
                 local currentChar = player.Character
                 local currentHumanoid = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -1795,23 +1787,20 @@ JugadoresTab:CreateToggle({
                 if not currentHumanoid or not currentRoot or not currentTargetRoot then
                     return
                 end
-        local underCFrame = CFrame.new(currentTargetRoot.Position + Vector3.new(0, -underDistance, 0)) * currentTargetRoot.CFrame.Rotation
-                ApplyPlayerPlacement(currentRoot, currentTargetRoot, underCFrame)
-                currentHumanoid.AutoRotate = false
+
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+                currentRoot.AssemblyLinearVelocity = Vector3.zero
+                currentRoot.AssemblyAngularVelocity = Vector3.zero
+                currentRoot.Velocity = Vector3.zero
+                currentRoot.RotVelocity = Vector3.zero
+                currentHumanoid.Sit = true
                 currentHumanoid.WalkSpeed = 0
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
-                if physicsModeEnabled then
-                    currentHumanoid.Sit = false
-                else
-                    currentHumanoid.Sit = true
-                end
             end)
 
         elseif not underToggle then
             if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
-            humanoid.AutoRotate = true
-
             RestoreMovementStats("under", humanoid)
 
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
@@ -1825,7 +1814,11 @@ JugadoresTab:CreateToggle({
             end
 
             if root and root.Parent then
-end
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+                root.Velocity = Vector3.zero
+                root.RotVelocity = Vector3.zero
+            end
         end
     end
 })
@@ -1900,22 +1893,19 @@ PlayMochila = function(target)
 
     SaveMovementStats("mochila", humanoid)
 
-    if physicsModeEnabled then
-        humanoid.Sit = false
-        pcall(function()
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-        end)
-    else
-        humanoid.Sit = true
-        humanoid:ChangeState(Enum.HumanoidStateType.Seated)
-    end
+    humanoid.Sit = true
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
     humanoid.JumpHeight = 0
+    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
 
     ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
 
     mochilaConnection = RunService.Heartbeat:Connect(function()
         if not mochilaToggle or not selectedPlayer then
@@ -1931,12 +1921,13 @@ PlayMochila = function(target)
         if not currentHumanoid or not currentRoot or not currentTargetRoot then
             return
         end
+
         ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
-        if physicsModeEnabled then
-            currentHumanoid.Sit = false
-        else
-            currentHumanoid.Sit = true
-        end
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+        currentRoot.Velocity = Vector3.zero
+        currentRoot.RotVelocity = Vector3.zero
+        currentHumanoid.Sit = true
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
         currentHumanoid.JumpHeight = 0
