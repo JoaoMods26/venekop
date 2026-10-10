@@ -263,16 +263,22 @@ local function CreatePhysicsClone()
     character.Archivable = oldArchivable
     if not ok or not clone then return false end
     clone.Name = "JmodsUniversal_AnimationClone_" .. tostring(LocalPlayer.UserId)
-    for _, object in ipairs(clone:GetDescendants()) do
-        if object:IsA("Script") or object:IsA("LocalScript") then
-            object:Destroy()
-        elseif object:IsA("BasePart") then
-            object.Anchored = true
-            object.CanCollide = false
-            object.CanTouch = false
-            object.CanQuery = false
-        end
+   
+for _, object in ipairs(clone:GetDescendants()) do
+    if object:IsA("Script") or object:IsA("LocalScript") then
+        object:Destroy()
+    elseif object:IsA("BasePart") then
+        object.Anchored = true
+        object.CanCollide = false
+        object.CanTouch = false
+        object.CanQuery = false
+        object.Massless = true
+    elseif object:IsA("Humanoid") then
+        object.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+        object.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
     end
+end
+
     local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
     local cloneHumanoid = clone:FindFirstChildOfClass("Humanoid")
     if not cloneRoot or not cloneHumanoid then
