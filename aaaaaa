@@ -330,17 +330,37 @@ local function CreatePhysicsClone()
     return true
 end
 
-local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity)
+local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
     if not root or not desiredCFrame then return end
     EnsureStabilityGround(root)
     if not physicsModeEnabled then
         root.CFrame = desiredCFrame
         if not preserveVelocity then ZeroPlacementVelocity(root) end
+        if fling and standFlingEnabled and standAttacking then
+            pcall(function()
+                local vel = root.Velocity
+                root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+                RunService.RenderStepped:Wait()
+                root.Velocity = vel
+                RunService.Stepped:Wait()
+                root.Velocity = vel + Vector3.new(0, 0.1, 0)
+            end)
+        end
         return
     end
     if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
         root.CFrame = desiredCFrame
         if not preserveVelocity then ZeroPlacementVelocity(root) end
+        if fling and standFlingEnabled and standAttacking then
+            pcall(function()
+                local vel = root.Velocity
+                root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+                RunService.RenderStepped:Wait()
+                root.Velocity = vel
+                RunService.Stepped:Wait()
+                root.Velocity = vel + Vector3.new(0, 0.1, 0)
+            end)
+        end
         return
     end
     if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
@@ -369,6 +389,18 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
         pcall(function() physicsClone:PivotTo(desiredCFrame) end)
     end
     if not preserveVelocity then ZeroPlacementVelocity(root) end
+
+
+    if fling and standFlingEnabled and standAttacking then
+        pcall(function()
+            local vel = root.Velocity
+            root.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            root.Velocity = vel
+            RunService.Stepped:Wait()
+            root.Velocity = vel + Vector3.new(0, 0.1, 0)
+        end)
+    end
 end
 
 local function NormalizeAnimId(id)
