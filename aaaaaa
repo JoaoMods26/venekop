@@ -1,4 +1,4 @@
----Fling camaqra stadn se supone xdd
+---sexxseavsd f
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -285,7 +285,8 @@ end
         clone:Destroy()
         return false
     end
-    clone.Parent = EnsurePhysicsVisualFolder()
+local camera = workspace.CurrentCamera
+clone.Parent = camera or EnsurePhysicsVisualFolder()
     clone:PivotTo(character:GetPivot())
     cloneHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
     cloneHumanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
