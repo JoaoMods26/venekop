@@ -1,4 +1,4 @@
----sexxseavsd f
+---wafasfawwwwwwwwwwwwwwwwww
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -252,6 +252,25 @@ local function DestroyPhysicsClone()
     table.clear(physicsMirroredTracks)
 end
 
+local function ReturnCharacterToPhysicsClonePosition()
+    if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return false end
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    if not character or not root or physicsCharacter ~= character then return false end
+    local returnCFrame
+    local ok = pcall(function() returnCFrame = physicsClone:GetPivot() end)
+    if not ok or not returnCFrame then return false end
+    pcall(function()
+        if type(sethiddenproperty) == "function" then sethiddenproperty(root, "PhysicsRepRootPart", root) end
+        character:PivotTo(returnCFrame)
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+        root.Velocity = Vector3.zero
+        root.RotVelocity = Vector3.zero
+    end)
+    return true
+end
+
 local function CreatePhysicsClone()
     local character = LocalPlayer.Character
     if not character then return false end
@@ -498,6 +517,39 @@ local perroTargetDistance = 4
             end
             savedCollisions[char] = nil
         end
+    end
+end
+
+local placementCollisionActions = {}
+local placementCollisionOriginals = {}
+local placementCollisionCharacter = nil
+
+local function SetPlacementCollision(action, enabled)
+    placementCollisionActions[action] = enabled and true or nil
+    local character = LocalPlayer.Character
+    if placementCollisionCharacter ~= character then
+        if placementCollisionCharacter then
+            for part, original in pairs(placementCollisionOriginals) do
+                if part and part.Parent then pcall(function() part.CanCollide = original end) end
+            end
+        end
+        table.clear(placementCollisionOriginals)
+        placementCollisionCharacter = character
+    end
+    if not character then return end
+    if next(placementCollisionActions) ~= nil then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if placementCollisionOriginals[part] == nil then placementCollisionOriginals[part] = part.CanCollide end
+                part.CanCollide = false
+            end
+        end
+    else
+        for part, original in pairs(placementCollisionOriginals) do
+            if part and part.Parent then pcall(function() part.CanCollide = original end) end
+        end
+        table.clear(placementCollisionOriginals)
+        placementCollisionCharacter = nil
     end
 end
 
@@ -1790,6 +1842,7 @@ JugadoresTab:CreateToggle({
 
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+            SetPlacementCollision("under", physicsModeEnabled)
             ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
             root.AssemblyLinearVelocity = Vector3.zero
             root.AssemblyAngularVelocity = Vector3.zero
@@ -1809,6 +1862,7 @@ JugadoresTab:CreateToggle({
                 if not currentHumanoid or not currentRoot or not currentTargetRoot then
                     return
                 end
+                SetPlacementCollision("under", physicsModeEnabled)
                 ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 currentRoot.AssemblyAngularVelocity = Vector3.zero
@@ -1825,7 +1879,6 @@ JugadoresTab:CreateToggle({
             end)
 
         elseif not underToggle then
-            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
             humanoid.AutoRotate = true
 
             RestoreMovementStats("under", humanoid)
@@ -1840,8 +1893,15 @@ JugadoresTab:CreateToggle({
                 end)
             end
 
+            SetPlacementCollision("under", false)
+            ReturnCharacterToPhysicsClonePosition()
             if root and root.Parent then
-end
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+                root.Velocity = Vector3.zero
+                root.RotVelocity = Vector3.zero
+            end
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
         end
     end
 })
@@ -1883,6 +1943,8 @@ local function StopMochila()
         end
     end
 
+    SetPlacementCollision("mochila", false)
+    ReturnCharacterToPhysicsClonePosition()
     if root then
         pcall(function()
             root.AssemblyLinearVelocity = Vector3.zero
@@ -1923,6 +1985,7 @@ PlayMochila = function(target)
     humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+    SetPlacementCollision("mochila", physicsModeEnabled)
 
     ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
     root.AssemblyLinearVelocity = Vector3.zero
@@ -1944,6 +2007,7 @@ PlayMochila = function(target)
         if not currentHumanoid or not currentRoot or not currentTargetRoot then
             return
         end
+        SetPlacementCollision("mochila", physicsModeEnabled)
         ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
         currentRoot.AssemblyLinearVelocity = Vector3.zero
         currentRoot.AssemblyAngularVelocity = Vector3.zero
