@@ -1,4 +1,4 @@
----wwwwwwwwwwwwwwfdsas
+---sexxseavsd f
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -126,18 +126,28 @@ local originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
 local fallenHeightOverrideActive = false
 
 local function UpdateFallenPartsDestroyHeight(cframe)
-    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y < 0
+    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y <= 0
     if shouldOverride then
         if not fallenHeightOverrideActive then
             originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
-            fallenHeightOverrideActive = true
         end
-        if workspace.FallenPartsDestroyHeight ~= -50000 then
-            workspace.FallenPartsDestroyHeight = -50000
+        if workspace.FallenPartsDestroyHeight == -50000 then
+            fallenHeightOverrideActive = true
+        else
+            local changed = pcall(function()
+                workspace.FallenPartsDestroyHeight = -50000
+            end)
+            if changed then
+                fallenHeightOverrideActive = true
+            end
         end
     elseif fallenHeightOverrideActive then
-        workspace.FallenPartsDestroyHeight = originalFallenPartsDestroyHeight
-        fallenHeightOverrideActive = false
+        local restored = pcall(function()
+            workspace.FallenPartsDestroyHeight = originalFallenPartsDestroyHeight
+        end)
+        if restored then
+            fallenHeightOverrideActive = false
+        end
     end
 end
 
@@ -379,10 +389,10 @@ end
 
 local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
     if not root or not desiredCFrame then return end
-    UpdateFallenPartsDestroyHeight(desiredCFrame)
     EnsureStabilityGround(root)
     local applyFling = fling == true and standFlingEnabled and standAttacking
     if not physicsModeEnabled then
+        UpdateFallenPartsDestroyHeight(nil)
         root.CFrame = desiredCFrame
         if applyFling then
             ApplyStandFling(root)
@@ -392,6 +402,7 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
         return
     end
     if not targetRoot or not targetRoot.Parent or type(sethiddenproperty) ~= "function" then
+        UpdateFallenPartsDestroyHeight(desiredCFrame)
         root.CFrame = desiredCFrame
         if applyFling then
             ApplyStandFling(root)
@@ -402,6 +413,7 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
     end
     if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
         if not CreatePhysicsClone() then
+            UpdateFallenPartsDestroyHeight(desiredCFrame)
             root.CFrame = desiredCFrame
             if applyFling then
                 ApplyStandFling(root)
@@ -416,6 +428,7 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
         relativeCFrame = targetRoot.CFrame:ToObjectSpace(desiredCFrame)
     end)
     if not relativeOk or not relativeCFrame then
+        UpdateFallenPartsDestroyHeight(desiredCFrame)
         root.CFrame = desiredCFrame
         if applyFling then
             ApplyStandFling(root)
@@ -424,6 +437,7 @@ local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVel
         end
         return
     end
+    UpdateFallenPartsDestroyHeight(relativeCFrame)
     local ok = pcall(function()
         sethiddenproperty(root, "PhysicsRepRootPart", targetRoot)
         root.CFrame = relativeCFrame
