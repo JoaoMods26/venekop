@@ -58,7 +58,7 @@ end
 local characterAddedConnection
 local mochilaToggle = false
 local mochilaConnection = nil
-local mochilaDistance = 1.5
+local mochilaDistance = 0
 local PlayMochila
 local aimlockEnabled = false
 local aimlockConnection
