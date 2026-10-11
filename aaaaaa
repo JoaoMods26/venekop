@@ -1,4 +1,4 @@
----xcxzxcvvvvvvvvvvvvvvvvvvvvvvv
+---sexxseavsd f
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -300,7 +300,7 @@ clone.Parent = camera or EnsurePhysicsVisualFolder()
         camera.CameraSubject = cloneHumanoid
     end
     physicsPoseConnection = RunService.PreSimulation:Connect(function()
-        if not physicsClone or not physicsClone.Parent then return end
+        if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
         local currentCharacter = LocalPlayer.Character
         if not currentCharacter or currentCharacter ~= physicsCharacter then return end
         local sourceRoot = currentCharacter:FindFirstChild("HumanoidRootPart")
@@ -359,11 +359,11 @@ local function ApplyStandFling(root)
 end
 
 
-local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling, forcePhysics)
+local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
     if not root or not desiredCFrame then return end
     EnsureStabilityGround(root)
     local applyFling = fling == true and standFlingEnabled and standAttacking
-    if not physicsModeEnabled and not forcePhysics then
+    if not physicsModeEnabled then
         root.CFrame = desiredCFrame
         if applyFling then
             ApplyStandFling(root)
@@ -1899,19 +1899,55 @@ PlayMochila = function(target)
 
     SaveMovementStats("mochila", humanoid)
 
-    humanoid.Sit = true
-    humanoid.WalkSpeed = 0
-    humanoid.JumpPower = 0
-    humanoid.JumpHeight = 0
-    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+    local function PlaceMochila(currentRoot, currentHumanoid, currentTargetRoot)
+        if not currentRoot or not currentRoot.Parent or not currentTargetRoot or not currentTargetRoot.Parent then
+            return
+        end
 
-    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0), false, false, true)
-    root.AssemblyLinearVelocity = Vector3.zero
-    root.AssemblyAngularVelocity = Vector3.zero
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
+        local relativeCFrame = CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0)
+        local desiredWorldCFrame = currentTargetRoot.CFrame * relativeCFrame
+
+        if physicsModeEnabled and type(sethiddenproperty) == "function" then
+            if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
+                CreatePhysicsClone()
+            end
+
+            local ok = pcall(function()
+                sethiddenproperty(currentRoot, "PhysicsRepRootPart", currentTargetRoot)
+                currentRoot.CFrame = relativeCFrame
+                if physicsClone and physicsClone.Parent then
+                    physicsClone:PivotTo(desiredWorldCFrame)
+                end
+            end)
+
+            if not ok then
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, desiredWorldCFrame)
+            end
+        else
+            ApplyPlayerPlacement(currentRoot, currentTargetRoot, desiredWorldCFrame)
+        end
+
+        pcall(function()
+            currentRoot.AssemblyLinearVelocity = Vector3.zero
+            currentRoot.AssemblyAngularVelocity = Vector3.zero
+            currentRoot.Velocity = Vector3.zero
+            currentRoot.RotVelocity = Vector3.zero
+        end)
+
+        if currentHumanoid then
+            currentHumanoid.Sit = true
+            currentHumanoid.WalkSpeed = 0
+            currentHumanoid.JumpPower = 0
+            currentHumanoid.JumpHeight = 0
+            pcall(function()
+                currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+            end)
+        end
+    end
+
+    PlaceMochila(root, humanoid, targetRoot)
 
     mochilaConnection = RunService.Heartbeat:Connect(function()
         if not mochilaToggle or not selectedPlayer then
@@ -1927,18 +1963,8 @@ PlayMochila = function(target)
         if not currentHumanoid or not currentRoot or not currentTargetRoot then
             return
         end
-        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0), false, false, true)
-        currentRoot.AssemblyLinearVelocity = Vector3.zero
-        currentRoot.AssemblyAngularVelocity = Vector3.zero
-        currentRoot.Velocity = Vector3.zero
-        currentRoot.RotVelocity = Vector3.zero
-        currentHumanoid.Sit = true
-        currentHumanoid.WalkSpeed = 0
-        currentHumanoid.JumpPower = 0
-        currentHumanoid.JumpHeight = 0
-        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
-        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+
+        PlaceMochila(currentRoot, currentHumanoid, currentTargetRoot)
     end)
 end
 
