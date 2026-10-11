@@ -1,4 +1,4 @@
----PUUUUUUUUUUUUUUUUU
+---2222222
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -124,31 +124,38 @@ local stabilityGroundConnection = nil
 local physicsVisualFolderName = "JmodsUniversal_LocalVisuals_" .. tostring(LocalPlayer.UserId)
 local originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
 local fallenHeightOverrideActive = false
-local FALLEN_PARTS_OVERRIDE_VALUE = -500000
+
+local function RestoreFallenPartsDestroyHeight()
+    if not fallenHeightOverrideActive then return end
+    local restored = pcall(function()
+        workspace.FallenPartsDestroyHeight = originalFallenPartsDestroyHeight
+    end)
+    if restored then
+        fallenHeightOverrideActive = false
+    end
+end
 
 local function UpdateFallenPartsDestroyHeight(cframe)
-    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y <= 0
-    if shouldOverride then
-        if not fallenHeightOverrideActive then
-            originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
-        end
-        if workspace.FallenPartsDestroyHeight ~= FALLEN_PARTS_OVERRIDE_VALUE then
-            local changed = pcall(function()
-                workspace.FallenPartsDestroyHeight = FALLEN_PARTS_OVERRIDE_VALUE
-            end)
-            if changed then
-                fallenHeightOverrideActive = true
-            end
-        else
+    if not physicsModeEnabled or cframe == nil then
+        RestoreFallenPartsDestroyHeight()
+        return
+    end
+
+    if not fallenHeightOverrideActive and cframe.Position.Y <= 0 then
+        originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
+        local changed = pcall(function()
+            workspace.FallenPartsDestroyHeight = -50000
+        end)
+        if changed then
             fallenHeightOverrideActive = true
         end
-    elseif fallenHeightOverrideActive then
-        local restored = pcall(function()
-            workspace.FallenPartsDestroyHeight = originalFallenPartsDestroyHeight
+        return
+    end
+
+    if fallenHeightOverrideActive then
+        pcall(function()
+            workspace.FallenPartsDestroyHeight = -50000
         end)
-        if restored then
-            fallenHeightOverrideActive = false
-        end
     end
 end
 
@@ -2624,10 +2631,10 @@ local standWFCharacterConnection = nil
 local standWFThread = nil 
 
 CleanupPhysicsCloneIfIdle = function()
-    UpdateFallenPartsDestroyHeight(nil)
     local actionActive = wataEnabled or cariEnabled or pataEnabled or doggyEnabled or perroEnabled
         or sitToggle or underToggle or mochilaToggle or standEnabled or orbitEnabled or followEnabled
     if not actionActive then
+        UpdateFallenPartsDestroyHeight(nil)
         if physicsClone then DestroyPhysicsClone() end
         RemoveStabilityGround()
     end
