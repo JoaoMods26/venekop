@@ -1,4 +1,4 @@
----sexxseavsd f
+---wwwwwwwwwwwwwwfdsas
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -122,6 +122,24 @@ local physicsVisualFolder = nil
 local stabilityGround = nil
 local stabilityGroundConnection = nil
 local physicsVisualFolderName = "JmodsUniversal_LocalVisuals_" .. tostring(LocalPlayer.UserId)
+local originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
+local fallenHeightOverrideActive = false
+
+local function UpdateFallenPartsDestroyHeight(cframe)
+    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y < 0
+    if shouldOverride then
+        if not fallenHeightOverrideActive then
+            originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
+            fallenHeightOverrideActive = true
+        end
+        if workspace.FallenPartsDestroyHeight ~= -50000 then
+            workspace.FallenPartsDestroyHeight = -50000
+        end
+    elseif fallenHeightOverrideActive then
+        workspace.FallenPartsDestroyHeight = originalFallenPartsDestroyHeight
+        fallenHeightOverrideActive = false
+    end
+end
 
 local function EnsurePhysicsVisualFolder()
     if physicsVisualFolder and physicsVisualFolder.Parent then
@@ -361,6 +379,7 @@ end
 
 local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
     if not root or not desiredCFrame then return end
+    UpdateFallenPartsDestroyHeight(desiredCFrame)
     EnsureStabilityGround(root)
     local applyFling = fling == true and standFlingEnabled and standAttacking
     if not physicsModeEnabled then
@@ -1036,6 +1055,7 @@ JugadoresTab:CreateToggle({
         else
             physicsModeEnabled = false
             pruebaEnabled = false
+            UpdateFallenPartsDestroyHeight(nil)
             DestroyPhysicsClone()
             if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
         end
@@ -1899,55 +1919,19 @@ PlayMochila = function(target)
 
     SaveMovementStats("mochila", humanoid)
 
-    local function PlaceMochila(currentRoot, currentHumanoid, currentTargetRoot)
-        if not currentRoot or not currentRoot.Parent or not currentTargetRoot or not currentTargetRoot.Parent then
-            return
-        end
+    humanoid.Sit = true
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+    humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
 
-        local relativeCFrame = CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0)
-        local desiredWorldCFrame = currentTargetRoot.CFrame * relativeCFrame
-
-        if physicsModeEnabled and type(sethiddenproperty) == "function" then
-            if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
-                CreatePhysicsClone()
-            end
-
-            local ok = pcall(function()
-                sethiddenproperty(currentRoot, "PhysicsRepRootPart", currentTargetRoot)
-                currentRoot.CFrame = relativeCFrame
-                if physicsClone and physicsClone.Parent then
-                    physicsClone:PivotTo(desiredWorldCFrame)
-                end
-            end)
-
-            if not ok then
-                ApplyPlayerPlacement(currentRoot, currentTargetRoot, desiredWorldCFrame)
-            end
-        else
-            ApplyPlayerPlacement(currentRoot, currentTargetRoot, desiredWorldCFrame)
-        end
-
-        pcall(function()
-            currentRoot.AssemblyLinearVelocity = Vector3.zero
-            currentRoot.AssemblyAngularVelocity = Vector3.zero
-            currentRoot.Velocity = Vector3.zero
-            currentRoot.RotVelocity = Vector3.zero
-        end)
-
-        if currentHumanoid then
-            currentHumanoid.Sit = true
-            currentHumanoid.WalkSpeed = 0
-            currentHumanoid.JumpPower = 0
-            currentHumanoid.JumpHeight = 0
-            pcall(function()
-                currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
-                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-            end)
-        end
-    end
-
-    PlaceMochila(root, humanoid, targetRoot)
+    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
 
     mochilaConnection = RunService.Heartbeat:Connect(function()
         if not mochilaToggle or not selectedPlayer then
@@ -1963,8 +1947,18 @@ PlayMochila = function(target)
         if not currentHumanoid or not currentRoot or not currentTargetRoot then
             return
         end
-
-        PlaceMochila(currentRoot, currentHumanoid, currentTargetRoot)
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+        currentRoot.Velocity = Vector3.zero
+        currentRoot.RotVelocity = Vector3.zero
+        currentHumanoid.Sit = true
+        currentHumanoid.WalkSpeed = 0
+        currentHumanoid.JumpPower = 0
+        currentHumanoid.JumpHeight = 0
+        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
     end)
 end
 
@@ -3513,29 +3507,19 @@ local function PlayStandAttack(
         target 
         and GetPlayerRoot(target) 
 
+    if not target or not targetRoot or target == LocalPlayer or target == standTarget then
+        StandDebug("Ataque cancelado: no hay un jugador válido delante del Target.")
+        return
+    end
+
     local direction 
 
-  if targetRoot then
-    direction = GetTargetDirection(target)
-    if not direction then
-        direction = directionOverride
-    end
+    direction = GetTargetDirection(target) or directionOverride
     if not direction then
         return
     end
     local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
     ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), true, false)
-else
-    direction = directionOverride or GetAttackDirectionFromAnchor()
-    if not direction then
-        return
-    end
-    direction = direction.Unit
-    ApplyPlayerPlacement(root, targetRoot or (standTarget and GetPlayerRoot(standTarget)), CFrame.lookAt(
-        root.Position,
-        root.Position + direction
-    ))
-end
 
     standAttacking = true 
     standAttackTarget = target 
@@ -3548,15 +3532,14 @@ end
 
 
     StopStandIdle() 
-    if targetRoot and targetRoot.Parent then
-        local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
-ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), false, standFlingEnabled)
-else
-        ApplyPlayerPlacement(root, standTarget and GetPlayerRoot(standTarget), CFrame.lookAt(
-            root.Position,
-            root.Position + direction
-        ), standFlingEnabled)
+    if not targetRoot or not targetRoot.Parent then
+        standAttacking = false
+        standAttackTarget = nil
+        ReturnToMainTarget()
+        return
     end
+    local attackPosition = targetRoot.Position - targetRoot.CFrame.LookVector * standAttackBehindDistance
+    ApplyPlayerPlacement(root, targetRoot, CFrame.lookAt(attackPosition, targetRoot.Position), false, standFlingEnabled)
 
     local animation = 
         Instance.new("Animation")
@@ -3616,7 +3599,7 @@ end
             .. target.Name 
         ) 
         or 
-        "GOLPE FANTASMA HACIA DELANTE" 
+        "ATAQUE CANCELADO" 
     ) 
 
     local finished = false 
