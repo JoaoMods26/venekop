@@ -58,7 +58,7 @@ end
 local characterAddedConnection
 local mochilaToggle = false
 local mochilaConnection = nil
-local mochilaDistance = 0
+local mochilaDistance = 1.5
 local PlayMochila
 local aimlockEnabled = false
 local aimlockConnection
@@ -257,19 +257,10 @@ local function CreatePhysicsClone()
     if not character then return false end
     if physicsClone and physicsClone.Parent and physicsCharacter == character then return true end
     DestroyPhysicsClone()
-    local archivableStates = {}
-    archivableStates[character] = character.Archivable
+    local oldArchivable = character.Archivable
     character.Archivable = true
-    for _, object in ipairs(character:GetDescendants()) do
-        archivableStates[object] = object.Archivable
-        object.Archivable = true
-    end
     local ok, clone = pcall(function() return character:Clone() end)
-    for object, oldState in pairs(archivableStates) do
-        if object and object.Parent then
-            pcall(function() object.Archivable = oldState end)
-        end
-    end
+    character.Archivable = oldArchivable
     if not ok or not clone then return false end
     clone.Name = "JmodsUniversal_AnimationClone_" .. tostring(LocalPlayer.UserId)
    
@@ -290,15 +281,7 @@ end
 
     local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
     local cloneHumanoid = clone:FindFirstChildOfClass("Humanoid")
-    local sourcePartCount = 0
-    local clonePartCount = 0
-    for _, object in ipairs(character:GetDescendants()) do
-        if object:IsA("BasePart") then sourcePartCount += 1 end
-    end
-    for _, object in ipairs(clone:GetDescendants()) do
-        if object:IsA("BasePart") then clonePartCount += 1 end
-    end
-    if not cloneRoot or not cloneHumanoid or clonePartCount < sourcePartCount then
+    if not cloneRoot or not cloneHumanoid then
         clone:Destroy()
         return false
     end
@@ -317,7 +300,7 @@ clone.Parent = camera or EnsurePhysicsVisualFolder()
         camera.CameraSubject = cloneHumanoid
     end
     physicsPoseConnection = RunService.PreSimulation:Connect(function()
-        if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
+        if not physicsClone or not physicsClone.Parent then return end
         local currentCharacter = LocalPlayer.Character
         if not currentCharacter or currentCharacter ~= physicsCharacter then return end
         local sourceRoot = currentCharacter:FindFirstChild("HumanoidRootPart")
@@ -376,56 +359,11 @@ local function ApplyStandFling(root)
 end
 
 
-local function ApplyCloneStylePlacement(root, targetRoot, offset, rotation)
-    if not root or not root.Parent or not targetRoot or not targetRoot.Parent then return end
-    EnsureStabilityGround(root)
-    rotation = rotation or 0
-    local relativeCFrame = CFrame.new(offset) * CFrame.Angles(0, rotation, 0)
-    local worldCFrame = targetRoot.CFrame * relativeCFrame
-    if not physicsModeEnabled then
-        root.CFrame = worldCFrame
-    elseif type(sethiddenproperty) == "function" then
-        if not physicsClone or not physicsClone.Parent or physicsCharacter ~= LocalPlayer.Character then
-            if not CreatePhysicsClone() then
-                root.CFrame = worldCFrame
-                ZeroPlacementVelocity(root)
-                return
-            end
-        end
-        local ok = pcall(function()
-            sethiddenproperty(root, "PhysicsRepRootPart", targetRoot)
-            root.CFrame = relativeCFrame
-            physicsClone:PivotTo(worldCFrame)
-        end)
-        if not ok then
-            pcall(function() root.CFrame = worldCFrame end)
-            if physicsClone and physicsClone.Parent then
-                pcall(function() physicsClone:PivotTo(worldCFrame) end)
-            end
-        end
-    else
-        root.CFrame = worldCFrame
-    end
-    ZeroPlacementVelocity(root)
-end
-
-local function ReturnToPhysicsClonePosition()
-    if not physicsModeEnabled or not physicsClone or not physicsClone.Parent then return end
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if not character or not root or physicsCharacter ~= character then return end
-    local destination
-    pcall(function() destination = physicsClone:GetPivot() end)
-    if not destination then return end
-    pcall(function() character:PivotTo(destination) end)
-    ZeroPlacementVelocity(root)
-end
-
-local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling)
+local function ApplyPlayerPlacement(root, targetRoot, desiredCFrame, preserveVelocity, fling, forcePhysics)
     if not root or not desiredCFrame then return end
     EnsureStabilityGround(root)
     local applyFling = fling == true and standFlingEnabled and standAttacking
-    if not physicsModeEnabled then
+    if not physicsModeEnabled and not forcePhysics then
         root.CFrame = desiredCFrame
         if applyFling then
             ApplyStandFling(root)
@@ -1835,7 +1773,7 @@ JugadoresTab:CreateToggle({
 
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-            ApplyCloneStylePlacement(root, targetRoot, Vector3.new(0, -underDistance, 0), 0)
+            ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
             root.AssemblyLinearVelocity = Vector3.zero
             root.AssemblyAngularVelocity = Vector3.zero
             root.Velocity = Vector3.zero
@@ -1854,7 +1792,7 @@ JugadoresTab:CreateToggle({
                 if not currentHumanoid or not currentRoot or not currentTargetRoot then
                     return
                 end
-                ApplyCloneStylePlacement(currentRoot, currentTargetRoot, Vector3.new(0, -underDistance, 0), 0)
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 currentRoot.AssemblyAngularVelocity = Vector3.zero
                 currentRoot.Velocity = Vector3.zero
@@ -1864,9 +1802,13 @@ JugadoresTab:CreateToggle({
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
                 currentHumanoid.Sit = true
+                currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
             end)
 
         elseif not underToggle then
+            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
             humanoid.AutoRotate = true
 
             RestoreMovementStats("under", humanoid)
@@ -1882,10 +1824,7 @@ JugadoresTab:CreateToggle({
             end
 
             if root and root.Parent then
-                ReturnToPhysicsClonePosition()
-                ZeroPlacementVelocity(root)
-            end
-            if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
+end
         end
     end
 })
@@ -1935,10 +1874,6 @@ local function StopMochila()
             root.RotVelocity = Vector3.zero
         end)
     end
-    if root and root.Parent then
-        ReturnToPhysicsClonePosition()
-        ZeroPlacementVelocity(root)
-    end
     if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
@@ -1972,7 +1907,7 @@ PlayMochila = function(target)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
 
-    ApplyCloneStylePlacement(root, targetRoot, Vector3.new(0, 0, mochilaDistance), math.rad(180))
+    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0), false, false, true)
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
     root.Velocity = Vector3.zero
@@ -1992,7 +1927,7 @@ PlayMochila = function(target)
         if not currentHumanoid or not currentRoot or not currentTargetRoot then
             return
         end
-        ApplyCloneStylePlacement(currentRoot, currentTargetRoot, Vector3.new(0, 0, mochilaDistance), math.rad(180))
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0), false, false, true)
         currentRoot.AssemblyLinearVelocity = Vector3.zero
         currentRoot.AssemblyAngularVelocity = Vector3.zero
         currentRoot.Velocity = Vector3.zero
@@ -2001,6 +1936,9 @@ PlayMochila = function(target)
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
         currentHumanoid.JumpHeight = 0
+        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
     end)
 end
 
@@ -2396,7 +2334,7 @@ local function ReapplyUnder()
     humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-    ApplyCloneStylePlacement(root, targetRoot, Vector3.new(0, -underDistance, 0), 0)
+    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
     root.Velocity = Vector3.zero
@@ -2415,7 +2353,7 @@ local function ReapplyUnder()
         if not currentHumanoid or not currentRoot or not currentTargetRoot then
             return
         end
-        ApplyCloneStylePlacement(currentRoot, currentTargetRoot, Vector3.new(0, -underDistance, 0), 0)
+        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
         currentRoot.AssemblyLinearVelocity = Vector3.zero
         currentRoot.AssemblyAngularVelocity = Vector3.zero
         currentRoot.Velocity = Vector3.zero
@@ -2425,6 +2363,9 @@ local function ReapplyUnder()
         currentHumanoid.JumpPower = 0
         currentHumanoid.JumpHeight = 0
         currentHumanoid.Sit = true
+        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
     end)
 end
 
@@ -2491,15 +2432,7 @@ localRespawnConnection = LocalPlayer.CharacterAdded:Connect(function(newCharacte
         return
     end
 
-    task.wait(0.25)
-
-    if physicsClone and physicsCharacter ~= newCharacter then
-        DestroyPhysicsClone()
-    end
-
-    if physicsModeEnabled then
-        CreatePhysicsClone()
-    end
+    task.wait(0.15)
 
     if not selectedPlayer then
         return
@@ -3533,22 +3466,13 @@ local function PlayStandAttack(
         return 
     end 
 
-    if target == LocalPlayer then
-        return
-    end
+    if target 
+    and target == standTarget then 
 
-    if target and target == standTarget then
-        if standMode == "Auto" then
-            return
-        end
-        target = nil
-    end
+        target = nil 
+    end 
 
-    if standMode == "Auto" and not target then
-        return
-    end
-
-    local root =
+    local root = 
         GetStandRoot() 
 
     local humanoid = 
@@ -4084,16 +4008,15 @@ local function ConnectTargetAnimator(
                 local direction = 
                     GetAttackDirectionFromAnchor() 
 
-                if standMode == "Auto" and (not attackTarget or attackTarget == LocalPlayer or attackTarget == standTarget) then
-                    return
-                end
+                if attackTarget then 
 
-                if attackTarget then
-                    if attackTarget == LocalPlayer or attackTarget == standTarget then
-                        return
-                    end
+                    if attackTarget == 
+                        standTarget then 
 
-                    if not IsPlayerInsideTargetRange(
+                        return 
+                    end 
+
+                    if not IsPlayerInsideTargetRange( 
                         attackTarget 
                     ) then 
 
