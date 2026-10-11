@@ -1,5 +1,4 @@
----sexxseavsd f
-
+---wwwwwwwwwwwwwwwwwwwwww
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
 local Rayfield = ENV.Rayfield or _G.Rayfield
@@ -464,16 +463,11 @@ local perroCurrentDistance = 3
 local perroTargetDistance = 4
 
  function SetNoCollision(char, state)
-    if not char then return end
     if state then
-        if not savedCollisions[char] then
-            savedCollisions[char] = {}
-        end
+        savedCollisions[char] = {}
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
-                if savedCollisions[char][part] == nil then
-                    savedCollisions[char][part] = part.CanCollide
-                end
+                savedCollisions[char][part] = part.CanCollide
                 part.CanCollide = false
             end
         end
@@ -1778,8 +1772,11 @@ JugadoresTab:CreateToggle({
 
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
             humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-            SetNoCollision(localChar, true)
             ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
             underConnection = RunService.Heartbeat:Connect(function()
                 if not underToggle or not selectedPlayer then
                     return
@@ -1794,12 +1791,19 @@ JugadoresTab:CreateToggle({
                 if not currentHumanoid or not currentRoot or not currentTargetRoot then
                     return
                 end
-        ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
-currentHumanoid.AutoRotate = false
+                ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+                currentRoot.AssemblyLinearVelocity = Vector3.zero
+                currentRoot.AssemblyAngularVelocity = Vector3.zero
+                currentRoot.Velocity = Vector3.zero
+                currentRoot.RotVelocity = Vector3.zero
+                currentHumanoid.AutoRotate = false
                 currentHumanoid.WalkSpeed = 0
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
                 currentHumanoid.Sit = true
+                currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
             end)
 
         elseif not underToggle then
@@ -1818,7 +1822,8 @@ currentHumanoid.AutoRotate = false
                 end)
             end
 
-            SetNoCollision(localChar, false)
+            if root and root.Parent then
+end
         end
     end
 })
@@ -1868,7 +1873,6 @@ local function StopMochila()
             root.RotVelocity = Vector3.zero
         end)
     end
-    SetNoCollision(character, false)
     if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
 end
 
@@ -1901,9 +1905,12 @@ PlayMochila = function(target)
     humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-    SetNoCollision(character, true)
 
     ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
 
     mochilaConnection = RunService.Heartbeat:Connect(function()
         if not mochilaToggle or not selectedPlayer then
@@ -1920,10 +1927,17 @@ PlayMochila = function(target)
             return
         end
         ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, 0, mochilaDistance) * CFrame.Angles(0, math.rad(180), 0))
-currentHumanoid.Sit = true
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+        currentRoot.Velocity = Vector3.zero
+        currentRoot.RotVelocity = Vector3.zero
+        currentHumanoid.Sit = true
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
-                currentHumanoid.JumpHeight = 0
+        currentHumanoid.JumpHeight = 0
+        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
     end)
 end
 
@@ -2319,8 +2333,12 @@ local function ReapplyUnder()
     humanoid:ChangeState(Enum.HumanoidStateType.Seated)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-        ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
-            underConnection = RunService.Heartbeat:Connect(function()
+    ApplyPlayerPlacement(root, targetRoot, targetRoot.CFrame * CFrame.new(0, -underDistance, 0))
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
+    underConnection = RunService.Heartbeat:Connect(function()
         if not underToggle or not selectedPlayer then
             return
         end
@@ -2335,7 +2353,11 @@ local function ReapplyUnder()
             return
         end
         ApplyPlayerPlacement(currentRoot, currentTargetRoot, currentTargetRoot.CFrame * CFrame.new(0, -underDistance, 0))
-currentHumanoid.AutoRotate = false
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+        currentRoot.Velocity = Vector3.zero
+        currentRoot.RotVelocity = Vector3.zero
+        currentHumanoid.AutoRotate = false
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
         currentHumanoid.JumpHeight = 0
