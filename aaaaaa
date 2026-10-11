@@ -1,4 +1,4 @@
----2222222
+---sexxseavsd f
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -126,7 +126,7 @@ local originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
 local fallenHeightOverrideActive = false
 
 local function UpdateFallenPartsDestroyHeight(cframe)
-    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y < 0
+    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y <= 0
     if shouldOverride then
         if not fallenHeightOverrideActive then
             originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
