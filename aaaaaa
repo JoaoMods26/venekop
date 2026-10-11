@@ -1,4 +1,4 @@
----2222222444444444444
+---2222222
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -60,6 +60,12 @@ local mochilaToggle = false
 local mochilaConnection = nil
 local mochilaDistance = 1.5
 local PlayMochila
+local manoEnabled = false
+local manoConnection = nil
+local manoAnimId = 98679327590853
+local manoAnimTime = 2
+local PlayMano
+local StopMano
 local aimlockEnabled = false
 local aimlockConnection
 local orbitConnection
@@ -937,6 +943,9 @@ ActualizarInfoRow(selectedPlayer)
                 end
                 if mochilaToggle then
                     PlayMochila(selectedPlayer)
+                end
+                if manoEnabled then
+                    PlayMano(selectedPlayer)
                 end
             end
             
@@ -2023,6 +2032,182 @@ JugadoresTab:CreateToggle({
     end
 })
 
+local function GetHandPart(character)
+    if not character then return nil end
+    local candidates = {
+        "RightHand",
+        "Right Arm",
+        "LeftHand",
+        "Left Arm"
+    }
+    for _, name in ipairs(candidates) do
+        local part = character:FindFirstChild(name)
+        if part and part:IsA("BasePart") then
+            return part
+        end
+    end
+    return nil
+end
+
+local function GetHandAlignedRootCFrame(root, ownHand, targetHand)
+    if not root or not ownHand or not targetHand then return nil end
+    local rootToOwnHand = root.CFrame:ToObjectSpace(ownHand.CFrame)
+    local handGoal = targetHand.CFrame * CFrame.new(0, 0, 0.05)
+    return handGoal * rootToOwnHand:Inverse()
+end
+
+StopMano = function()
+    if manoConnection then
+        manoConnection:Disconnect()
+        manoConnection = nil
+    end
+
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.AutoRotate = true
+        RestoreMovementStats("mano", humanoid)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+        StopAnimationTracksById(humanoid, manoAnimId)
+    end
+
+    if character then
+        SetNoCollision(character, false)
+    end
+    if CleanupPhysicsCloneIfIdle then CleanupPhysicsCloneIfIdle() end
+end
+
+PlayMano = function(target)
+    if not target or not target.Character then return end
+    if manoConnection then
+        manoConnection:Disconnect()
+        manoConnection = nil
+    end
+
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local targetCharacter = target.Character
+    local targetRoot = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
+    local ownHand = GetHandPart(character)
+    local targetHand = GetHandPart(targetCharacter)
+    if not humanoid or not root or not targetRoot or not ownHand or not targetHand then
+        Rayfield:Notify({
+            Title = "Tomar de la mano",
+            Content = "No se encontró una mano válida en uno de los personajes.",
+            Duration = 3,
+            Image = 4483362458
+        })
+        manoEnabled = false
+        return
+    end
+
+    StopAnimationTracksById(humanoid, manoAnimId)
+    local animation = Instance.new("Animation")
+    animation.AnimationId = "rbxassetid://" .. tostring(manoAnimId)
+    local loaded, track = pcall(function()
+        return humanoid:LoadAnimation(animation)
+    end)
+    animation:Destroy()
+    if not loaded or not track then
+        Rayfield:Notify({
+            Title = "Tomar de la mano",
+            Content = "No se pudo cargar la animación.",
+            Duration = 3,
+            Image = 4483362458
+        })
+        manoEnabled = false
+        return
+    end
+
+    SaveMovementStats("mano", humanoid)
+    track:Play(0.05)
+    local loadDeadline = os.clock() + 2
+    while track.Length <= 0 and os.clock() < loadDeadline do
+        RunService.Heartbeat:Wait()
+    end
+    pcall(function()
+        track.TimePosition = manoAnimTime
+        track:AdjustSpeed(0)
+    end)
+    RunService.Heartbeat:Wait()
+
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+    SetNoCollision(character, true)
+
+    local function placeHandAtTarget()
+        local currentCharacter = LocalPlayer.Character
+        local currentHumanoid = currentCharacter and currentCharacter:FindFirstChildOfClass("Humanoid")
+        local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+        local currentHand = GetHandPart(currentCharacter)
+        local currentTargetCharacter = selectedPlayer and selectedPlayer.Character
+        local currentTargetRoot = currentTargetCharacter and currentTargetCharacter:FindFirstChild("HumanoidRootPart")
+        local currentTargetHand = GetHandPart(currentTargetCharacter)
+        if not currentHumanoid or not currentRoot or not currentHand or not currentTargetRoot or not currentTargetHand then
+            return
+        end
+        local desiredCFrame = GetHandAlignedRootCFrame(currentRoot, currentHand, currentTargetHand)
+        if desiredCFrame then
+            ApplyPlayerPlacement(currentRoot, currentTargetRoot, desiredCFrame)
+            currentHumanoid.AutoRotate = false
+            currentHumanoid.WalkSpeed = 0
+            currentHumanoid.JumpPower = 0
+            currentHumanoid.JumpHeight = 0
+        end
+    end
+
+    placeHandAtTarget()
+    manoConnection = RunService.Heartbeat:Connect(function()
+        if not manoEnabled or not selectedPlayer then
+            if manoConnection then
+                manoConnection:Disconnect()
+                manoConnection = nil
+            end
+            return
+        end
+        placeHandAtTarget()
+    end)
+end
+
+JugadoresTab:CreateToggle({
+    Name = "Tomar de la mano",
+    CurrentValue = false,
+    Callback = function(value)
+        manoEnabled = value
+        if manoEnabled then
+            if not selectedPlayer or selectedPlayer == LocalPlayer then
+                manoEnabled = false
+                Rayfield:Notify({
+                    Title = "Tomar de la mano",
+                    Content = "Selecciona otro jugador primero.",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                return
+            end
+            if not selectedPlayer.Character then
+                manoEnabled = false
+                Rayfield:Notify({
+                    Title = "Tomar de la mano",
+                    Content = "El jugador no tiene personaje.",
+                    Duration = 2,
+                    Image = 4483362458
+                })
+                return
+            end
+            PlayMano(selectedPlayer)
+        else
+            StopMano()
+        end
+    end
+})
+
 JugadoresTab:CreateSection("Distancia de Movimientos")
 
 JugadoresTab:CreateSlider({
@@ -2527,6 +2712,12 @@ localRespawnConnection = LocalPlayer.CharacterAdded:Connect(function(newCharacte
         task.wait(0.05)
         PlayMochila(selectedPlayer)
     end
+
+    if manoEnabled then
+        StopMano()
+        task.wait(0.05)
+        PlayMano(selectedPlayer)
+    end
 end)
 
    local standEnabled = false 
@@ -2632,7 +2823,7 @@ local standWFThread = nil
 
 CleanupPhysicsCloneIfIdle = function()
     local actionActive = wataEnabled or cariEnabled or pataEnabled or doggyEnabled or perroEnabled
-        or sitToggle or underToggle or mochilaToggle or standEnabled or orbitEnabled or followEnabled
+        or sitToggle or underToggle or mochilaToggle or manoEnabled or standEnabled or orbitEnabled or followEnabled
     if not actionActive then
         UpdateFallenPartsDestroyHeight(nil)
         if physicsClone then DestroyPhysicsClone() end
