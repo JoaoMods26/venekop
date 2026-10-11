@@ -1,4 +1,5 @@
----wwwwwwwwwwwwwwwwwwwwww
+---sexxseavsd f
+
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
 local Rayfield = ENV.Rayfield or _G.Rayfield
@@ -256,10 +257,19 @@ local function CreatePhysicsClone()
     if not character then return false end
     if physicsClone and physicsClone.Parent and physicsCharacter == character then return true end
     DestroyPhysicsClone()
-    local oldArchivable = character.Archivable
+    local archivableStates = {}
+    archivableStates[character] = character.Archivable
     character.Archivable = true
+    for _, object in ipairs(character:GetDescendants()) do
+        archivableStates[object] = object.Archivable
+        object.Archivable = true
+    end
     local ok, clone = pcall(function() return character:Clone() end)
-    character.Archivable = oldArchivable
+    for object, oldState in pairs(archivableStates) do
+        if object and object.Parent then
+            pcall(function() object.Archivable = oldState end)
+        end
+    end
     if not ok or not clone then return false end
     clone.Name = "JmodsUniversal_AnimationClone_" .. tostring(LocalPlayer.UserId)
    
@@ -280,7 +290,15 @@ end
 
     local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
     local cloneHumanoid = clone:FindFirstChildOfClass("Humanoid")
-    if not cloneRoot or not cloneHumanoid then
+    local sourcePartCount = 0
+    local clonePartCount = 0
+    for _, object in ipairs(character:GetDescendants()) do
+        if object:IsA("BasePart") then sourcePartCount += 1 end
+    end
+    for _, object in ipairs(clone:GetDescendants()) do
+        if object:IsA("BasePart") then clonePartCount += 1 end
+    end
+    if not cloneRoot or not cloneHumanoid or clonePartCount < sourcePartCount then
         clone:Destroy()
         return false
     end
@@ -2431,7 +2449,15 @@ localRespawnConnection = LocalPlayer.CharacterAdded:Connect(function(newCharacte
         return
     end
 
-    task.wait(0.15)
+    task.wait(0.25)
+
+    if physicsClone and physicsCharacter ~= newCharacter then
+        DestroyPhysicsClone()
+    end
+
+    if physicsModeEnabled then
+        CreatePhysicsClone()
+    end
 
     if not selectedPlayer then
         return
@@ -3465,13 +3491,22 @@ local function PlayStandAttack(
         return 
     end 
 
-    if target 
-    and target == standTarget then 
+    if target == LocalPlayer then
+        return
+    end
 
-        target = nil 
-    end 
+    if target and target == standTarget then
+        if standMode == "Auto" then
+            return
+        end
+        target = nil
+    end
 
-    local root = 
+    if standMode == "Auto" and not target then
+        return
+    end
+
+    local root =
         GetStandRoot() 
 
     local humanoid = 
@@ -4007,15 +4042,16 @@ local function ConnectTargetAnimator(
                 local direction = 
                     GetAttackDirectionFromAnchor() 
 
-                if attackTarget then 
+                if standMode == "Auto" and (not attackTarget or attackTarget == LocalPlayer or attackTarget == standTarget) then
+                    return
+                end
 
-                    if attackTarget == 
-                        standTarget then 
+                if attackTarget then
+                    if attackTarget == LocalPlayer or attackTarget == standTarget then
+                        return
+                    end
 
-                        return 
-                    end 
-
-                    if not IsPlayerInsideTargetRange( 
+                    if not IsPlayerInsideTargetRange(
                         attackTarget 
                     ) then 
 
