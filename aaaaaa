@@ -1,4 +1,4 @@
----ffffffffffffff
+---sexxseavsd f
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -1864,9 +1864,6 @@ JugadoresTab:CreateToggle({
                 currentHumanoid.JumpPower = 0
                 currentHumanoid.JumpHeight = 0
                 currentHumanoid.Sit = true
-                currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
-                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-                currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
             end)
 
         elseif not underToggle then
@@ -2004,9 +2001,6 @@ PlayMochila = function(target)
         currentHumanoid.WalkSpeed = 0
         currentHumanoid.JumpPower = 0
         currentHumanoid.JumpHeight = 0
-        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
-        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
     end)
 end
 
@@ -2431,9 +2425,6 @@ local function ReapplyUnder()
         currentHumanoid.JumpPower = 0
         currentHumanoid.JumpHeight = 0
         currentHumanoid.Sit = true
-        currentHumanoid:ChangeState(Enum.HumanoidStateType.Seated)
-        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
     end)
 end
 
