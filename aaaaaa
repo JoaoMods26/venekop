@@ -126,7 +126,7 @@ local originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
 local fallenHeightOverrideActive = false
 
 local function UpdateFallenPartsDestroyHeight(cframe)
-    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y <= 0
+    local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y < 0
     if shouldOverride then
         if not fallenHeightOverrideActive then
             originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
