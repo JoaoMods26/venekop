@@ -1,4 +1,4 @@
----sexxseavsd f
+---PUUUUUUUUUUUUUUUUU
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
 local Window = ENV.Window or _G.Window
@@ -124,6 +124,7 @@ local stabilityGroundConnection = nil
 local physicsVisualFolderName = "JmodsUniversal_LocalVisuals_" .. tostring(LocalPlayer.UserId)
 local originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
 local fallenHeightOverrideActive = false
+local FALLEN_PARTS_OVERRIDE_VALUE = -500000
 
 local function UpdateFallenPartsDestroyHeight(cframe)
     local shouldOverride = physicsModeEnabled and cframe ~= nil and cframe.Position.Y <= 0
@@ -131,15 +132,15 @@ local function UpdateFallenPartsDestroyHeight(cframe)
         if not fallenHeightOverrideActive then
             originalFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
         end
-        if workspace.FallenPartsDestroyHeight == -50000 then
-            fallenHeightOverrideActive = true
-        else
+        if workspace.FallenPartsDestroyHeight ~= FALLEN_PARTS_OVERRIDE_VALUE then
             local changed = pcall(function()
-                workspace.FallenPartsDestroyHeight = -50000
+                workspace.FallenPartsDestroyHeight = FALLEN_PARTS_OVERRIDE_VALUE
             end)
             if changed then
                 fallenHeightOverrideActive = true
             end
+        else
+            fallenHeightOverrideActive = true
         end
     elseif fallenHeightOverrideActive then
         local restored = pcall(function()
@@ -2623,6 +2624,7 @@ local standWFCharacterConnection = nil
 local standWFThread = nil 
 
 CleanupPhysicsCloneIfIdle = function()
+    UpdateFallenPartsDestroyHeight(nil)
     local actionActive = wataEnabled or cariEnabled or pataEnabled or doggyEnabled or perroEnabled
         or sitToggle or underToggle or mochilaToggle or standEnabled or orbitEnabled or followEnabled
     if not actionActive then
