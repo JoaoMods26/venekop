@@ -820,7 +820,7 @@ end
     end
     return isCleanRunning(runId) and result and result.ok==true
 end
-local function cleanOneSpot(mess,runId)
+function JBC_cleanOneSpot(mess,runId)
     if not isCleanRunning(runId) then return false end
     arepamovilState.activeSpotId=mess.id
     local root=getCleanRoot()
@@ -837,7 +837,7 @@ local function cleanOneSpot(mess,runId)
     end
     return finishCleanSpot(mess.id,mess.object:GetAttribute("WorkSpotSize"),runId)
 end
-local function startArepamovilAutoFarm()
+function JBC_startArepamovilAutoFarm()
     if ArepamovilConfig.AutoFarm then return end
     ArepamovilConfig.AutoFarm=true
     arepamovilState.paused=false
@@ -865,7 +865,7 @@ local function startArepamovilAutoFarm()
                     arepamovilState.currentTask="Limpiando desastre"
                     print("[AUTO CLEAN] Mancha:",mess.object:GetFullName())
                     print("[AUTO CLEAN] SpotId:",mess.id)
-                    cleanOneSpot(mess,runId)
+                    JBC_cleanOneSpot(mess,runId)
                     arepamovilState.activeSpotId=nil
                     if isCleanRunning(runId) then task.wait(0.15) end
                 end
@@ -879,7 +879,7 @@ local function startArepamovilAutoFarm()
         end
     end)
 end
-local function stopArepamovilAutoFarm()
+function JBC_stopArepamovilAutoFarm()
     ArepamovilConfig.AutoFarm=false
     arepamovilState.runId+=1
     arepamovilState.currentTask="Inactivo"
@@ -900,7 +900,7 @@ ArepamovilTab:CreateToggle({
         print("Toggle:", state)
 
         if state then
-            startArepamovilAutoFarm()
+            JBC_startArepamovilAutoFarm()
 
             JmodsLib:Notify({
                 Title = "Limpiar ON",
@@ -908,7 +908,7 @@ ArepamovilTab:CreateToggle({
                 Duration = 3
             })
         else
-            stopArepamovilAutoFarm()
+            JBC_stopArepamovilAutoFarm()
 
             JmodsLib:Notify({
                 Title = "Limpiar OFF",
@@ -4318,7 +4318,7 @@ local OBJECT_RETRY_PASSES = 8
 local LATE_SCALE_BATCH_SIZE = 4
 local NO_SCALE_BURST_SIZE = 35
 local NO_SCALE_BURST_REPL_TIMEOUT = 0.5
-local COPY_VERSION = "REBUILT_V41_FAST_SYNC_STATUS"
+local COPY_VERSION = "REBUILT_V45_PIXELES_MEASURED_NATIVE_SIZE_NO_LOCAL_FUNCTIONS"
 
  function debugText(value, depth, seen)
     depth = depth or 0
@@ -6615,7 +6615,7 @@ local pendingRequests = {}
     return promise
 end
 
-local function handleNetPacket(packet)
+function JBC_handleNetPacket(packet)
     if typeof(packet) ~= "buffer" then return end
     local ok,err = pcall(function()
         local reader = Serializer.newReader(packet)
@@ -6642,13 +6642,13 @@ local function handleNetPacket(packet)
 end
 
 if Replication then
-    Replication.OnClientEvent:Connect(handleNetPacket)
+    Replication.OnClientEvent:Connect(JBC_handleNetPacket)
 end
 if ReplicationFast then
-    ReplicationFast.OnClientEvent:Connect(handleNetPacket)
+    ReplicationFast.OnClientEvent:Connect(JBC_handleNetPacket)
 end
 
-local function invokeRoute(routeName,payload)
+function JBC_invokeRoute(routeName,payload)
     local routeId = ROUTES[routeName]
     if not routeId then
         local p = makePromise()
@@ -6687,11 +6687,11 @@ end
 local Net = {}
 for routeName in pairs(ROUTES) do
     Net[routeName] = {invoke=function(payload)
-        return invokeRoute(routeName,payload)
+        return JBC_invokeRoute(routeName,payload)
     end}
 end
 
-local function awaitNet(promise,timeout)
+function JBC_awaitNet(promise,timeout)
     if not promise then return false,"no-promise" end
     local finished = false
     local success = false
@@ -6711,7 +6711,7 @@ local function awaitNet(promise,timeout)
     return success,result
 end
 
-local function routePayloadReason(payload)
+function JBC_routePayloadReason(payload)
     if type(payload) ~= "table" then return nil end
     if payload.ok == false then
         return tostring(payload.reason or payload.code or payload.message or "server-rejected")
@@ -6719,7 +6719,7 @@ local function routePayloadReason(payload)
     return nil
 end
 
-local function callRoute(routeName,payload,context,timeout)
+function JBC_callRoute(routeName,payload,context,timeout)
     local ok, promise = pcall(function()
         return Net[routeName].invoke(payload)
     end)
@@ -6727,12 +6727,12 @@ local function callRoute(routeName,payload,context,timeout)
         debugLog("ROUTE_INVOKE_ERROR",routeName,context,promise)
         return false,promise,nil
     end
-    local success,result = awaitNet(promise,timeout or (REQUEST_TIMEOUT + 1))
+    local success,result = JBC_awaitNet(promise,timeout or (REQUEST_TIMEOUT + 1))
     if not success then
         debugLog("SERVER_TRANSPORT_REJECT",routeName,context,result)
         return false,result,nil
     end
-    local logicalReason = routePayloadReason(result)
+    local logicalReason = JBC_routePayloadReason(result)
     if logicalReason then
         debugLog("SERVER_LOGICAL_REJECT",routeName,context,logicalReason,result)
         return false,logicalReason,result
@@ -6741,7 +6741,7 @@ local function callRoute(routeName,payload,context,timeout)
     return true,result,result
 end
 
-local function callRouteFast(routeName,payload,context)
+function JBC_callRouteFast(routeName,payload,context)
     local routeId=ROUTES[routeName]
     if not routeId then
         return false,"unknown-route"
@@ -6764,7 +6764,7 @@ local function callRouteFast(routeName,payload,context)
     return true,nil
 end
 
-local function vec3Data(value,defaultX,defaultY,defaultZ)
+function JBC_vec3Data(value,defaultX,defaultY,defaultZ)
     defaultX = defaultX or 0
     defaultY = defaultY or 0
     defaultZ = defaultZ or 0
@@ -6781,15 +6781,15 @@ local function vec3Data(value,defaultX,defaultY,defaultZ)
     return {x=defaultX,y=defaultY,z=defaultZ}
 end
 
-local function paintLook(paintData)
+function JBC_paintLook(paintData)
     if type(paintData) ~= "table" then return nil end
     return {c=tonumber(paintData.c),m=paintData.m,v=paintData.v}
 end
 
-local function applyPaint(kind,key,paintData,context)
-    local look = paintLook(paintData)
+function JBC_applyPaint(kind,key,paintData,context)
+    local look = JBC_paintLook(paintData)
     if not look then return false end
-    local success,result = callRoute("PaintPiece",{kind=kind,key=tostring(key),look=look},context or key)
+    local success,result = JBC_callRoute("PaintPiece",{kind=kind,key=tostring(key),look=look},context or key)
     return success
 end
 
@@ -6798,7 +6798,7 @@ pcall(function()
     CircuitsNet = require(ReplicatedStorage.Shared.Circuits.Net)
 end)
 
-local function awaitCircuitPromise(promise, timeout)
+function JBC_awaitCircuitPromise(promise, timeout)
     if not promise then
         return false,nil
     end
@@ -6822,7 +6822,7 @@ local function awaitCircuitPromise(promise, timeout)
     return success,response
 end
 
-local function normalizeCircuitGraph(value)
+function JBC_normalizeCircuitGraph(value)
     if type(value) ~= "table" then
         return nil
     end
@@ -6848,7 +6848,7 @@ local function normalizeCircuitGraph(value)
     }
 end
 
-local function getCircuitGraph(response)
+function JBC_getCircuitGraph(response)
     if type(response) ~= "table" then
         return nil
     end
@@ -6861,7 +6861,7 @@ local function getCircuitGraph(response)
             return nil
         end
         visited[value]=true
-        local normalized=normalizeCircuitGraph(value)
+        local normalized=JBC_normalizeCircuitGraph(value)
         if normalized then
             return normalized
         end
@@ -6888,7 +6888,7 @@ local function getCircuitGraph(response)
     return scan(response,0)
 end
 
-local function cloneCircuit(sourceObject,targetObject)
+function JBC_cloneCircuit(sourceObject,targetObject)
     if not CircuitsNet then
         return false,"Circuits.Net no disponible"
     end
@@ -6914,11 +6914,11 @@ local function cloneCircuit(sourceObject,targetObject)
     if not openOK or not openPromise then
         return false,"no se pudo abrir el circuito origen: "..tostring(openPromise)
     end
-    local readOK,response=awaitCircuitPromise(openPromise,5)
+    local readOK,response=JBC_awaitCircuitPromise(openPromise,5)
     if not readOK then
         return false,"Open rechazado: "..tostring(response)
     end
-    local graph=getCircuitGraph(response)
+    local graph=JBC_getCircuitGraph(response)
     if not graph then
         warn("CIRCUITO OPEN RESPUESTA:",response)
         return false,"Open no devolvio un graph util"
@@ -6932,7 +6932,7 @@ local function cloneCircuit(sourceObject,targetObject)
     if not saveOK or not savePromise then
         return false,"no se pudo guardar el circuito destino: "..tostring(savePromise)
     end
-    local writeOK,writeResponse=awaitCircuitPromise(savePromise,5)
+    local writeOK,writeResponse=JBC_awaitCircuitPromise(savePromise,5)
     if not writeOK then
         return false,"Save rechazado: "..tostring(writeResponse)
     end
@@ -7354,7 +7354,7 @@ end
 
 local activeSupportIndex=nil
 
-local function supportPointFromAttribute(value)
+function JBC_supportPointFromAttribute(value)
     if typeof(value)=="Vector2" then
         return {x=math.round(value.X),z=math.round(value.Y)}
     end
@@ -7368,7 +7368,7 @@ local function supportPointFromAttribute(value)
     return nil
 end
 
-local function supportIndexBucket(worldX,worldZ)
+function JBC_supportIndexBucket(worldX,worldZ)
     return math.floor(worldX/SUPPORT_INDEX_CELL_STUDS)..":"..math.floor(worldZ/SUPPORT_INDEX_CELL_STUDS)
 end
 
@@ -7381,7 +7381,7 @@ function B.initSupportIndex(base,targetPlot,targetItems)
     if not targetItems then return end
     for _,object in ipairs(targetItems:GetChildren()) do
         if object and object.Parent then
-            local point=supportPointFromAttribute(object:GetAttribute("PlacePoint"))
+            local point=JBC_supportPointFromAttribute(object:GetAttribute("PlacePoint"))
             if point then
                 local height=tonumber(object:GetAttribute("PlaceHeight")) or 0
                 B.registerSupportObject(object,point,height)
@@ -7395,7 +7395,7 @@ function B.registerSupportObject(object,point,height)
     local base=activeSupportIndex.base
     if not base then return end
     local world=B.pointAnchorPosition(base,point,tonumber(height) or 0)
-    local bucketKey=supportIndexBucket(world.X,world.Z)
+    local bucketKey=JBC_supportIndexBucket(world.X,world.Z)
     local bucket=activeSupportIndex.buckets[bucketKey]
     if not bucket then
         bucket={}
@@ -7610,7 +7610,7 @@ end
 
 local lastScaleRequestAtByKey={}
 local scaleGate={active=0,nextStartAt=0,gap=0.10,minGap=0.07,maxGap=0.22,successStreak=0}
-local function acquireScaleGate()
+function JBC_acquireScaleGate()
     while true do
         if scaleGate.active<2 then
             local remaining=scaleGate.nextStartAt-os.clock()
@@ -7626,7 +7626,7 @@ local function acquireScaleGate()
     end
 end
 
-local function releaseScaleGate(ok,result)
+function JBC_releaseScaleGate(ok,result)
     scaleGate.active=math.max(0,scaleGate.active-1)
     if ok then
         scaleGate.successStreak+=1
@@ -7657,10 +7657,10 @@ end
 
 function B.requestScaleItem(key,stretch,bias,context,gap)
     B.waitForScaleSlot(key,gap)
-    acquireScaleGate()
+    JBC_acquireScaleGate()
     lastScaleRequestAtByKey[tostring(key)]=os.clock()
-    local ok,result=callRoute("ScaleItem",{key=tostring(key),stretch=stretch,bias=bias},context,SCALE_REQUEST_TIMEOUT)
-    releaseScaleGate(ok,result)
+    local ok,result=JBC_callRoute("ScaleItem",{key=tostring(key),stretch=stretch,bias=bias},context,SCALE_REQUEST_TIMEOUT)
+    JBC_releaseScaleGate(ok,result)
     return ok,result
 end
 
@@ -7674,8 +7674,8 @@ end
 
 function B.scaleMatches(object,stretch,bias)
     if not object then return false end
-    local currentStretch=vec3Data(object:GetAttribute("Stretch"),0,0,0)
-    local currentBias=vec3Data(object:GetAttribute("StretchBias") or object:GetAttribute("Bias"),0,0,0)
+    local currentStretch=JBC_vec3Data(object:GetAttribute("Stretch"),0,0,0)
+    local currentBias=JBC_vec3Data(object:GetAttribute("StretchBias") or object:GetAttribute("Bias"),0,0,0)
     return math.abs(currentStretch.x-stretch.x)<0.5
         and math.abs(currentStretch.y-stretch.y)<0.5
         and math.abs(currentStretch.z-stretch.z)<0.5
@@ -7978,7 +7978,7 @@ function B.reanchorFallbackObject(targetItems,base,object,rotation,height,curren
     if B.maxAbsBiasValue(residualBias)>FALLBACK_SAFE_BIAS_LIMIT then
         debugLog("FALLBACK_REANCHOR_RESIDUAL_TOO_LARGE",oldKey,residualBias,newPoint)
         pcall(function()
-            callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"fallback-reanchor-rollback:"..oldKey)
+            JBC_callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"fallback-reanchor-rollback:"..oldKey)
         end)
         return false,"reanchor-residual-too-large",object,currentPoint,nil
     end
@@ -7994,16 +7994,16 @@ function B.reanchorFallbackObject(targetItems,base,object,rotation,height,curren
     if not residualOK then
         debugLog("FALLBACK_REANCHOR_RESIDUAL_FAIL",oldKey,residualResult,newPoint,residualBias,desired)
         pcall(function()
-            callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"fallback-reanchor-rollback:"..oldKey)
+            JBC_callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"fallback-reanchor-rollback:"..oldKey)
         end)
         return false,residualResult or "reanchor-residual-failed",object,currentPoint,nil
     end
     newObject=residualObject or newObject
-    local demolishOK,demolishResult=callRouteFast("Demolish",{kind="Item",key=oldKey},"fallback-reanchor-remove-old:"..oldKey)
+    local demolishOK,demolishResult=JBC_callRouteFast("Demolish",{kind="Item",key=oldKey},"fallback-reanchor-remove-old:"..oldKey)
     if not demolishOK then
         debugLog("FALLBACK_REANCHOR_REMOVE_OLD_FAIL",oldKey,demolishResult,newPoint,residualBias)
         pcall(function()
-            callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"fallback-reanchor-remove-new:"..oldKey)
+            JBC_callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"fallback-reanchor-remove-new:"..oldKey)
         end)
         return false,demolishResult or "reanchor-remove-old-failed",object,currentPoint,nil
     end
@@ -8342,7 +8342,7 @@ function B.sendPlaceItemAndWait(targetItems,data,point,rotation,height,stand,sur
     local before=B.snapshotChildren(targetItems)
     local request={itemId=tostring(data.ItemId),point={x=point.x,z=point.z},rotation=rotation,height=height,surface=surface,stand=stand}
     debugLog("PLACE_ATTEMPT",context,request)
-    local ok,result=callRoute("PlaceItem",request,context)
+    local ok,result=JBC_callRoute("PlaceItem",request,context)
     if not ok then
         debugLog("PLACE_REJECTED",context,result)
         return nil,result
@@ -8413,8 +8413,8 @@ function B.dataStand(data)
 end
 
 function B.scaleObjectExact(targetItems,targetObject,data)
-    local desiredStretch=vec3Data(data.Stretch,1,1,1)
-    local desiredBias=vec3Data(data.Bias,0,0,0)
+    local desiredStretch=JBC_vec3Data(data.Stretch,1,1,1)
+    local desiredBias=JBC_vec3Data(data.Bias,0,0,0)
     local needsScale=desiredStretch.x~=1 or desiredStretch.y~=1 or desiredStretch.z~=1 or desiredBias.x~=0 or desiredBias.y~=0 or desiredBias.z~=0
     if not needsScale then return true,targetObject,nil end
     local key=tostring(targetObject.Name)
@@ -8430,9 +8430,9 @@ function B.restoreSavedPlacementAfterScale(targetItems,targetObject,data,point,h
     if not targetObject or not targetObject.Parent or not point then return false,targetObject,"missing-object-or-point" end
     local pitch=math.round(tonumber(data.PlacePitch) or 0)%ROTATION_UNITS
     local roll=math.round(tonumber(data.PlaceRoll) or 0)%ROTATION_UNITS
-    local stretch=vec3Data(data.Stretch,0,0,0)
-    local bias=vec3Data(data.Bias,0,0,0)
-    local ok,result=callRoute("TransformItem",{
+    local stretch=JBC_vec3Data(data.Stretch,0,0,0)
+    local bias=JBC_vec3Data(data.Bias,0,0,0)
+    local ok,result=JBC_callRoute("TransformItem",{
         key=tostring(targetObject.Name),
         point={x=point.x,z=point.z},
         height=height,
@@ -8452,7 +8452,7 @@ function B.restoreSavedPlacementAfterScale(targetItems,targetObject,data,point,h
     return true,refreshed or targetObject,nil
 end
 
-local function supportPointDistanceStuds(base,a,b)
+function JBC_supportPointDistanceStuds(base,a,b)
     local layout=GridMath.layout(base)
     local dx=((tonumber(a.x) or 0)-(tonumber(b.x) or 0))/POINT_UNIT*layout.cell.X
     local dz=((tonumber(a.z) or 0)-(tonumber(b.z) or 0))/POINT_UNIT*layout.cell.Y
@@ -8461,7 +8461,7 @@ end
 
 local temporarySupportState={}
 
-local function supportSizeStretch(base,supportObject,targetHeight,footprint)
+function JBC_supportSizeStretch(base,supportObject,targetHeight,footprint)
     local _,currentSize=supportObject:GetBoundingBox()
     local pointStuds=B.getScalePointStuds(base,supportObject,0)
     local desiredY=math.max(0.5,tonumber(targetHeight) or 0)
@@ -8475,7 +8475,7 @@ local function supportSizeStretch(base,supportObject,targetHeight,footprint)
     }
 end
 
-local function supportPlacementCandidates(base,targetPoint,distanceStuds)
+function JBC_supportPlacementCandidates(base,targetPoint,distanceStuds)
     local layout=GridMath.layout(base)
     local center=B.makeCenterPoint(base)
     local tx=tonumber(targetPoint.x) or 0
@@ -8506,7 +8506,7 @@ local function supportPlacementCandidates(base,targetPoint,distanceStuds)
     return candidates
 end
 
-local function removeTemporarySupportState(state)
+function JBC_removeTemporarySupportState(state)
     for i=#temporarySupportState,1,-1 do
         if temporarySupportState[i]==state then
             table.remove(temporarySupportState,i)
@@ -8515,15 +8515,15 @@ local function removeTemporarySupportState(state)
     end
 end
 
-local function destroyTemporarySupport(state,context)
+function JBC_destroyTemporarySupport(state,context)
     if not state then return true end
-    removeTemporarySupportState(state)
+    JBC_removeTemporarySupportState(state)
     local object=state.object
     if not object or not object.Parent then
         debugLogVerbose("SUPPORT_ALREADY_GONE",context,state.point,state.height)
         return true
     end
-    local ok,result=callRouteFast("Demolish",{kind="Item",key=tostring(object.Name)},context or "support-demolish")
+    local ok,result=JBC_callRouteFast("Demolish",{kind="Item",key=tostring(object.Name)},context or "support-demolish")
     if ok then
         debugLog("SUPPORT_DESTROYED",context,state.point,state.height,object.Name)
         return true
@@ -8533,13 +8533,13 @@ local function destroyTemporarySupport(state,context)
     return false
 end
 
-local function cleanupTemporarySupports(context)
+function JBC_cleanupTemporarySupports(context)
     if #temporarySupportState==0 then return end
     local snapshot=table.clone(temporarySupportState)
     temporarySupportState={}
     for _,state in ipairs(snapshot) do
         if state and state.object and state.object.Parent then
-            local ok,result=callRouteFast("Demolish",{kind="Item",key=tostring(state.object.Name)},context or "support-cleanup")
+            local ok,result=JBC_callRouteFast("Demolish",{kind="Item",key=tostring(state.object.Name)},context or "support-cleanup")
             if ok then
                 debugLog("SUPPORT_CLEANUP_OK",state.point,state.height,state.object.Name)
             else
@@ -8550,10 +8550,10 @@ local function cleanupTemporarySupports(context)
     end
 end
 
-local function createTemporarySupport(targetItems,base,targetPlot,targetPoint,targetHeight,index,distanceStuds)
+function JBC_createTemporarySupport(targetItems,base,targetPlot,targetPoint,targetHeight,index,distanceStuds)
     targetHeight=math.max(0,tonumber(targetHeight) or 0)
     if targetHeight<=0.5 then return nil,"support-height-too-low" end
-    local candidates=supportPlacementCandidates(base,targetPoint,distanceStuds or FALLBACK_START_DISTANCE_STUDS)
+    local candidates=JBC_supportPlacementCandidates(base,targetPoint,distanceStuds or FALLBACK_START_DISTANCE_STUDS)
     for candidateIndex,candidate in ipairs(candidates) do
         local supportData={ItemId=SUPPORT_ID,PlaceHeight=0,PlaceRotation=0,PlaceStand=nil,Surface=nil}
         local supportObject,placeError=B.sendPlaceItemAndWait(
@@ -8572,7 +8572,7 @@ local function createTemporarySupport(targetItems,base,targetPlot,targetPoint,ta
             local refreshedObject=supportObject
             local stretch=nil
             for _,footprint in ipairs({SUPPORT_FOOTPRINT_STUDS,8,4}) do
-                stretch=supportSizeStretch(base,supportObject,targetHeight,footprint)
+                stretch=JBC_supportSizeStretch(base,supportObject,targetHeight,footprint)
                 local ok,result,refreshed=B.applyScaleRobust(
                     targetItems,
                     tostring(supportObject.Name),
@@ -8600,7 +8600,7 @@ local function createTemporarySupport(targetItems,base,targetPlot,targetPoint,ta
             end
             debugLog("SUPPORT_SCALE_FAIL",index,candidate,targetHeight,stretch,scaleResult)
             pcall(function()
-                callRouteFast("Demolish",{kind="Item",key=tostring(supportObject.Name)},"support-rollback:"..tostring(index)..":"..tostring(candidateIndex))
+                JBC_callRouteFast("Demolish",{kind="Item",key=tostring(supportObject.Name)},"support-rollback:"..tostring(index)..":"..tostring(candidateIndex))
             end)
         else
             debugLog("SUPPORT_PLACE_FAIL",index,candidate,placeError)
@@ -8609,9 +8609,9 @@ local function createTemporarySupport(targetItems,base,targetPlot,targetPoint,ta
     return nil,"support-create-failed"
 end
 
-local function recoverScaleFailure(targetItems,base,targetPlot,data,oldObject,targetPoint,targetHeight,rotation,index)
-    local desiredStretch=vec3Data(data.Stretch,0,0,0)
-    local desiredBias=vec3Data(data.Bias,0,0,0)
+function JBC_recoverScaleFailure(targetItems,base,targetPlot,data,oldObject,targetPoint,targetHeight,rotation,index)
+    local desiredStretch=JBC_vec3Data(data.Stretch,0,0,0)
+    local desiredBias=JBC_vec3Data(data.Bias,0,0,0)
     local oldKey=tostring(oldObject.Name)
     for attempt=1,2 do
         local wantedDistance=attempt==1 and FALLBACK_START_DISTANCE_STUDS or FALLBACK_START_SECOND_DISTANCE_STUDS
@@ -8626,7 +8626,7 @@ local function recoverScaleFailure(targetItems,base,targetPlot,data,oldObject,ta
             candidateHeight=support.height
             debugLog("SCALE_RECOVERY_SUPPORT",index,data.ItemId,attempt,candidate,candidateHeight,support.distance,support.part)
         else
-            scaffold=createTemporarySupport(targetItems,base,targetPlot,targetPoint,targetHeight,index,wantedDistance)
+            scaffold=JBC_createTemporarySupport(targetItems,base,targetPlot,targetPoint,targetHeight,index,wantedDistance)
             if scaffold then
                 candidate=scaffold.point
                 candidateHeight=scaffold.height
@@ -8665,9 +8665,9 @@ local function recoverScaleFailure(targetItems,base,targetPlot,data,oldObject,ta
             )
             if movedOK and movedObject then
                 if scaffold then
-                    destroyTemporarySupport(scaffold,"scale-recovery-support-done:"..tostring(index)..":"..tostring(attempt))
+                    JBC_destroyTemporarySupport(scaffold,"scale-recovery-support-done:"..tostring(index)..":"..tostring(attempt))
                 end
-                local demolishOK,demolishResult=callRouteFast("Demolish",{kind="Item",key=oldKey},"scale-recovery-remove-old:"..tostring(index))
+                local demolishOK,demolishResult=JBC_callRouteFast("Demolish",{kind="Item",key=oldKey},"scale-recovery-remove-old:"..tostring(index))
                 if demolishOK then
                     debugLog("SCALE_RECOVERY_OK",index,data.ItemId,oldKey,tostring(movedObject.Name),candidate,targetPoint,desiredStretch,desiredBias)
                     return true,nil,movedObject
@@ -8677,14 +8677,14 @@ local function recoverScaleFailure(targetItems,base,targetPlot,data,oldObject,ta
             end
             debugLog("SCALE_RECOVERY_MOVE_FAIL",index,data.ItemId,movedResult,candidate,targetPoint)
             if scaffold then
-                destroyTemporarySupport(scaffold,"scale-recovery-support-fail:"..tostring(index)..":"..tostring(attempt))
+                JBC_destroyTemporarySupport(scaffold,"scale-recovery-support-fail:"..tostring(index)..":"..tostring(attempt))
             end
             pcall(function()
-                callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"scale-recovery-rollback:"..tostring(index)..":"..tostring(attempt))
+                JBC_callRouteFast("Demolish",{kind="Item",key=tostring(newObject.Name)},"scale-recovery-rollback:"..tostring(index)..":"..tostring(attempt))
             end)
         else
             if scaffold then
-                destroyTemporarySupport(scaffold,"scale-recovery-place-fail:"..tostring(index)..":"..tostring(attempt))
+                JBC_destroyTemporarySupport(scaffold,"scale-recovery-place-fail:"..tostring(index)..":"..tostring(attempt))
             end
             debugLog("SCALE_RECOVERY_PLACE_FAIL",index,data.ItemId,placeError,candidate,candidateHeight)
         end
@@ -8692,14 +8692,14 @@ local function recoverScaleFailure(targetItems,base,targetPlot,data,oldObject,ta
     return false,"scale-recovery-failed",oldObject
 end
 
-local function relocateTemporarySupportsToCenter(targetItems,base)
-    cleanupTemporarySupports("support-end-cleanup")
+function JBC_relocateTemporarySupportsToCenter(targetItems,base)
+    JBC_cleanupTemporarySupports("support-end-cleanup")
 end
 
-local function setArtwork(targetObject,imageId)
+function JBC_setArtwork(targetObject,imageId)
     imageId=tonumber(imageId)
     if not imageId or imageId<=0 then return true end
-    local success=callRoute("SetItemImage",{key=tostring(targetObject.Name),image=imageId},"item:"..tostring(targetObject.Name))
+    local success=JBC_callRoute("SetItemImage",{key=tostring(targetObject.Name),image=imageId},"item:"..tostring(targetObject.Name))
     if not success then return false end
     local deadline=os.clock()+0.5
     while os.clock()<deadline do
@@ -8711,7 +8711,7 @@ local function setArtwork(targetObject,imageId)
     return true
 end
 
-local function parseWallName(name)
+function JBC_parseWallName(name)
     local levelString,edgeString = tostring(name):match("^(%d+)|(.+)$")
     if not levelString or not edgeString then return nil end
     local a,b = edgeString:match("^([^>]+)>([^>]+)$")
@@ -8726,8 +8726,8 @@ local function parseWallName(name)
     }
 end
 
-local function wallExpectedKeys(wallName)
-    local parsed = parseWallName(wallName)
+function JBC_wallExpectedKeys(wallName)
+    local parsed = JBC_parseWallName(wallName)
     if not parsed then return {} end
     local result = {}
     local Walls
@@ -8745,21 +8745,21 @@ local function wallExpectedKeys(wallName)
     return result
 end
 
-local function verifyMemberKey(container,attribute,key,beforeSet)
+function JBC_verifyMemberKey(container,attribute,key,beforeSet)
     return B.waitForChildMatch(container,function(obj)
         return tostring(obj:GetAttribute(attribute)) == tostring(key)
     end,REPLICATION_TIMEOUT,beforeSet)
 end
 
-local function placeWall(targetWalls,wallData,index)
-    local parsed=parseWallName(wallData.Name)
+function JBC_placeWall(targetWalls,wallData,index)
+    local parsed=JBC_parseWallName(wallData.Name)
     if not parsed then return false,"invalid-wall-key" end
-    local success,result=callRouteFast("PlaceWalls",{mode="Chain",a=parsed.a,b=parsed.b,level=parsed.level},"wall:"..tostring(wallData.Name))
+    local success,result=JBC_callRouteFast("PlaceWalls",{mode="Chain",a=parsed.a,b=parsed.b,level=parsed.level},"wall:"..tostring(wallData.Name))
     debugLogVerbose("STRUCTURE_FAST_SEND","Wall",wallData.Name,success,result)
     return success,result
 end
 
-local function parsePathKey(key)
+function JBC_parsePathKey(key)
     local a,b = tostring(key):match("^([^>]+)>([^>]+)$")
     if not a or not b then return nil end
     local ax,az=a:match("^(%-?%d+),(%-?%d+)$")
@@ -8768,7 +8768,7 @@ local function parsePathKey(key)
     return {a={x=tonumber(ax),z=tonumber(az)},b={x=tonumber(bx),z=tonumber(bz)}}
 end
 
-local function parseFloorKey(memberKey,floorData)
+function JBC_parseFloorKey(memberKey,floorData)
     local levelString,pointsString=tostring(memberKey):match("^(%d+)|(.+)$")
     if not pointsString then return nil end
     local points={}
@@ -8784,7 +8784,7 @@ local function parseFloorKey(memberKey,floorData)
     return {level=level,points=points}
 end
 
-local function parseOpeningPolygon(points)
+function JBC_parseOpeningPolygon(points)
     local parts={}
     for _,p in ipairs(points or {}) do
         table.insert(parts,tostring(math.floor(tonumber(p.u) or 0)))
@@ -8795,8 +8795,8 @@ end
 
 function B.isNoScaleBurstSafe(base,data)
     if not data or not data.ItemId then return false end
-    local stretch=vec3Data(data.Stretch,1,1,1)
-    local bias=vec3Data(data.Bias,0,0,0)
+    local stretch=JBC_vec3Data(data.Stretch,1,1,1)
+    local bias=JBC_vec3Data(data.Bias,0,0,0)
     if stretch.x~=1 or stretch.y~=1 or stretch.z~=1 or bias.x~=0 or bias.y~=0 or bias.z~=0 then return false end
     if B.dataHeight(base,data)>0.001 then return false end
     if B.dataStand(data)~=nil or data.Surface~=nil then return false end
@@ -8876,7 +8876,7 @@ function B.placeNoScaleBurst(targetItems,batch)
                 failed[#failed+1]=entry
                 debugLog("PLACE_BURST_FAIL",entry.index,data.ItemId,entry.error)
             else
-                local reason=ok and routePayloadReason(result) or result
+                local reason=ok and JBC_routePayloadReason(result) or result
                 if not ok or reason then
                     entry.error=reason or "server-rejected"
                     failed[#failed+1]=entry
@@ -8922,11 +8922,11 @@ function B.placeNoScaleBurst(targetItems,batch)
 end
 
 function B.finalizeNoScaleBurstObject(object,data,index)
-    if data.Paint then applyPaint("Item",tostring(object.Name),data.Paint,"burst-item-paint:"..tostring(index)) end
-    if data.ArtworkImage then setArtwork(object,data.ArtworkImage) end
+    if data.Paint then JBC_applyPaint("Item",tostring(object.Name),data.Paint,"burst-item-paint:"..tostring(index)) end
+    if data.ArtworkImage then JBC_setArtwork(object,data.ArtworkImage) end
     if tostring(data.ItemId)=="circuit_panel" or data.CircuitClass=="Panel" then
         if data.SourceObject then
-            local ok,result=cloneCircuit(data.SourceObject,object)
+            local ok,result=JBC_cloneCircuit(data.SourceObject,object)
             if not ok then debugLog("CIRCUIT_FAIL",index,data.ItemId,result) end
         else
             debugLog("CIRCUIT_SKIPPED_NO_SOURCE",index,data.ItemId)
@@ -8958,8 +8958,8 @@ function B.processLateScaleQueue(queue,targetItems,base,targetPlot)
                     end
                     if retryOK then
                         debugLog("LATE_SCALE_AND_POSITION_OK",entry.index,entry.data.ItemId,currentObject.Name,currentObject:GetAttribute("Stretch"),currentObject:GetAttribute("StretchBias") or currentObject:GetAttribute("Bias"))
-                        if entry.data.Paint then applyPaint("Item",tostring(currentObject.Name),entry.data.Paint,"late-item-paint:"..tostring(entry.index)) end
-                        if entry.data.ArtworkImage then setArtwork(currentObject,entry.data.ArtworkImage) end
+                        if entry.data.Paint then JBC_applyPaint("Item",tostring(currentObject.Name),entry.data.Paint,"late-item-paint:"..tostring(entry.index)) end
+                        if entry.data.ArtworkImage then JBC_setArtwork(currentObject,entry.data.ArtworkImage) end
                     else
                         local reason=tostring(scaleReason or "scale-failed")
                         debugLog("LATE_SCALE_FAIL",entry.index,entry.data.ItemId,reason)
@@ -8975,7 +8975,7 @@ function B.processLateScaleQueue(queue,targetItems,base,targetPlot)
                             end
                             if retry2OK then
                                 debugLog("LATE_SCALE_AND_POSITION_RETRY_OK",entry.index,entry.data.ItemId,currentObject.Name)
-                                if entry.data.Paint then applyPaint("Item",tostring(currentObject.Name),entry.data.Paint,"late-item-paint-retry:"..tostring(entry.index)) end
+                                if entry.data.Paint then JBC_applyPaint("Item",tostring(currentObject.Name),entry.data.Paint,"late-item-paint-retry:"..tostring(entry.index)) end
                             else
                                 debugLog("LATE_SCALE_RETRY_FAIL",entry.index,entry.data.ItemId)
                             end
@@ -9023,7 +9023,7 @@ function sendFastBatched(dataList,routeName,payloadBuilder,contextBuilder)
             else
                 context=routeName..":"..tostring(index)
             end
-            local sent,result=callRouteFast(routeName,payload,context)
+            local sent,result=JBC_callRouteFast(routeName,payload,context)
             if not sent then
                 debugLog("STRUCTURE_FAST_SEND_FAIL",routeName,index,result,context)
             end
@@ -9055,7 +9055,7 @@ function syncMissingWalls(targetWalls,dataList)
     local verified={}
     if not targetWalls or type(dataList)~="table" then return verified end
     local function wallReady(data)
-        local expected=wallExpectedKeys(data.Name)
+        local expected=JBC_wallExpectedKeys(data.Name)
         if #expected==0 then return false end
         for _,key in ipairs(expected) do
             local found=B.waitForChildMatch(targetWalls,function(obj)
@@ -9088,7 +9088,7 @@ function applyWallPaintFast(wallData)
     if not wallData or type(wallData.Paint)~="table" then return end
     local faces=wallData.Paint.Faces
     if type(faces)~="table" then return end
-    local parsed=parseWallName(wallData.Name)
+    local parsed=JBC_parseWallName(wallData.Name)
     if not parsed then return end
     local Walls
     pcall(function() Walls=require(ReplicatedStorage.Shared.Building.Walls) end)
@@ -9099,8 +9099,8 @@ function applyWallPaintFast(wallData)
     for _,face in ipairs({1,-1}) do
         local faceData=faces[face]
         if type(faceData)=="table" then
-            if faceData.Panel then applyPaint("Wall",baseKey.."|"..tostring(face),faceData.Panel,"wall-panel:"..tostring(wallData.Name)..":"..tostring(face)) end
-            if faceData.Trim then applyPaint("Trim",baseKey.."|"..tostring(face),faceData.Trim,"wall-trim:"..tostring(wallData.Name)..":"..tostring(face)) end
+            if faceData.Panel then JBC_applyPaint("Wall",baseKey.."|"..tostring(face),faceData.Panel,"wall-panel:"..tostring(wallData.Name)..":"..tostring(face)) end
+            if faceData.Trim then JBC_applyPaint("Trim",baseKey.."|"..tostring(face),faceData.Trim,"wall-trim:"..tostring(wallData.Name)..":"..tostring(face)) end
         end
     end
 end
@@ -9112,11 +9112,11 @@ function applyFloorPaintFast(floorData)
     local half=floorData.SlabHalf
     if half=="top" or half=="bottom" then
         pcall(function()
-            applyPaint("Floor",tostring(key).."|"..half,floorData.Paint,"floor-paint:"..tostring(key)..":"..half)
+            JBC_applyPaint("Floor",tostring(key).."|"..half,floorData.Paint,"floor-paint:"..tostring(key)..":"..half)
         end)
     else
         pcall(function()
-            applyPaint("Floor",tostring(key),floorData.Paint,"floor-paint:"..tostring(key))
+            JBC_applyPaint("Floor",tostring(key),floorData.Paint,"floor-paint:"..tostring(key))
         end)
     end
 end
@@ -9128,12 +9128,12 @@ function applyRoofPaintFast(roofData)
     local paint=roofData.Paint
     if paint.Shell then
         pcall(function()
-            applyPaint("Roof",tostring(key).."|Shell",paint.Shell,"roof-shell:"..tostring(key))
+            JBC_applyPaint("Roof",tostring(key).."|Shell",paint.Shell,"roof-shell:"..tostring(key))
         end)
     end
     if paint.Trim then
         pcall(function()
-            applyPaint("Trim",tostring(key).."|Trim",paint.Trim,"roof-trim:"..tostring(key))
+            JBC_applyPaint("Trim",tostring(key).."|Trim",paint.Trim,"roof-trim:"..tostring(key))
         end)
     end
 end
@@ -9146,7 +9146,7 @@ function applyStairPaintFast(stairData)
         local paint=stairData.Paint[slot]
         if paint then
             pcall(function()
-                applyPaint("Stair",tostring(key).."|"..slot,paint,"stair-paint:"..tostring(key)..":"..slot)
+                JBC_applyPaint("Stair",tostring(key).."|"..slot,paint,"stair-paint:"..tostring(key)..":"..slot)
             end)
         end
     end
@@ -9157,14 +9157,14 @@ function applyPathPaintFast(pathData)
     local key=pathData.MemberKey
     if key==nil then return end
     pcall(function()
-        applyPaint("Path",tostring(key),pathData.Paint,"path-paint:"..tostring(key))
+        JBC_applyPaint("Path",tostring(key),pathData.Paint,"path-paint:"..tostring(key))
     end)
 end
 
-local function pasteCacheToPlotInternal(targetPlot)
+function JBC_pasteCacheToPlotInternal(targetPlot)
     stopCopy = false
     stopDemolish = true
-    cleanupTemporarySupports("copy-start-cleanup")
+    JBC_cleanupTemporarySupports("copy-start-cleanup")
     temporarySupportState = {}
     if not BuildCache then
         warn("Primero usa Copiar")
@@ -9237,7 +9237,7 @@ local function pasteCacheToPlotInternal(targetPlot)
             advance("Walls",index,#BuildCache.Walls)
         end
         sendFastBatched(BuildCache.Walls,"PlaceWalls",function(data)
-            local parsed=parseWallName(data.Name)
+            local parsed=JBC_parseWallName(data.Name)
             return {mode="Chain",a=parsed.a,b=parsed.b,level=parsed.level}
         end,function(data)
             return "wall:"..tostring(data.Name)
@@ -9259,16 +9259,16 @@ local function pasteCacheToPlotInternal(targetPlot)
         end
         local validPaths={}
         for _,data in ipairs(BuildCache.Paths) do
-            if parsePathKey(data.MemberKey) then validPaths[#validPaths+1]=data end
+            if JBC_parsePathKey(data.MemberKey) then validPaths[#validPaths+1]=data end
         end
         sendFastBatched(validPaths,"PlacePath",function(data)
-            local path=parsePathKey(data.MemberKey)
+            local path=JBC_parsePathKey(data.MemberKey)
             return {mode="Chain",a=path.a,b=path.b}
         end,function(data)
             return "path:"..tostring(data.MemberKey)
         end)
         local verified=syncMissingMembers(TargetPaths,validPaths,function(data) return data.MemberKey end,"Caminos",function(data)
-            local path=parsePathKey(data.MemberKey)
+            local path=JBC_parsePathKey(data.MemberKey)
             return {mode="Chain",a=path.a,b=path.b}
         end,"path")
         local verifiedByKey={}
@@ -9285,18 +9285,18 @@ local function pasteCacheToPlotInternal(targetPlot)
         end
         local validFloors={}
         for index,data in ipairs(BuildCache.Floors) do
-            if parseFloorKey(data.MemberKey,data) then
+            if JBC_parseFloorKey(data.MemberKey,data) then
                 validFloors[#validFloors+1]=data
             end
         end
         sendFastBatched(validFloors,"PlaceFloor",function(data)
-            local parsed=parseFloorKey(data.MemberKey,data)
+            local parsed=JBC_parseFloorKey(data.MemberKey,data)
             return {mode="Manual",points=parsed.points,level=parsed.level}
         end,function(data)
             return "floor:"..tostring(data.MemberKey)
         end)
         local verified=syncMissingMembers(TargetFloors,validFloors,function(data) return data.MemberKey end,"Suelos",function(data)
-            local parsed=parseFloorKey(data.MemberKey,data)
+            local parsed=JBC_parseFloorKey(data.MemberKey,data)
             return {mode="Manual",points=parsed.points,level=parsed.level}
         end,"floor")
         local verifiedByKey={}
@@ -9461,7 +9461,7 @@ local function pasteCacheToPlotInternal(targetPlot)
                             candidateData.PlaceStand=nil
                             debugLog("FALLBACK_SUPPORT_FOUND",index,data.ItemId,attempt,candidate,candidateHeight,support.distance,support.part)
                         else
-                            local scaffold=createTemporarySupport(TargetItems,TargetBase,MyPlot,point,height,index,wantedDistance)
+                            local scaffold=JBC_createTemporarySupport(TargetItems,TargetBase,MyPlot,point,height,index,wantedDistance)
                             if scaffold then
                                 activeTemporarySupport=scaffold
                                 candidate=scaffold.point
@@ -9495,7 +9495,7 @@ local function pasteCacheToPlotInternal(targetPlot)
                     end
                     requestError=err
                     if activeTemporarySupport then
-                        destroyTemporarySupport(activeTemporarySupport,"support-place-fail:"..tostring(index)..":"..tostring(attempt))
+                        JBC_destroyTemporarySupport(activeTemporarySupport,"support-place-fail:"..tostring(index)..":"..tostring(attempt))
                         activeTemporarySupport=nil
                     end
                     if err ~= "unsupported" and err ~= "not supported" then
@@ -9525,8 +9525,8 @@ local function pasteCacheToPlotInternal(targetPlot)
                 end
 
                 local hasSourceStretch=data.Stretch~=nil
-                local transformStretch=hasSourceStretch and vec3Data(data.Stretch,0,0,0) or {x=0,y=0,z=0}
-                local transformBias=vec3Data(data.Bias,0,0,0)
+                local transformStretch=hasSourceStretch and JBC_vec3Data(data.Stretch,0,0,0) or {x=0,y=0,z=0}
+                local transformBias=JBC_vec3Data(data.Bias,0,0,0)
                 local scaleNeeded=transformStretch.x~=0 or transformStretch.y~=0 or transformStretch.z~=0 or transformBias.x~=0 or transformBias.y~=0 or transformBias.z~=0
 
                 if usedAttempt>0 then
@@ -9534,17 +9534,17 @@ local function pasteCacheToPlotInternal(targetPlot)
                     if movedOK and movedObject then
                         placedObject=movedObject
                         if activeTemporarySupport then
-                            destroyTemporarySupport(activeTemporarySupport,"support-used:"..tostring(index))
+                            JBC_destroyTemporarySupport(activeTemporarySupport,"support-used:"..tostring(index))
                             activeTemporarySupport=nil
                         end
                         debugLog("OBJECT_FALLBACK_FINALIZED",index,data.ItemId,usedAttempt,usedPoint,point,placedObject:GetAttribute("Stretch"),placedObject:GetAttribute("StretchBias") or placedObject:GetAttribute("Bias"))
                     else
                         debugLog("OBJECT_MOVE_FALLBACK_FAIL",index,data.ItemId,movedResult,usedPoint,point)
                         if activeTemporarySupport then
-                            destroyTemporarySupport(activeTemporarySupport,"support-move-fail:"..tostring(index))
+                            JBC_destroyTemporarySupport(activeTemporarySupport,"support-move-fail:"..tostring(index))
                             activeTemporarySupport=nil
                         end
-                        local recoverOK,recoverResult,recoverObject=recoverScaleFailure(
+                        local recoverOK,recoverResult,recoverObject=JBC_recoverScaleFailure(
                             TargetItems,TargetBase,MyPlot,data,placedObject,point,height,rotation,index
                         )
                         if recoverOK and recoverObject then
@@ -9553,7 +9553,7 @@ local function pasteCacheToPlotInternal(targetPlot)
                         else
                             local failKey=placedObject and tostring(placedObject.Name) or nil
                             if failKey then
-                                callRouteFast("Demolish",{kind="Item",key=failKey},"fallback-failed-cleanup:"..tostring(index))
+                                JBC_callRouteFast("Demolish",{kind="Item",key=failKey},"fallback-failed-cleanup:"..tostring(index))
                             end
                             placedObject=nil
                             requestError=tostring(movedResult or recoverResult or "fallback-failed")
@@ -9603,7 +9603,7 @@ local function pasteCacheToPlotInternal(targetPlot)
                 local roll=tonumber(data.PlaceRoll) or 0
                 if pitch~=0 or roll~=0 then
                     debugLog("PITCH_ROLL_NEEDS_TRANSFORM",index,data.ItemId,pitch,roll)
-                    local transformOK,transformResult=callRoute("TransformItem",{
+                    local transformOK,transformResult=JBC_callRoute("TransformItem",{
                         key=tostring(placedObject.Name),point={x=point.x,z=point.z},height=height,rotation=rotation,
                         pitch=math.round(pitch)%ROTATION_UNITS,roll=math.round(roll)%ROTATION_UNITS,
                         stretch=transformStretch,bias=transformBias,surface=data.Surface,stand=stand
@@ -9612,8 +9612,8 @@ local function pasteCacheToPlotInternal(targetPlot)
                 end
 
                 if scaleNeeded and (pitch~=0 or roll~=0) then
-                    local verifyStretch=vec3Data(data.Stretch,0,0,0)
-                    local verifyBias=vec3Data(data.Bias,0,0,0)
+                    local verifyStretch=JBC_vec3Data(data.Stretch,0,0,0)
+                    local verifyBias=JBC_vec3Data(data.Bias,0,0,0)
                     if usedAttempt>0 then
                         local _,currentBias=B.readExactScaleState(placedObject,TargetBase,rotation)
                         verifyBias=currentBias
@@ -9628,15 +9628,15 @@ local function pasteCacheToPlotInternal(targetPlot)
                 end
 
                 if activeTemporarySupport then
-                    destroyTemporarySupport(activeTemporarySupport,"support-finalize:"..tostring(index))
+                    JBC_destroyTemporarySupport(activeTemporarySupport,"support-finalize:"..tostring(index))
                     activeTemporarySupport=nil
                 end
 
-                if data.Paint then applyPaint("Item",tostring(placedObject.Name),data.Paint,"item-paint:"..tostring(index)) end
-                if data.ArtworkImage then setArtwork(placedObject,data.ArtworkImage) end
+                if data.Paint then JBC_applyPaint("Item",tostring(placedObject.Name),data.Paint,"item-paint:"..tostring(index)) end
+                if data.ArtworkImage then JBC_setArtwork(placedObject,data.ArtworkImage) end
                 if tostring(data.ItemId)=="circuit_panel" or data.CircuitClass=="Panel" then
                     if data.SourceObject then
-                        local circuitOK,circuitResult=cloneCircuit(data.SourceObject,placedObject)
+                        local circuitOK,circuitResult=JBC_cloneCircuit(data.SourceObject,placedObject)
                         if not circuitOK then debugLog("CIRCUIT_FAIL",index,data.ItemId,circuitResult) end
                     else
                         debugLog("CIRCUIT_SKIPPED_NO_SOURCE",index,data.ItemId)
@@ -9709,7 +9709,7 @@ local function pasteCacheToPlotInternal(targetPlot)
     JmodsBuildStatus:Update("Limpieza","Eliminando soportes temporales...")
     B.clearSupportIndex()
     B.clearSupportRaycastCache(MyPlot)
-    cleanupTemporarySupports(stopCopy and "support-stop-cleanup" or "support-copy-end-cleanup")
+    JBC_cleanupTemporarySupports(stopCopy and "support-stop-cleanup" or "support-copy-end-cleanup")
 
     JmodsBuildStatus:Update("Finalizando","Copia finalizada. Cerrando progreso...")
     JmodsBuildStatus:Finish()
@@ -9736,12 +9736,12 @@ local DEMOLISH_SINGLE_GAP=0.045
 local DEMOLISH_BURST_SIZE=20
 local DEMOLISH_BURST_GAP=0.12
 
-local function getContainerFolder(plot,name)
+function JBC_getContainerFolder(plot,name)
     local container=plot and plot:FindFirstChild("Container")
     return container and container:FindFirstChild(name) or nil
 end
 
-local function collectDemolishKeys(folder,isItems)
+function JBC_collectDemolishKeys(folder,isItems)
     local keys={}
     local seen={}
     if not folder then return keys end
@@ -9766,7 +9766,7 @@ local function collectDemolishKeys(folder,isItems)
     return keys
 end
 
-local function sendDemolishFast(kind,key,context)
+function JBC_sendDemolishFast(kind,key,context)
     local ok,err=pcall(function()
         Net.Demolish.invoke({kind=kind,key=tostring(key)})
     end)
@@ -9778,10 +9778,10 @@ local function sendDemolishFast(kind,key,context)
     return true,nil
 end
 
-local function demolishAllKeysFast(kind,keys,stage,counts)
+function JBC_demolishAllKeysFast(kind,keys,stage,counts)
     for index,key in ipairs(keys) do
         if stopDemolish then return end
-        local ok=sendDemolishFast(kind,key,"demolish:"..stage..":"..tostring(index))
+        local ok=JBC_sendDemolishFast(kind,key,"demolish:"..stage..":"..tostring(index))
         if ok then
             counts.done+=1
         else
@@ -9797,7 +9797,7 @@ local function demolishAllKeysFast(kind,keys,stage,counts)
     end
 end
 
-local function demolishAllSelectedPlot()
+function JBC_demolishAllSelectedPlot()
     if copyRunning then
         JmodsLib:Notify({Title="Demolición",Content="Primero detén la copia en curso.",Duration=3})
         return
@@ -9823,21 +9823,21 @@ local function demolishAllSelectedPlot()
     DemolishPlot=plot
     DemolishObjectId=plot:GetAttribute("ObjectId")
     DemolishOwnerId=plot:GetAttribute("OwnerId")
-    cleanupTemporarySupports("demolish-before-start")
+    JBC_cleanupTemporarySupports("demolish-before-start")
     demolishRunning=true
     stopDemolish=false
     stopCopy=true
     debugLog("DEMOLISH_ALL_BEGIN",plot,DemolishObjectId,DemolishOwnerId)
 
     local counts={items=0,openings=0,roofs=0,stairs=0,floors=0,walls=0,paths=0,trims=0,failed=0,total=0,done=0}
-    local itemKeys=collectDemolishKeys(getContainerFolder(plot,"Items"),true)
-    local openingKeys=collectDemolishKeys(getContainerFolder(plot,"Openings"),false)
-    local roofKeys=collectDemolishKeys(getContainerFolder(plot,"Roofs"),false)
-    local stairKeys=collectDemolishKeys(getContainerFolder(plot,"Stairs"),false)
-    local floorKeys=collectDemolishKeys(getContainerFolder(plot,"Floors"),false)
-    local wallKeys=collectDemolishKeys(getContainerFolder(plot,"Walls"),false)
-    local pathKeys=collectDemolishKeys(getContainerFolder(plot,"Paths"),false)
-    local trimKeys=collectDemolishKeys(getContainerFolder(plot,"Trims"),false)
+    local itemKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Items"),true)
+    local openingKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Openings"),false)
+    local roofKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Roofs"),false)
+    local stairKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Stairs"),false)
+    local floorKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Floors"),false)
+    local wallKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Walls"),false)
+    local pathKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Paths"),false)
+    local trimKeys=JBC_collectDemolishKeys(JBC_getContainerFolder(plot,"Trims"),false)
 
     counts.items=#itemKeys
     counts.openings=#openingKeys
@@ -9850,14 +9850,14 @@ local function demolishAllSelectedPlot()
     counts.total=counts.items+counts.openings+counts.roofs+counts.stairs+counts.floors+counts.walls+counts.paths+counts.trims
 
     JmodsBuildProgress:Start(counts.total)
-    demolishAllKeysFast("Item",itemKeys,"Items",counts)
-    demolishAllKeysFast("Opening",openingKeys,"Openings",counts)
-    demolishAllKeysFast("Roof",roofKeys,"Roofs",counts)
-    demolishAllKeysFast("Stair",stairKeys,"Stairs",counts)
-    demolishAllKeysFast("Floor",floorKeys,"Floors",counts)
-    demolishAllKeysFast("Wall",wallKeys,"Walls",counts)
-    demolishAllKeysFast("Path",pathKeys,"Paths",counts)
-    demolishAllKeysFast("Trim",trimKeys,"Trims",counts)
+    JBC_demolishAllKeysFast("Item",itemKeys,"Items",counts)
+    JBC_demolishAllKeysFast("Opening",openingKeys,"Openings",counts)
+    JBC_demolishAllKeysFast("Roof",roofKeys,"Roofs",counts)
+    JBC_demolishAllKeysFast("Stair",stairKeys,"Stairs",counts)
+    JBC_demolishAllKeysFast("Floor",floorKeys,"Floors",counts)
+    JBC_demolishAllKeysFast("Wall",wallKeys,"Walls",counts)
+    JBC_demolishAllKeysFast("Path",pathKeys,"Paths",counts)
+    JBC_demolishAllKeysFast("Trim",trimKeys,"Trims",counts)
 
     if stopDemolish then
         JmodsBuildProgress:Update(counts.done,"Demolición detenida",counts.done,counts.total,counts.total)
@@ -9875,8 +9875,8 @@ local function demolishAllSelectedPlot()
     stopCopy=false
 end
 
-local function demolishAllSelectedPlotSafe()
-    local ok,err=xpcall(demolishAllSelectedPlot,debug.traceback)
+function JBC_demolishAllSelectedPlotSafe()
+    local ok,err=xpcall(JBC_demolishAllSelectedPlot,debug.traceback)
     if not ok then
         demolishRunning=false
         stopDemolish=true
@@ -9887,17 +9887,17 @@ local function demolishAllSelectedPlotSafe()
     end
 end
 
-local function pasteCacheToPlot(targetPlot)
+function JBC_pasteCacheToPlot(targetPlot)
     if demolishRunning then
         JmodsLib:Notify({Title="Copia",Content="Primero detén la demolición en curso.",Duration=3})
         return
     end
     local ok,err=xpcall(function()
-        pasteCacheToPlotInternal(targetPlot)
+        JBC_pasteCacheToPlotInternal(targetPlot)
     end,debug.traceback)
     if not ok then
         copyRunning=false
-        cleanupTemporarySupports("copy-error-cleanup")
+        JBC_cleanupTemporarySupports("copy-error-cleanup")
         debugLog("COPY_ERROR",err)
         warn("JmodsBuildingCopier error:",err)
     end
@@ -9906,7 +9906,7 @@ end
 BuildingTab:CreateButton({
     Name = "Pegar",
     Callback = function()
-        pasteCacheToPlot(nil)
+        JBC_pasteCacheToPlot(nil)
     end
 })
 
@@ -9985,7 +9985,7 @@ local SaveFileName = ""
 local SelectedSaveFile = nil
 local SavedFilesDropdown = nil
 
-local function fileApiAvailable(name)
+function JBC_fileApiAvailable(name)
     if name == "isfolder" then
         return type(isfolder) == "function"
     elseif name == "makefolder" then
@@ -10003,8 +10003,8 @@ local function fileApiAvailable(name)
     return false
 end
 
-local function callGlobalFunction(name, ...)
-    if not fileApiAvailable(name) then
+function JBC_callGlobalFunction(name, ...)
+    if not JBC_fileApiAvailable(name) then
         return false, "API no disponible: " .. name
     end
 
@@ -10025,18 +10025,18 @@ local function callGlobalFunction(name, ...)
     return false, "API no disponible: " .. name
 end
 
-local function ensureSaveFolder()
-    if not fileApiAvailable("isfolder") or not fileApiAvailable("makefolder") then
+function JBC_ensureSaveFolder()
+    if not JBC_fileApiAvailable("isfolder") or not JBC_fileApiAvailable("makefolder") then
         return false
     end
 
-    local ok, exists = callGlobalFunction("isfolder", SAVE_FOLDER)
+    local ok, exists = JBC_callGlobalFunction("isfolder", SAVE_FOLDER)
     if not ok then
         return false
     end
 
     if not exists then
-        local created = callGlobalFunction("makefolder", SAVE_FOLDER)
+        local created = JBC_callGlobalFunction("makefolder", SAVE_FOLDER)
         if not created then
             return false
         end
@@ -10045,7 +10045,7 @@ local function ensureSaveFolder()
     return true
 end
 
-local function sanitizeFileName(name)
+function JBC_sanitizeFileName(name)
     name = tostring(name or "")
     name = name:gsub("[^%w%s_%-]", "_")
     name = name:gsub("%s+", "_")
@@ -10055,7 +10055,7 @@ local function sanitizeFileName(name)
     return name
 end
 
-local function encodeValue(value, seen)
+function JBC_encodeValue(value, seen)
     local valueType = typeof(value)
 
     if value == nil
@@ -10120,7 +10120,7 @@ local function encodeValue(value, seen)
     local arrayCount = #value
 
     for i = 1, arrayCount do
-        local encoded = encodeValue(value[i], seen)
+        local encoded = JBC_encodeValue(value[i], seen)
         result.array[i] = encoded
     end
 
@@ -10132,8 +10132,8 @@ local function encodeValue(value, seen)
             and key <= arrayCount
             and key % 1 == 0
         ) then
-            local encodedKey = encodeValue(key, seen)
-            local encodedValue = encodeValue(val, seen)
+            local encodedKey = JBC_encodeValue(key, seen)
+            local encodedValue = JBC_encodeValue(val, seen)
 
             if encodedKey ~= nil and encodedValue ~= nil then
                 table.insert(result.map, {
@@ -10148,7 +10148,7 @@ local function encodeValue(value, seen)
     return result
 end
 
-local function decodeValue(value)
+function JBC_decodeValue(value)
     if type(value) ~= "table" then
         return value
     end
@@ -10181,7 +10181,7 @@ local function decodeValue(value)
 
         local array = type(value.array) == "table" and value.array or {}
         for i, item in ipairs(array) do
-            local decoded = decodeValue(item)
+            local decoded = JBC_decodeValue(item)
             if decoded ~= nil then
                 result[i] = decoded
             end
@@ -10190,8 +10190,8 @@ local function decodeValue(value)
         local map = type(value.map) == "table" and value.map or {}
         for _, entry in ipairs(map) do
             if type(entry) == "table" then
-                local decodedKey = decodeValue(entry.key)
-                local decodedValue = decodeValue(entry.value)
+                local decodedKey = JBC_decodeValue(entry.key)
+                local decodedValue = JBC_decodeValue(entry.value)
 
                 if decodedKey ~= nil and decodedValue ~= nil then
                     result[decodedKey] = decodedValue
@@ -10204,7 +10204,7 @@ local function decodeValue(value)
 
     local result = {}
     for key, item in pairs(value) do
-        local decoded = decodeValue(item)
+        local decoded = JBC_decodeValue(item)
         if decoded ~= nil then
             result[key] = decoded
         end
@@ -10213,17 +10213,17 @@ local function decodeValue(value)
     return result
 end
 
-local function getSavedFiles()
-    if not fileApiAvailable("listfiles")
-    or not fileApiAvailable("isfile") then
+function JBC_getSavedFiles()
+    if not JBC_fileApiAvailable("listfiles")
+    or not JBC_fileApiAvailable("isfile") then
         return {}
     end
 
-    if not ensureSaveFolder() then
+    if not JBC_ensureSaveFolder() then
         return {}
     end
 
-    local ok, entries = callGlobalFunction("listfiles", SAVE_FOLDER)
+    local ok, entries = JBC_callGlobalFunction("listfiles", SAVE_FOLDER)
     if not ok or type(entries) ~= "table" then
         return {}
     end
@@ -10244,8 +10244,8 @@ local function getSavedFiles()
     return files
 end
 
-local function refreshSavedFiles()
-    local files = getSavedFiles()
+function JBC_refreshSavedFiles()
+    local files = JBC_getSavedFiles()
 
     if SelectedSaveFile then
         local stillExists = false
@@ -10271,7 +10271,7 @@ local function refreshSavedFiles()
     return files
 end
 
-local function getCacheForSave()
+function JBC_getCacheForSave()
     if not BuildCache then
         return nil
     end
@@ -10288,32 +10288,32 @@ local function getCacheForSave()
     }
 end
 
-local function saveCacheToFile(name)
-    local cleanName = sanitizeFileName(name)
+function JBC_saveCacheToFile(name)
+    local cleanName = JBC_sanitizeFileName(name)
 
     if cleanName == "" then
         warn("ESCRIBE UN NOMBRE PARA EL ARCHIVO")
         return
     end
 
-    if not fileApiAvailable("writefile") then
+    if not JBC_fileApiAvailable("writefile") then
         warn("TU EXECUTOR NO SOPORTA writefile")
         return
     end
 
-    local cache = getCacheForSave()
+    local cache = JBC_getCacheForSave()
     if not cache then
         warn("NO HAY CACHE PARA GUARDAR")
         return
     end
 
-    if not ensureSaveFolder() then
+    if not JBC_ensureSaveFolder() then
         warn("NO SE PUDO ACCEDER A LA CARPETA DE GUARDADOS")
         return
     end
 
     local okEncode, payload = pcall(function()
-        local prepared = encodeValue(cache)
+        local prepared = JBC_encodeValue(cache)
         return HttpService:JSONEncode(prepared)
     end)
 
@@ -10324,14 +10324,14 @@ local function saveCacheToFile(name)
 
     local path = SAVE_FOLDER .. "/" .. cleanName .. SAVE_EXTENSION
 
-    local okWrite, writeResult = callGlobalFunction("writefile", path, payload)
+    local okWrite, writeResult = JBC_callGlobalFunction("writefile", path, payload)
     if not okWrite then
         warn("ERROR GUARDANDO ARCHIVO:", writeResult)
         return
     end
 
     SelectedSaveFile = cleanName .. SAVE_EXTENSION
-    refreshSavedFiles()
+    JBC_refreshSavedFiles()
 
     JmodsLib:Notify({
         Title = "Cache guardado",
@@ -10340,7 +10340,7 @@ local function saveCacheToFile(name)
     })
 end
 
-local function loadCacheFromFile(fileName)
+function JBC_loadCacheFromFile(fileName)
     if demolishRunning then
         JmodsLib:Notify({Title="Carga",Content="Primero detén la demolición en curso.",Duration=3})
         return
@@ -10350,27 +10350,27 @@ local function loadCacheFromFile(fileName)
         return
     end
 
-    if not fileApiAvailable("readfile")
-    or not fileApiAvailable("isfile") then
+    if not JBC_fileApiAvailable("readfile")
+    or not JBC_fileApiAvailable("isfile") then
         warn("TU EXECUTOR NO SOPORTA ARCHIVOS LOCALES")
         return
     end
 
-    if not ensureSaveFolder() then
+    if not JBC_ensureSaveFolder() then
         warn("NO SE PUDO ACCEDER A LA CARPETA DE GUARDADOS")
         return
     end
 
     local path = SAVE_FOLDER .. "/" .. tostring(fileName)
 
-    local okExists, exists = callGlobalFunction("isfile", path)
+    local okExists, exists = JBC_callGlobalFunction("isfile", path)
     if not okExists or not exists then
         warn("NO EXISTE EL ARCHIVO:", tostring(fileName))
-        refreshSavedFiles()
+        JBC_refreshSavedFiles()
         return
     end
 
-    local okRead, content = callGlobalFunction("readfile", path)
+    local okRead, content = JBC_callGlobalFunction("readfile", path)
     if not okRead or type(content) ~= "string" then
         warn("ERROR LEYENDO ARCHIVO:", content)
         return
@@ -10386,7 +10386,7 @@ local function loadCacheFromFile(fileName)
     end
 
     local okConvert, decoded = pcall(function()
-        return decodeValue(parsed)
+        return JBC_decodeValue(parsed)
     end)
 
     if not okConvert or type(decoded) ~= "table" then
@@ -10416,7 +10416,7 @@ local function loadCacheFromFile(fileName)
         + #BuildCache.Roofs
 
     SelectedSaveFile = tostring(fileName)
-    refreshSavedFiles()
+    JBC_refreshSavedFiles()
 
     JmodsLib:Notify({
         Title = "Cache cargado",
@@ -10434,7 +10434,7 @@ local function loadCacheFromFile(fileName)
     end
 
     if target then
-        pasteCacheToPlot(target)
+        JBC_pasteCacheToPlot(target)
     else
         warn("NO SE ENCONTRÓ PLOT PARA PEGAR EL GUARDADO")
     end
@@ -10465,7 +10465,7 @@ DemolishDropdown = BuildingTab:CreateDropdown({
 
 BuildingTab:CreateButton({
     Name = "Demoler/Vender todo",
-    Callback = demolishAllSelectedPlotSafe
+    Callback = JBC_demolishAllSelectedPlotSafe
 })
 
 BuildingTab:CreateInput({
@@ -10479,13 +10479,13 @@ BuildingTab:CreateInput({
 BuildingTab:CreateButton({
     Name = "Guardar cache",
     Callback = function()
-        saveCacheToFile(SaveFileName)
+        JBC_saveCacheToFile(SaveFileName)
     end
 })
 
 SavedFilesDropdown = BuildingTab:CreateDropdown({
     Name = "Archivos guardados",
-    Options = refreshSavedFiles(),
+    Options = JBC_refreshSavedFiles(),
     CurrentOption = SelectedSaveFile,
     Callback = function(option)
         SelectedSaveFile = option
@@ -10514,8 +10514,680 @@ SavedPasteDropdown = BuildingTab:CreateDropdown({
 BuildingTab:CreateButton({
     Name = "Cargar guardado",
     Callback = function()
-        loadCacheFromFile(SelectedSaveFile)
+        JBC_loadCacheFromFile(SelectedSaveFile)
     end
 })
+
+
+--==================================================
+-- PIXELES: PARED DE BLOQUES block_cube_2
+--==================================================
+BuildingTab:CreateSection("Pixeles")
+
+local PixelHeight = 35
+local PixelWidth = 35
+local PixelGap = 0
+local PixelColor = Color3.fromRGB(55, 170, 255)
+local PixelApplyColor = false
+local PixelPreviewEnabled = false
+local PixelPreviewLocked = false
+local PixelPreviewFolder = nil
+local PixelPreviewConnection = nil
+local PixelBuilding = false
+local PixelCurrentLayout = nil
+local PixelLockedLayout = nil
+local PixelBlockDimensions = nil
+local PixelYawOverride = nil
+local PixelAutoRotation = true
+local PixelPointFixed = false
+local PIXEL_MAX_BLOCKS = 1600
+
+function JBC_pixelNotify(title,content)
+    pcall(function()
+        JmodsLib:Notify({Title=title,Content=content,Duration=4})
+    end)
+end
+
+function JBC_pixelGetContext()
+    local plot=getMyPlot()
+    if not plot then return nil,"No se encontró tu parcela." end
+    local container=plot:FindFirstChild("Container")
+    local base=plot:FindFirstChild("Base")
+    local items=container and container:FindFirstChild("Items")
+    if not (base and base:IsA("BasePart") and items) then
+        return nil,"No se encontró Base o Container/Items en tu parcela."
+    end
+    return {plot=plot,base=base,items=items}
+end
+
+-- Obtiene el tamaño REAL del asset original del catálogo; nunca lo adivina ni lo escala.
+function JBC_pixelGetBlockDimensions(context)
+    if PixelBlockDimensions and PixelBlockDimensions.X > 0 and PixelBlockDimensions.Y > 0 and PixelBlockDimensions.Z > 0 then
+        return PixelBlockDimensions
+    end
+
+    local replicatedStorage=game:GetService("ReplicatedStorage")
+    local assetRoot=replicatedStorage:FindFirstChild("Instances")
+    if assetRoot then
+        local buildingRoot=assetRoot:FindFirstChild("Building") or assetRoot
+        local buildRoot=buildingRoot:FindFirstChild("Build",true)
+        local blocksRoot=buildRoot and buildRoot:FindFirstChild("Blocks",true)
+        local template=blocksRoot and blocksRoot:FindFirstChild("Cube 2")
+        if template and (template:IsA("Model") or template:IsA("BasePart")) then
+            local ok,_,size=pcall(function()
+                if template:IsA("Model") then return template:GetBoundingBox() end
+                return template.CFrame,template.Size
+            end)
+            if ok and typeof(size)=="Vector3" and size.X>0 and size.Y>0 and size.Z>0 then
+                PixelBlockDimensions=size
+                debugLog("PIXEL_NATIVE_ASSET_SIZE",size)
+                return size
+            end
+        end
+    end
+
+    -- BuildAssetSizeV0 guarda las dimensiones originales del asset, incluso si
+    -- una instancia colocada posteriormente fue redimensionada.
+    if context and context.items then
+        for _,object in ipairs(context.items:GetChildren()) do
+            if object:GetAttribute("ItemId")=="block_cube_2" then
+                local originalSize=object:GetAttribute("BuildAssetSizeV0")
+                if typeof(originalSize)=="Vector3" and originalSize.X>0 and originalSize.Y>0 and originalSize.Z>0 then
+                    PixelBlockDimensions=originalSize
+                    debugLog("PIXEL_NATIVE_SIZE_FROM_ATTRIBUTE",originalSize,object.Name)
+                    return originalSize
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+function JBC_pixelGetDimensions()
+    local h=math.clamp(math.floor(tonumber(PixelHeight) or 35),1,40)
+    local w=math.clamp(math.floor(tonumber(PixelWidth) or 35),1,40)
+    local gap=math.clamp(tonumber(PixelGap) or 0,0,4)
+    return h,w,gap
+end
+
+function JBC_pixelDestroyPreview()
+    if PixelPreviewConnection then
+        PixelPreviewConnection:Disconnect()
+        PixelPreviewConnection=nil
+    end
+    if PixelPreviewFolder then
+        PixelPreviewFolder:Destroy()
+        PixelPreviewFolder=nil
+    end
+    PixelCurrentLayout=nil
+    PixelLockedLayout=nil
+    PixelPreviewLocked=false
+end
+
+function JBC_pixelGetLayout(context)
+    local camera=workspace.CurrentCamera
+    if not camera then return nil end
+    local base=context.base
+    local blockSize=JBC_pixelGetBlockDimensions(context)
+    if not blockSize then
+        JBC_pixelNotify("Pixeles","No pude leer las dimensiones originales de Cube 2. Coloca un bloque normal de ese tipo en tu parcela y vuelve a intentarlo.")
+        return nil
+    end
+    local normal=base.CFrame.UpVector
+    local cameraLook=camera.CFrame.LookVector
+    local planeLook=cameraLook-normal*cameraLook:Dot(normal)
+    if planeLook.Magnitude<0.001 then
+        planeLook=base.CFrame.LookVector
+        planeLook=planeLook-normal*planeLook:Dot(normal)
+    end
+    if planeLook.Magnitude<0.001 then return nil end
+    planeLook=planeLook.Unit
+    local right=normal:Cross(planeLook).Unit
+    local cameraLocalRight=base.CFrame:VectorToObjectSpace(right)
+    local cameraYaw=math.deg(math.atan2(-cameraLocalRight.Z,cameraLocalRight.X))
+    local activeYaw=PixelYawOverride
+    if PixelAutoRotation then
+        activeYaw=nil
+    end
+    if activeYaw~=nil then
+        local yawRad=math.rad(activeYaw)
+        local localRight=Vector3.new(math.cos(yawRad),0,-math.sin(yawRad))
+        right=base.CFrame:VectorToWorldSpace(localRight).Unit
+        planeLook=right:Cross(normal).Unit
+    end
+
+    local params=RaycastParams.new()
+    params.FilterType=Enum.RaycastFilterType.Include
+    params.FilterDescendantsInstances={base}
+    params.IgnoreWater=true
+    local hit=workspace:Raycast(camera.CFrame.Position,camera.CFrame.LookVector*1000,params)
+    local hitPosition
+    if hit then
+        hitPosition=hit.Position
+    else
+        local planePoint=base.Position+normal*(base.Size.Y/2)
+        local denominator=camera.CFrame.LookVector:Dot(normal)
+        if math.abs(denominator)<0.0001 then return nil end
+        local distance=(planePoint-camera.CFrame.Position):Dot(normal)/denominator
+        if distance<=0 then return nil end
+        hitPosition=camera.CFrame.Position+camera.CFrame.LookVector*distance
+    end
+
+    local localHit=base.CFrame:PointToObjectSpace(hitPosition)
+    localHit=Vector3.new(
+        math.clamp(localHit.X,-base.Size.X/2+blockSize.X/2,base.Size.X/2-blockSize.X/2),
+        base.Size.Y/2,
+        math.clamp(localHit.Z,-base.Size.Z/2+blockSize.Z/2,base.Size.Z/2-blockSize.Z/2)
+    )
+    local center=base.CFrame:PointToWorldSpace(localHit)
+    local h,w,gap=JBC_pixelGetDimensions()
+    local stepX=blockSize.X+gap
+    local stepY=blockSize.Y+gap
+    local positions={}
+    for row=0,h-1 do
+        for col=0,w-1 do
+            local offset=(col-(w-1)/2)*stepX
+            local world=center+right*offset+normal*(blockSize.Y/2+row*stepY)
+            positions[#positions+1]={
+                world=world,
+                height=row*stepY,
+                point=B.pointFromWorldPosition(base,world-normal*(blockSize.Y/2+row*stepY)),
+                row=row,
+                col=col
+            }
+        end
+    end
+    local localRight=base.CFrame:VectorToObjectSpace(right)
+    local yaw=math.deg(math.atan2(-localRight.Z,localRight.X))
+    return {
+        positions=positions,center=center,right=right,look=planeLook,normal=normal,blockSize=blockSize,
+        yaw=yaw,height=h,width=w,gap=gap,base=base,plot=context.plot
+    }
+end
+
+function JBC_pixelCloneLayout(layout)
+    if not layout then return nil end
+    local copy={
+        positions={},center=layout.center,right=layout.right,look=layout.look,
+        normal=layout.normal,blockSize=layout.blockSize,yaw=layout.yaw,height=layout.height,width=layout.width,
+        gap=layout.gap,base=layout.base,plot=layout.plot
+    }
+    for i,entry in ipairs(layout.positions) do
+        copy.positions[i]={world=entry.world,height=entry.height,point={x=entry.point.x,z=entry.point.z},row=entry.row,col=entry.col}
+    end
+    return copy
+end
+
+function JBC_pixelCreatePreviewPart(parent)
+    local part=Instance.new("Part")
+    part.Name="PixelGhost"
+    part.Anchored=true
+    part.CanCollide=false
+    part.CanTouch=false
+    part.CanQuery=false
+    part.CastShadow=false
+    part.Material=Enum.Material.ForceField
+    part.Transparency=0.48
+    part.Size=parent:GetAttribute("PixelBlockDimensions") or Vector3.one
+    part.Color=PixelColor
+    part.Parent=parent
+    return part
+end
+
+function JBC_pixelRenderLayout(layout)
+    if not layout then return end
+    if not PixelPreviewFolder then
+        PixelPreviewFolder=Instance.new("Folder")
+        PixelPreviewFolder.Name="JmodsPixelPreview"
+        PixelPreviewFolder.Parent=workspace.CurrentCamera or workspace
+    end
+    local parts=PixelPreviewFolder:GetChildren()
+    PixelPreviewFolder:SetAttribute("PixelBlockDimensions",layout.blockSize)
+    for i,entry in ipairs(layout.positions) do
+        local part=parts[i]
+        if not part then part=JBC_pixelCreatePreviewPart(PixelPreviewFolder) end
+        part.Color=PixelColor
+        part.Size=layout.blockSize
+        part.CFrame=CFrame.lookAt(entry.world,entry.world+layout.look,layout.normal)
+    end
+    for i=#parts,#layout.positions+1,-1 do
+        if parts[i] then parts[i]:Destroy() end
+    end
+end
+
+function JBC_pixelUpdatePreview()
+    if not PixelPreviewEnabled or PixelPreviewLocked then return end
+    local context=JBC_pixelGetContext()
+    if not context then return end
+    local layout=JBC_pixelGetLayout(context)
+    if not layout or #layout.positions>PIXEL_MAX_BLOCKS then return end
+    PixelCurrentLayout=layout
+    JBC_pixelRenderLayout(layout)
+end
+
+function JBC_pixelStartPreview()
+    if PixelBuilding then
+        JBC_pixelNotify("Pixeles","Espera a que termine la construcción actual.")
+        return
+    end
+    if PixelPreviewEnabled then return end
+    PixelPreviewEnabled=true
+    PixelPreviewLocked=false
+    PixelLockedLayout=nil
+    JBC_pixelUpdatePreview()
+    if not PixelPreviewConnection then
+        PixelPreviewConnection=RunService.RenderStepped:Connect(JBC_pixelUpdatePreview)
+    end
+    JBC_pixelNotify("Pixeles","Vista previa activada.")
+end
+
+function JBC_pixelStopPreview()
+    PixelPreviewEnabled=false
+    PixelPointFixed=false
+    if PixelPreviewConnection then
+        PixelPreviewConnection:Disconnect()
+        PixelPreviewConnection=nil
+    end
+    if PixelPreviewFolder then
+        PixelPreviewFolder:Destroy()
+        PixelPreviewFolder=nil
+    end
+    PixelCurrentLayout=nil
+    -- No altera la construcción en curso: esta ya trabaja con una copia fija.
+    if not PixelBuilding then
+        PixelLockedLayout=nil
+        PixelPreviewLocked=false
+    end
+    JBC_pixelNotify("Pixeles","Vista previa desactivada.")
+end
+
+function JBC_pixelTogglePreview(value)
+    if value then
+        JBC_pixelStartPreview()
+    else
+        JBC_pixelStopPreview()
+    end
+end
+
+function JBC_pixelToggleFixedPoint(value)
+    if PixelBuilding then
+        JBC_pixelNotify("Pixeles","No puedes cambiar el punto mientras se construye.")
+        return
+    end
+    PixelPointFixed=value==true
+    if PixelPointFixed then
+        if not PixelPreviewEnabled then
+            PixelPointFixed=false
+            JBC_pixelNotify("Pixeles","Activa primero la previsualización para fijar el punto.")
+            return
+        end
+        if not PixelCurrentLayout then JBC_pixelUpdatePreview() end
+        if not PixelCurrentLayout then
+            PixelPointFixed=false
+            JBC_pixelNotify("Pixeles","No hay una posición válida para fijar.")
+            return
+        end
+        PixelLockedLayout=JBC_pixelCloneLayout(PixelCurrentLayout)
+        PixelPreviewLocked=true
+        if PixelPreviewConnection then
+            PixelPreviewConnection:Disconnect()
+            PixelPreviewConnection=nil
+        end
+        JBC_pixelRenderLayout(PixelLockedLayout)
+        JBC_pixelNotify("Pixeles","Punto fijado. Puedes moverte sin que la pared cambie de lugar.")
+    else
+        PixelPreviewLocked=false
+        PixelLockedLayout=nil
+        if PixelPreviewEnabled and not PixelPreviewConnection then
+            PixelPreviewConnection=RunService.RenderStepped:Connect(JBC_pixelUpdatePreview)
+        end
+        if PixelPreviewEnabled then JBC_pixelUpdatePreview() end
+        JBC_pixelNotify("Pixeles","Punto desbloqueado. La previsualización vuelve a seguir la cámara.")
+    end
+end
+
+-- Normaliza una orientación al eje cardinal más cercano (0/90/180/270).
+local function JBC_pixelSnapYaw(yaw)
+    yaw=tonumber(yaw) or 0
+    return (math.floor((yaw/90)+0.5)*90)%360
+end
+
+-- Recalcula la cuadrícula conservando exactamente el centro fijado.
+local function JBC_pixelApplyYawToFixedLayout(layout,yaw)
+    if not layout or not layout.base then return false end
+    local base=layout.base
+    local normal=layout.normal
+    local yawRad=math.rad(yaw)
+    local localRight=Vector3.new(math.cos(yawRad),0,-math.sin(yawRad))
+    local right=base.CFrame:VectorToWorldSpace(localRight).Unit
+    local look=right:Cross(normal).Unit
+    local positions={}
+    local stepX=layout.blockSize.X+layout.gap
+    local stepY=layout.blockSize.Y+layout.gap
+
+    for row=0,layout.height-1 do
+        for col=0,layout.width-1 do
+            local offset=(col-(layout.width-1)/2)*stepX
+            local world=layout.center+right*offset+normal*(layout.blockSize.Y/2+row*stepY)
+            positions[#positions+1]={
+                world=world,
+                height=row*stepY,
+                point=B.pointFromWorldPosition(base,world-normal*(layout.blockSize.Y/2+row*stepY)),
+                row=row,
+                col=col
+            }
+        end
+    end
+
+    layout.positions=positions
+    layout.right=right
+    layout.look=look
+    layout.yaw=yaw
+    PixelLockedLayout=layout
+    PixelCurrentLayout=layout
+    JBC_pixelRenderLayout(layout)
+    return true
+end
+
+function JBC_pixelToggleAutoRotation(value)
+    if PixelBuilding then
+        JBC_pixelNotify("Pixeles","Espera a que termine la construcción.")
+        return
+    end
+
+    local enabling=value==true
+    if enabling then
+        PixelAutoRotation=true
+        PixelYawOverride=nil
+        if PixelPreviewEnabled and not PixelPointFixed then
+            JBC_pixelUpdatePreview()
+        end
+        JBC_pixelNotify("Pixeles","Rotación automática activada.")
+        return
+    end
+
+    -- Al desactivar el automático, no conservamos el ángulo libre de la cámara:
+    -- lo ajustamos al eje recto más cercano.
+    local currentYaw=(PixelCurrentLayout and PixelCurrentLayout.yaw) or PixelYawOverride
+    if currentYaw==nil then
+        local context=JBC_pixelGetContext()
+        local camera=workspace.CurrentCamera
+        if not context or not camera then
+            JBC_pixelNotify("Pixeles","Activa la previsualización y apunta a tu parcela primero.")
+            return
+        end
+        local normal=context.base.CFrame.UpVector
+        local look=camera.CFrame.LookVector
+        look=look-normal*look:Dot(normal)
+        if look.Magnitude<0.001 then return end
+        local right=normal:Cross(look.Unit).Unit
+        local localRight=context.base.CFrame:VectorToObjectSpace(right)
+        currentYaw=math.deg(math.atan2(-localRight.Z,localRight.X))
+    end
+
+    PixelAutoRotation=false
+    PixelYawOverride=JBC_pixelSnapYaw(currentYaw)
+
+    if PixelPointFixed and PixelLockedLayout then
+        JBC_pixelApplyYawToFixedLayout(PixelLockedLayout,PixelYawOverride)
+    elseif PixelPreviewEnabled then
+        JBC_pixelUpdatePreview()
+    end
+    JBC_pixelNotify("Pixeles","Rotación automática desactivada. Orientación alineada en línea recta.")
+end
+
+function JBC_pixelRotate90()
+    if PixelBuilding then
+        JBC_pixelNotify("Pixeles","Espera a que termine la construcción para cambiar la orientación.")
+        return
+    end
+
+    local currentYaw
+    if PixelYawOverride~=nil then
+        currentYaw=PixelYawOverride
+    elseif PixelCurrentLayout and PixelCurrentLayout.yaw then
+        currentYaw=PixelCurrentLayout.yaw
+    else
+        local context=JBC_pixelGetContext()
+        local camera=workspace.CurrentCamera
+        if not context or not camera then
+            JBC_pixelNotify("Pixeles","Activa la previsualización y apunta a tu parcela primero.")
+            return
+        end
+        local normal=context.base.CFrame.UpVector
+        local look=camera.CFrame.LookVector
+        look=look-normal*look:Dot(normal)
+        if look.Magnitude<0.001 then return end
+        local right=normal:Cross(look.Unit).Unit
+        local localRight=context.base.CFrame:VectorToObjectSpace(right)
+        currentYaw=math.deg(math.atan2(-localRight.Z,localRight.X))
+    end
+
+    -- Primero se alinea al eje cardinal más cercano y después gira exactamente 90°.
+    PixelAutoRotation=false
+    PixelYawOverride=(JBC_pixelSnapYaw(currentYaw)+90)%360
+
+    if PixelPointFixed and PixelLockedLayout then
+        JBC_pixelApplyYawToFixedLayout(PixelLockedLayout,PixelYawOverride)
+    elseif PixelPreviewEnabled then
+        JBC_pixelUpdatePreview()
+    end
+    JBC_pixelNotify("Pixeles","Orientación alineada y girada exactamente 90°.")
+end
+
+function JBC_pixelStopBuilding()
+    if not PixelBuilding then
+        JBC_pixelNotify("Pixeles","No hay ninguna construcción en curso.")
+        return
+    end
+    PixelBuilding=false
+    JBC_pixelNotify("Pixeles","Deteniendo... se terminará la solicitud del bloque actual y no se iniciarán más bloques.")
+end
+
+function JBC_pixelPlaceOne(context,entry,index,total,rotation)
+    local targetPoint={x=entry.point.x,z=entry.point.z}
+    local targetHeight=entry.height
+    local data={
+        ItemId="block_cube_2",
+        Stretch={x=0,y=0,z=0},
+        Bias={x=0,y=0,z=0}
+    }
+    local placedObject,placeError=B.sendPlaceItemAndWait(
+        context.items,data,targetPoint,rotation,targetHeight,nil,nil,
+        "pixels:"..tostring(index).."/"..tostring(total)..":direct"
+    )
+    local usedPoint=targetPoint
+    local usedHeight=targetHeight
+    local usedAttempt=0
+    local activeTemporarySupport=nil
+
+    if not placedObject and (placeError=="unsupported" or placeError=="not supported") then
+        for attempt=1,2 do
+            local wantedDistance=attempt==1 and FALLBACK_START_DISTANCE_STUDS or FALLBACK_START_SECOND_DISTANCE_STUDS
+            local candidate=nil
+            local candidateHeight=targetHeight
+            local support=B.makeSupportPoint(context.base,context.plot,targetPoint,targetHeight,wantedDistance)
+            local candidateData=table.clone(data)
+            if support then
+                candidate=support.point
+                candidateHeight=support.height
+            else
+                local scaffold,scaffoldError=JBC_createTemporarySupport(
+                    context.items,context.base,context.plot,targetPoint,targetHeight,index*10+attempt,wantedDistance
+                )
+                if scaffold then
+                    activeTemporarySupport=scaffold
+                    candidate=scaffold.point
+                    candidateHeight=scaffold.height
+                else
+                    candidate=B.makeNearTargetPoint(context.base,targetPoint,wantedDistance)
+                    candidateHeight=0
+                    debugLog("PIXEL_SUPPORT_FALLBACK_NEAR",index,attempt,scaffoldError,candidate)
+                end
+            end
+            candidateData.Surface=nil
+            candidateData.PlaceStand=nil
+            local found,err=B.sendPlaceItemAndWait(
+                context.items,candidateData,candidate,rotation,candidateHeight,nil,nil,
+                "pixels:"..tostring(index).."/"..tostring(total)..":support"..tostring(attempt)
+            )
+            if found then
+                placedObject=found
+                usedPoint=candidate
+                usedHeight=candidateHeight
+                usedAttempt=attempt
+                placeError=nil
+                break
+            end
+            placeError=err
+            if activeTemporarySupport then
+                JBC_destroyTemporarySupport(activeTemporarySupport,"pixels-place-fail:"..tostring(index)..":"..tostring(attempt))
+                activeTemporarySupport=nil
+            end
+            if err~="unsupported" and err~="not supported" and err~="rate-limited" and err~="busy" then
+                break
+            end
+        end
+    end
+
+    if not placedObject then
+        return false,placeError or "place-failed"
+    end
+
+    -- IMPORTANTE: block_cube_2 debe conservar su tamaño nativo.
+    -- No enviar Scale ni aplicar Stretch después de colocarlo.
+    -- Si se usó un soporte, solo mover el bloque a su punto/altura final,
+    -- manteniendo Stretch y Bias en cero.
+    if usedAttempt>0 then
+        local noStretch={x=0,y=0,z=0}
+        local noBias={x=0,y=0,z=0}
+        local movedOK,movedReason,movedObject=B.movePlacedObjectWithScaleBias(
+            context.items,context.base,placedObject,usedPoint,targetPoint,rotation,
+            noStretch,noBias,usedHeight,targetHeight
+        )
+        if movedOK and movedObject then
+            placedObject=movedObject
+        else
+            debugLog("PIXEL_SUPPORT_MOVE_FAIL",index,movedReason,usedPoint,targetPoint,usedHeight,targetHeight)
+            if activeTemporarySupport then
+                JBC_destroyTemporarySupport(activeTemporarySupport,"pixels-move-fail:"..tostring(index))
+                activeTemporarySupport=nil
+            end
+            JBC_callRouteFast("Demolish",{kind="Item",key=tostring(placedObject.Name)},"pixels-failed-cleanup:"..tostring(index))
+            return false,movedReason or "support-move-failed"
+        end
+    end
+
+    if activeTemporarySupport then
+        JBC_destroyTemporarySupport(activeTemporarySupport,"pixels-support-used:"..tostring(index))
+        activeTemporarySupport=nil
+    end
+
+    if PixelApplyColor then
+        local rgb=PixelColor
+        local colorInt=math.floor(rgb.R*255+0.5)*65536+math.floor(rgb.G*255+0.5)*256+math.floor(rgb.B*255+0.5)
+        JBC_applyPaint("Item",placedObject.Name,{c=colorInt},"pixels-color:"..tostring(placedObject.Name))
+    end
+    return true,placedObject
+end
+
+function JBC_pixelBuildWall()
+    if PixelBuilding then return end
+    local context,err=JBC_pixelGetContext()
+    if not context then JBC_pixelNotify("Pixeles",err) return end
+
+    local layout
+    if PixelPreviewLocked and PixelLockedLayout then
+        layout=JBC_pixelCloneLayout(PixelLockedLayout)
+    elseif PixelPreviewEnabled and PixelCurrentLayout then
+        layout=JBC_pixelCloneLayout(PixelCurrentLayout)
+    else
+        layout=JBC_pixelGetLayout(context)
+    end
+    if not layout then
+        JBC_pixelNotify("Pixeles","No pude calcular la posición. Apunta al suelo de tu parcela.")
+        return
+    end
+    if layout.plot~=context.plot or layout.base~=context.base then
+        JBC_pixelNotify("Pixeles","La posición guardada pertenece a otra parcela. Actualiza la vista previa.")
+        return
+    end
+    local total=#layout.positions
+    if total<1 or total>PIXEL_MAX_BLOCKS then
+        JBC_pixelNotify("Pixeles","La pared debe tener entre 1 y "..PIXEL_MAX_BLOCKS.." bloques.")
+        return
+    end
+
+    -- Congelar la posición antes de iniciar cualquier solicitud al servidor.
+    PixelBuilding=true
+    PixelPreviewLocked=true
+    PixelLockedLayout=JBC_pixelCloneLayout(layout)
+    if PixelPreviewConnection then
+        PixelPreviewConnection:Disconnect()
+        PixelPreviewConnection=nil
+    end
+    PixelCurrentLayout=PixelLockedLayout
+    JBC_pixelRenderLayout(PixelLockedLayout)
+
+    task.spawn(function()
+        local created,failed=0,0
+        local rotation=math.round((layout.yaw or 0)*100)%ROTATION_UNITS
+        for index,entry in ipairs(layout.positions) do
+            if not PixelBuilding then break end
+            local ok,result=JBC_pixelPlaceOne(context,entry,index,total,rotation)
+            if ok then
+                created+=1
+            else
+                failed+=1
+                debugLog("PIXEL_PLACE_FAIL",index,entry.point,entry.height,result)
+            end
+            if index%5==0 then task.wait(0.12) end
+        end
+        local wasStopped=not PixelBuilding
+        PixelBuilding=false
+        PixelPreviewLocked=PixelPointFixed
+        if not PixelPointFixed then PixelLockedLayout=nil end
+        if PixelPreviewEnabled and not PixelPointFixed then
+            if not PixelPreviewConnection then
+                PixelPreviewConnection=RunService.RenderStepped:Connect(JBC_pixelUpdatePreview)
+            end
+            JBC_pixelUpdatePreview()
+        end
+        JBC_pixelNotify("Pixeles",(wasStopped and "Detenida: " or "Terminada: ")..tostring(created).." bloques colocados | "..tostring(failed).." errores.")
+    end)
+end
+
+BuildingTab:CreateInput({Name="Altura (bloques)",PlaceholderText="35",Callback=function(value)
+    PixelHeight=math.clamp(math.floor(tonumber(value) or 35),1,40)
+    if PixelPreviewEnabled and not PixelPreviewLocked then JBC_pixelUpdatePreview() end
+end})
+BuildingTab:CreateInput({Name="Ancho (bloques)",PlaceholderText="35",Callback=function(value)
+    PixelWidth=math.clamp(math.floor(tonumber(value) or 35),1,40)
+    if PixelPreviewEnabled and not PixelPreviewLocked then JBC_pixelUpdatePreview() end
+end})
+BuildingTab:CreateSlider({Name="Separación entre bloques",Range={0,4},Increment=0.05,CurrentValue=0,Callback=function(value)
+    PixelGap=tonumber(value) or 0
+    if PixelPreviewEnabled and not PixelPreviewLocked then JBC_pixelUpdatePreview() end
+end})
+BuildingTab:CreateToggle({Name="Aplicar color seleccionado",CurrentValue=false,Callback=function(value)
+    PixelApplyColor=value==true
+    JBC_pixelNotify("Pixeles",PixelApplyColor and "El color seleccionado se aplicará a cada bloque." or "Se conservará el color/material predeterminado del bloque.")
+end})
+pcall(function()
+    BuildingTab:CreateColorPicker({Name="Color de los bloques",Color=PixelColor,Callback=function(color)
+        if typeof(color)=="Color3" then
+            PixelColor=color
+            if PixelPreviewEnabled then JBC_pixelRenderLayout(PixelLockedLayout or PixelCurrentLayout) end
+        end
+    end})
+end)
+BuildingTab:CreateToggle({Name="Previsualización",CurrentValue=false,Callback=JBC_pixelTogglePreview})
+BuildingTab:CreateToggle({Name="Rotación automática",CurrentValue=true,Callback=JBC_pixelToggleAutoRotation})
+BuildingTab:CreateButton({Name="Rotar 90°",Callback=JBC_pixelRotate90})
+BuildingTab:CreateToggle({Name="Fijar punto de construcción",CurrentValue=false,Callback=JBC_pixelToggleFixedPoint})
+BuildingTab:CreateButton({Name="Construir pared de píxeles",Callback=JBC_pixelBuildWall})
+BuildingTab:CreateButton({Name="Detener construcción",Callback=JBC_pixelStopBuilding})
+
 
 end
