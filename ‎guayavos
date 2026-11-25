@@ -1198,6 +1198,599 @@ ArepamovilTab:CreateSlider({
     end
 })
 
+
+-- =========================================================
+-- FARMANADA COUNTER AUTOMATION (lógica v5 ya funcional)
+-- Se inicia/detiene junto con el toggle del tab Caja.
+-- =========================================================
+local function FarmanadaCajaStartCounterLogic()
+local CounterNet = require(game:GetService("ReplicatedStorage").Shared.Works.Counter.Net)
+
+local running = true
+local queue = {}
+local queued = {}
+local finished = {}
+local abandoned = {}
+local processing = false
+local reopening = false
+local currentRound = 0
+local lastSummaryNextAt = 0
+local eventCount = 0
+local lastActAt = 0
+local roundEpoch = 0 -- evita mezclar IDs reutilizados entre rondas
+
+-- Act permite 14 solicitudes cada 2 segundos.
+-- 0.18 s mantiene un margen y evita ráfagas.
+local ACTION_GAP = 0.18
+local EARLY_RETRY_GAP = 0.55
+local EARLY_MAX_ATTEMPTS = 18
+local PROMISE_TIMEOUT = 5
+local OPEN_RETRY_GAP = 2.5 -- Open permite 3 solicitudes cada 6 s.
+local OPEN_MAX_ATTEMPTS = math.huge
+local NEXT_ROUND_BUFFER = 0.35
+
+local function log(...)
+    print("[JMODS FARM AUTO v5]", ...)
+end
+
+local function dump(value, depth, seen)
+    depth = depth or 0
+    seen = seen or {}
+    if depth > 5 then return "<max-depth>" end
+    if type(value) ~= "table" then return tostring(value) end
+    if seen[value] then return "<circular>" end
+    seen[value] = true
+    local rows = {}
+    for k, v in pairs(value) do
+        rows[#rows + 1] = string.rep("  ", depth + 1)
+            .. "[" .. tostring(k) .. "] = " .. dump(v, depth + 1, seen)
+    end
+    table.sort(rows)
+    seen[value] = nil
+    return "{\n" .. table.concat(rows, "\n") .. "\n" .. string.rep("  ", depth) .. "}"
+end
+
+local function awaitPromise(promise, timeout)
+    local done, success, result = false, false, nil
+    if not promise then return false, "Promise nil" end
+
+    promise:andThen(function(value)
+        success, result, done = true, value, true
+    end):catch(function(err)
+        success, result, done = false, err, true
+    end)
+
+    local started = os.clock()
+    while running and not done and os.clock() - started < (timeout or PROMISE_TIMEOUT) do
+        task.wait(0.04)
+    end
+
+    if not done then return false, "timeout" end
+    return success, result
+end
+
+local function serverNow()
+    local ok, value = pcall(function()
+        return workspace:GetServerTimeNow()
+    end)
+    if ok and type(value) == "number" then return value end
+    return os.time()
+end
+
+local function waitForActSlot()
+    local waitTime = ACTION_GAP - (os.clock() - lastActAt)
+    if waitTime > 0 then task.wait(waitTime) end
+    lastActAt = os.clock()
+end
+
+local function callOpen(reason)
+    if not running or reopening then return end
+    reopening = true
+
+    task.spawn(function()
+        log("OPEN persistente iniciado:", reason)
+        local attempt = 0
+
+        while running do
+            attempt += 1
+            local callOk, promise = pcall(function()
+                return CounterNet.Open.invoke({})
+            end)
+
+            local retry = false
+            if not callOk then
+                log("Open.invoke error:", tostring(promise))
+                retry = true
+            else
+                local promiseOk, response = awaitPromise(promise, 12)
+                log("RESPUESTA OPEN intento", attempt, "| promise =", promiseOk, dump(response))
+
+                if promiseOk and type(response) == "table" then
+                    local reasonCode = tostring(response.reason)
+                    if response.ok == true or reasonCode == "open" then
+                        log("Caja abierta/lista; termina el ciclo de reapertura.")
+                        break
+                    elseif reasonCode == "waiting" or reasonCode == "closed" then
+                        log("La ronda/caja sigue en descanso; se volverá a intentar.")
+                        retry = true
+                    elseif reasonCode == "far" then
+                        log("Estás lejos del mostrador. Se detiene la reapertura.")
+                        break
+                    elseif reasonCode == "not-working" then
+                        log("El trabajo ya no está activo. Se detiene la reapertura.")
+                        break
+                    elseif reasonCode == "seated" or reasonCode == "gone" then
+                        log("Estado no válido para abrir:", reasonCode, "| se detiene.")
+                        break
+                    else
+                        log("Respuesta Open no reconocida; no se fuerza otra acción:", dump(response))
+                        break
+                    end
+                else
+                    -- Error de red/timeout: esperar antes de consultar otra vez.
+                    log("Open sin respuesta válida; reintentando con pausa.")
+                    retry = true
+                end
+            end
+
+            if not running or not retry then break end
+            task.wait(OPEN_RETRY_GAP)
+        end
+
+        reopening = false
+    end)
+end
+
+local function scheduleNextRound(summary)
+    local nextAt = summary.nextAt
+    if type(summary.round) == "number" then
+        currentRound = math.max(currentRound, summary.round)
+    end
+
+    if type(nextAt) ~= "number" or nextAt <= lastSummaryNextAt then
+        log("Resumen sin nextAt válido o repetido:", dump(summary))
+        return
+    end
+    lastSummaryNextAt = nextAt
+
+    -- Los IDs de ticket se reutilizan en cada ronda. No se deben conservar
+    -- finished/abandoned/queued de la ronda anterior.
+    roundEpoch += 1
+    for _, ticket in ipairs(queue) do
+        log("Descartando ticket pendiente de ronda terminada:", ticket.id)
+    end
+    table.clear(queue)
+    table.clear(queued)
+    table.clear(finished)
+    table.clear(abandoned)
+    log("Estado de tickets reiniciado para la siguiente ronda. Época:", roundEpoch)
+
+    task.spawn(function()
+        local target = nextAt + NEXT_ROUND_BUFFER
+        log("RONDA", currentRound, "terminó. Esperando próxima apertura.")
+        while running and serverNow() < target do
+            task.wait(math.min(0.25, math.max(0.05, target - serverNow())))
+        end
+        if running then
+            callOpen("fin de ronda " .. tostring(currentRound))
+        end
+    end)
+end
+
+local function sendOnePick(ticket)
+    local id = ticket.id
+    if not running or abandoned[id] or ticket.epoch ~= roundEpoch then
+        return "drop"
+    end
+
+    local line = ticket.lines[ticket.lineIndex]
+    if not line then
+        finished[id] = true
+        queued[id] = nil
+        log("TICKET COMPLETADO:", id)
+        return "done"
+    end
+
+    waitForActSlot()
+    log(("Ticket %d | línea %d | pick(%d)"):format(id, line.index, line.slot))
+
+    local callOk, promise = pcall(function()
+        return CounterNet.Act.invoke({
+            ticket = id,
+            action = "pick",
+            value = line.slot
+        })
+    end)
+
+    if not callOk then
+        abandoned[id] = true
+        queued[id] = nil
+        log("Error invocando Act:", id, tostring(promise))
+        return "drop"
+    end
+
+    local promiseOk, response = awaitPromise(promise, PROMISE_TIMEOUT)
+    log("RESPUESTA ACT ticket", id, "|", promiseOk, dump(response))
+
+    -- Si llegó el resumen mientras esperábamos al servidor, esta respuesta
+    -- pertenece a la ronda vieja y no debe contaminar el estado nuevo.
+    if ticket.epoch ~= roundEpoch then
+        log("Respuesta antigua ignorada; cambió la ronda:", id)
+        return "drop"
+    end
+
+    if not promiseOk or type(response) ~= "table" then
+        abandoned[id] = true
+        queued[id] = nil
+        log("Ticket detenido por respuesta inválida:", id)
+        return "drop"
+    end
+
+    if response.ok == true then
+        ticket.lineIndex += 1
+        ticket.earlyAttempts = 0
+        if ticket.lineIndex > #ticket.lines then
+            finished[id] = true
+            queued[id] = nil
+            log("TICKET COMPLETADO:", id)
+            return "done"
+        end
+        return "requeue"
+    end
+
+    local reason = tostring(response.reason)
+    if reason == "early" then
+        ticket.earlyAttempts += 1
+        if ticket.earlyAttempts >= EARLY_MAX_ATTEMPTS then
+            abandoned[id] = true
+            queued[id] = nil
+            log("Ticket abandonado: superó espera de cliente:", id)
+            return "drop"
+        end
+        ticket.readyAt = os.clock() + EARLY_RETRY_GAP
+        log("Cliente aún caminando; aplazado:", id, "| intento", ticket.earlyAttempts)
+        return "requeue"
+    elseif reason == "gone" then
+        abandoned[id] = true
+        queued[id] = nil
+        log("Cliente ya se fue:", id)
+        return "drop"
+    elseif reason == "seated" then
+        abandoned[id] = true
+        queued[id] = nil
+        log("Personaje sentado; ticket detenido:", id)
+        return "drop"
+    else
+        abandoned[id] = true
+        queued[id] = nil
+        log("Servidor rechazó ticket:", id, "|", reason)
+        return "drop"
+    end
+end
+
+local function worker()
+    if processing then return end
+    processing = true
+
+    while running and #queue > 0 do
+        local ticket = table.remove(queue, 1)
+        local id = ticket.id
+
+        if abandoned[id] or finished[id] then
+            queued[id] = nil
+        else
+            local waitLeft = (ticket.readyAt or 0) - os.clock()
+            if waitLeft > 0 then
+                table.insert(queue, ticket)
+                task.wait(math.min(0.12, waitLeft))
+            else
+                local result = sendOnePick(ticket)
+                if result == "requeue" and running and not abandoned[id]
+                    and ticket.epoch == roundEpoch then
+                    table.insert(queue, ticket)
+                end
+            end
+        end
+    end
+
+    processing = false
+end
+
+local function enqueueTicket(payload)
+    local id = payload.id
+    if type(id) ~= "number" or id <= 0 or type(payload.lines) ~= "table" then
+        log("Ticket ignorado: estructura inválida.", dump(payload))
+        return
+    end
+    if queued[id] or finished[id] or abandoned[id] then return end
+
+    local lines = {}
+    for index, line in ipairs(payload.lines) do
+        if type(line) == "table"
+            and (line.kind == "pick" or line.kind == "need")
+            and type(line.slot) == "number"
+            and line.slot % 1 == 0
+            and line.slot >= 0 and line.slot <= 9 then
+            lines[#lines + 1] = {
+                index = index,
+                kind = line.kind,
+                slot = line.slot
+            }
+        else
+            log("Línea no compatible; se omite:", index, dump(line))
+        end
+    end
+
+    if #lines == 0 then
+        log("Ticket", id, "sin líneas compatibles.")
+        return
+    end
+
+    queued[id] = true
+    table.insert(queue, {
+        id = id,
+        name = payload.name,
+        lines = lines,
+        lineIndex = 1,
+        earlyAttempts = 0,
+        readyAt = 0,
+        epoch = roundEpoch
+    })
+    log("TICKET EN COLA:", id, "|", tostring(payload.name), "| líneas:", #lines)
+    task.spawn(worker)
+end
+
+local eventConnection = CounterNet.Event.onClient(function(payload)
+    eventCount += 1
+    if type(payload) ~= "table" then return end
+
+    if payload.kind == "ticket" then
+        enqueueTicket(payload)
+    elseif payload.kind == "left" and type(payload.id) == "number" then
+        abandoned[payload.id] = true
+        queued[payload.id] = nil
+        log("Cliente/ticket salió:", payload.id)
+    elseif payload.kind == "summary" then
+        log("RESUMEN DE RONDA:", dump(payload))
+        scheduleNextRound(payload)
+    end
+end)
+
+log("Listener conectado. Automatización del cajero integrada al toggle Caja.")
+log("Cola rotativa + reapertura persistente entre rondas.")
+log("Límite de acciones conservador: una acción cada", ACTION_GAP, "s.")
+
+return {
+    Open = function(reason)
+        callOpen(reason or "prompt de Farmanada activado")
+    end,
+    Stop = function()
+        running = false
+        if eventConnection then
+            pcall(function() eventConnection:disconnect() end)
+        end
+        log("AUTOMATIZACIÓN DEL CAJERO DETENIDA.")
+    end
+}
+
+end
+
+-- =========================================================
+-- FARMANADA CAJA: TP + ACTIVACION DEL PROXIMITY
+-- El worker NO termina si Register o el prompt aun no aparecen.
+-- Busca con pausas; no usa Heartbeat ni escanea todo Workspace.
+-- =========================================================
+local FarmanadaCajaConfig = {
+    Enabled = false,
+    RunId = 0,
+    Position = Vector3.new(180.842, 40.514, 778.558),
+    RetryDelay = 1.5,
+    TeleportThreshold = 7,
+    PromptRetryDelay = 2.5,
+    StopCounterLogic = nil,
+    CounterLogic = nil,
+    CounterOpenRequested = false
+}
+
+local function FarmanadaCajaFindRegister()
+    local works = workspace:FindFirstChild("Works")
+    if not works then
+        works = workspace:FindFirstChild("Works", true)
+    end
+    if not works then return nil end
+
+    local caja = works:FindFirstChild("FarmanadaCentroCaja")
+        or works:FindFirstChild("FarmanadaCentroCaja", true)
+    if not caja then return nil end
+
+    return caja:FindFirstChild("Register")
+        or caja:FindFirstChild("Register", true)
+end
+
+local function FarmanadaCajaGetPrompt()
+    local register = FarmanadaCajaFindRegister()
+    if not register then return nil end
+
+    -- No filtrar por Enabled: puede estar temporalmente deshabilitado
+    -- durante la espera entre rondas y aparecer habilitado después.
+    if register:IsA("ProximityPrompt") then return register end
+    return register:FindFirstChildWhichIsA("ProximityPrompt", true)
+end
+
+local function FarmanadaCajaGetRoot()
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+local function FarmanadaCajaActivate(prompt)
+    if not prompt or not prompt.Parent or not prompt.Enabled then
+        return false, "prompt-no-disponible"
+    end
+
+    pcall(function() prompt.HoldDuration = 0 end)
+
+    if type(fireproximityprompt) == "function" then
+        local ok = pcall(function() fireproximityprompt(prompt) end)
+        if ok then return true, "fireproximityprompt" end
+    end
+
+    -- Alternativa para ejecutores que exponen getconnections.
+    if type(getconnections) == "function" then
+        local ok, fired = pcall(function()
+            local connections = getconnections(prompt.Triggered)
+            if not connections or #connections == 0 then return false end
+            for _, connection in ipairs(connections) do
+                pcall(function()
+                    if connection.Fire then connection:Fire() end
+                end)
+            end
+            return true
+        end)
+        if ok and fired then return true, "getconnections" end
+    end
+
+    return false, "sin-metodo-de-activacion"
+end
+
+local function FarmanadaCajaStop()
+    FarmanadaCajaConfig.Enabled = false
+    FarmanadaCajaConfig.RunId += 1
+    if FarmanadaCajaConfig.CounterLogic and FarmanadaCajaConfig.CounterLogic.Stop then
+        pcall(FarmanadaCajaConfig.CounterLogic.Stop)
+    end
+    FarmanadaCajaConfig.CounterLogic = nil
+    FarmanadaCajaConfig.StopCounterLogic = nil
+    FarmanadaCajaConfig.CounterOpenRequested = false
+end
+
+local function FarmanadaCajaStart()
+    if FarmanadaCajaConfig.Enabled then return end
+
+    FarmanadaCajaConfig.Enabled = true
+    FarmanadaCajaConfig.RunId += 1
+    local runId = FarmanadaCajaConfig.RunId
+
+    -- IMPORTANTE: el listener y la cola empiezan al activar el toggle,
+    -- no dependen de que Register/Prompt ya exista.
+    if FarmanadaCajaConfig.CounterLogic and FarmanadaCajaConfig.CounterLogic.Stop then
+        pcall(FarmanadaCajaConfig.CounterLogic.Stop)
+    end
+    local okLogic, counterLogic = pcall(FarmanadaCajaStartCounterLogic)
+    if okLogic and type(counterLogic) == "table" then
+        FarmanadaCajaConfig.CounterLogic = counterLogic
+    else
+        warn("[FARMANADA CAJA] No se pudo iniciar la lógica del cajero:", counterLogic)
+    end
+
+    task.spawn(function()
+        local lastCharacter = nil
+        local lastPromptAttempt = 0
+        local lastPrompt = nil
+        local lastStatus = nil
+
+        while FarmanadaCajaConfig.Enabled and FarmanadaCajaConfig.RunId == runId do
+            local ok, err = pcall(function()
+                local root = FarmanadaCajaGetRoot()
+
+                if not root then
+                    if lastStatus ~= "esperando-personaje" then
+                        print("[FARMANADA CAJA] Esperando personaje...")
+                        lastStatus = "esperando-personaje"
+                    end
+                    return
+                end
+
+                -- Teleport inicial y recuperación tras respawn/desplazamiento.
+                if root.Parent ~= lastCharacter
+                    or (root.Position - FarmanadaCajaConfig.Position).Magnitude > FarmanadaCajaConfig.TeleportThreshold then
+                    root.CFrame = CFrame.new(FarmanadaCajaConfig.Position)
+                    lastCharacter = root.Parent
+                    lastStatus = "en-punto"
+                    task.wait(0.4)
+                end
+
+                -- Si el árbol todavía no existe, NO salir: volver a buscar luego.
+                local prompt = FarmanadaCajaGetPrompt()
+                if not prompt then
+                    if lastStatus ~= "esperando-register" then
+                        warn("[FARMANADA CAJA] Register/ProximityPrompt aún no aparece; sigo esperando...")
+                        lastStatus = "esperando-register"
+                    end
+                    return
+                end
+
+                if not prompt.Enabled then
+                    if lastStatus ~= "prompt-desactivado" then
+                        print("[FARMANADA CAJA] Prompt encontrado pero desactivado; esperando que se habilite...")
+                        lastStatus = "prompt-desactivado"
+                    end
+                    return
+                end
+
+                local now = os.clock()
+                if prompt ~= lastPrompt or now - lastPromptAttempt >= FarmanadaCajaConfig.PromptRetryDelay then
+                    lastPrompt = prompt
+                    lastPromptAttempt = now
+                    local activated, method = FarmanadaCajaActivate(prompt)
+                    if activated then
+                        if lastStatus ~= "activado" then
+                            print("[FARMANADA CAJA] Proximity activado mediante", method)
+                            lastStatus = "activado"
+                        end
+                        if not FarmanadaCajaConfig.CounterOpenRequested
+                            and FarmanadaCajaConfig.CounterLogic
+                            and FarmanadaCajaConfig.CounterLogic.Open then
+                            FarmanadaCajaConfig.CounterOpenRequested = true
+                            FarmanadaCajaConfig.CounterLogic.Open("Proximity de Farmanada activado")
+                        end
+                    else
+                        if lastStatus ~= method then
+                            warn("[FARMANADA CAJA] No pude activar el prompt:", method, "(el loop sigue activo)")
+                            lastStatus = method
+                        end
+                    end
+                end
+            end)
+
+            if not ok then
+                warn("[FARMANADA CAJA] Error temporal; el loop continuará:", err)
+            end
+            task.wait(FarmanadaCajaConfig.RetryDelay)
+        end
+    end)
+end
+
+local FarmanadaCajaTab = Window:CreateTab("Caja")
+FarmanadaCajaTab:CreateSection("Farmanada")
+
+FarmanadaCajaTab:CreateToggle({
+    Name = "Auto iniciar caja",
+    CurrentValue = false,
+    Callback = function(state)
+        if state then
+            FarmanadaCajaStart()
+            JmodsLib:Notify({
+                Title = "Caja ON",
+                Content = "Loop activo: TP + prompt + resolución automática de tickets",
+                Duration = 3
+            })
+        else
+            FarmanadaCajaStop()
+            JmodsLib:Notify({
+                Title = "Caja OFF",
+                Content = "Loop detenido",
+                Duration = 3
+            })
+        end
+    end
+})
+
+FarmanadaCajaTab:CreateParagraph({
+    Title = "Instrucciones",
+    Content = "Solo activar y esperar, el dinero llegara solo."
+})
+
 local ArturosDelivery={
     Enabled=false,
     runId=0,
