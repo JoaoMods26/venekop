@@ -578,80 +578,144 @@ vehiculoTab:CreateParagraph({
     Content = isMobile and "MOVIL: T=Completo | Q=Adelante | R=Atras\nArrastra para mover" or "PC: Q=Adelante | R=Atras | T=Completo"
 })
 
-local HasGetGC = type(getgc) == "function"
 local JanitorNet, JanitorConfig
 local JanitorAvailable = false
 pcall(function()
     JanitorNet = require(ReplicatedStorage.Shared.Works.Janitor.Net)
     JanitorConfig = require(ReplicatedStorage.Shared.Works.Janitor.Config)
-    JanitorAvailable = JanitorNet and JanitorConfig
+    JanitorAvailable = JanitorNet ~= nil and JanitorConfig ~= nil
 end)
+
 local ArepamovilConfig = {
     AutoFarm = false,
     NoCooldown = true,
-    ManchaYOffset = 3
+    -- El AutoFarm queda limitado al sector FarmanadaCentro.
+    FarmanadaStartPosition = Vector3.new(179.512, 40.517, 810.818),
+    FarmanadaFallbackPosition = Vector3.new(2120.588, 19.025, -73.429),
+    FarmanadaFolderName = "FarmanadaCentro",
+    FarmanadaPromptRadius = 24,
+    FarmanadaSpotRadius = 300,
+    ManchaYOffset = 3,
+    WaitAfterMove = 0.1,
+    WaitAfterPrompt = 0.3,
+    FinishRetryDelay = 1.15,
+    MaxFinishRetries = 3,
+    FailedSpotCooldown = 2.5,
+    SlowMode = false,
+    SlowModeWaitPerRound = 2.5
 }
+
 local arepamovilState = {
     currentTask = "idle",
     paused = false,
     runId = 0,
     activeSpotId = nil,
-    stats = { promptsActivated = 0 }
+    failedSpots = {},
+    lastFinishAt = 0,
+    stats = { promptsActivated = 0, completed = 0, failed = 0 }
 }
- function isCleanRunning(runId)
-    return ArepamovilConfig.AutoFarm and arepamovilState.runId == runId and not arepamovilState.paused
+
+function isCleanRunning(runId)
+    return ArepamovilConfig.AutoFarm and arepamovilState.runId == runId
 end
- function removeArepamovilProximityPromptCooldown()
+
+function waitCleanActive(runId)
+    while isCleanRunning(runId) and arepamovilState.paused do
+        task.wait(0.1)
+    end
+    return isCleanRunning(runId)
+end
+
+function removeArepamovilProximityPromptCooldown()
     task.spawn(function()
-        local count=0
-        for _,v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then v.HoldDuration=0 end
-            count+=1
-            if count%500==0 then task.wait() end
+        local count = 0
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if not ArepamovilConfig.AutoFarm then return end
+            if v:IsA("ProximityPrompt") then
+                pcall(function() v.HoldDuration = 0 end)
+            end
+            count += 1
+            if count % 500 == 0 then task.wait() end
         end
     end)
-    ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
-        prompt.HoldDuration=0
-    end)
-    workspace.DescendantAdded:Connect(function(obj)
-        if obj:IsA("ProximityPrompt") then obj.HoldDuration=0 end
-    end)
 end
- function getCleanRoot()
-    local c=LocalPlayer.Character
-    if not c then return nil end
-    return c:FindFirstChild("HumanoidRootPart")
+
+function getCleanRoot()
+    local character = LocalPlayer.Character
+    return character and character:FindFirstChild("HumanoidRootPart")
 end
- function cleanGetPos(v)
-    if v:IsA("BasePart") then
-        return v.Position
-    elseif v:IsA("Model") then
-        return v:GetPivot().Position
+
+function cleanGetPos(object)
+    if not object then return nil end
+    if object:IsA("BasePart") then
+        return object.Position
+    elseif object:IsA("Model") then
+        return object:GetPivot().Position
     end
+    return nil
 end
- function findCleanJobPrompt()
-    local root=getCleanRoot()
-    local best
-    local bestDistance=math.huge
-    for _,v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") and v.Enabled then
-            local parent=v.Parent
-            if parent and parent:IsA("BasePart") then
-                local full=v:GetFullName():lower()
-                local pfull=parent:GetFullName():lower()
-                local score=0
-                if full:find("foodix",1,true) then score+=100 end
-                if pfull:find("foodix",1,true) then score+=100 end
-                if full:find("works",1,true) then score+=25 end
-                if pfull:find("works",1,true) then score+=25 end
-                if full:find("delivery",1,true) or pfull:find("delivery",1,true) then score-=200 end
-                if full:find("handoff",1,true) or pfull:find("handoff",1,true) then score-=200 end
-                if full:find("trash",1,true) or pfull:find("trash",1,true) then score-=100 end
-                if score>0 then
-                    local d=root and (root.Position-parent.Position).Magnitude or 0
-                    if score>0 and (score>=(best and best.score or -math.huge)) and (d<bestDistance or score>(best and best.score or -math.huge)) then
-                        best={prompt=v,position=parent.Position,score=score,distance=d}
-                        bestDistance=d
+
+-- Devuelve únicamente el contenedor de manchas de FarmanadaCentro.
+-- Así se ignoran manchas de otros trabajos/zonas que también usan WorkSpotId.
+function getFarmanadaWorkSpots()
+    local works = workspace:FindFirstChild("Works")
+    if not works then return nil end
+
+    local farmanada = works:FindFirstChild(ArepamovilConfig.FarmanadaFolderName)
+    if not farmanada then return nil end
+
+    return farmanada:FindFirstChild("WorkSpots")
+end
+
+function isInsideFarmanada(object)
+    local current = object
+    while current and current ~= workspace do
+        if current.Name == ArepamovilConfig.FarmanadaFolderName then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
+function findCleanJobPrompt(anchor)
+    anchor = anchor or ArepamovilConfig.FarmanadaStartPosition
+    local best, bestScore, bestDistance = nil, -math.huge, math.huge
+
+    -- Busca SOLO alrededor del punto actual. No elige prompts lejanos
+    -- ni usa la posición del prompt como destino de teletransporte.
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+            local parent = prompt.Parent
+            local part = parent
+            if parent and parent:IsA("Attachment") then
+                part = parent.Parent
+            end
+            if part and part:IsA("BasePart") then
+                local distance = (part.Position - anchor).Magnitude
+                local activationDistance = tonumber(prompt.MaxActivationDistance) or 10
+                local allowedDistance = math.min(ArepamovilConfig.FarmanadaPromptRadius,
+                    math.max(8, activationDistance + 3))
+
+                if distance <= allowedDistance then
+                    local full = (prompt:GetFullName() .. " " .. prompt.ActionText .. " " .. prompt.ObjectText):lower()
+                    local score = 1
+                    if full:find("foodix", 1, true) then score += 100 end
+                    if full:find("janitor", 1, true) then score += 80 end
+                    if full:find("clean", 1, true) then score += 60 end
+                    if full:find("trabajar", 1, true) or full:find("work", 1, true) then score += 30 end
+                    if full:find("delivery", 1, true) or full:find("handoff", 1, true) then score -= 200 end
+                    if full:find("trash", 1, true) then score -= 100 end
+
+                    if score > 0 and (score > bestScore or (score == bestScore and distance < bestDistance)) then
+                        best = {
+                            prompt = prompt,
+                            position = part.Position,
+                            score = score,
+                            distance = distance,
+                            anchor = anchor
+                        }
+                        bestScore, bestDistance = score, distance
                     end
                 end
             end
@@ -659,232 +723,313 @@ end
     end
     return best
 end
- function activateCleanJob(runId)
-    if not isCleanRunning(runId) then return false end
-    local data=findCleanJobPrompt()
-    if not data then
-        warn("[AUTO CLEAN] No encontre el ProximityPrompt de Foodix")
+
+function activateCleanJob(runId)
+    if not waitCleanActive(runId) then return false end
+
+    local root = getCleanRoot()
+    if not root then return false end
+
+    local anchors = {
+        { name = "Farmanada", position = ArepamovilConfig.FarmanadaStartPosition },
+        { name = "Ubicación alternativa", position = ArepamovilConfig.FarmanadaFallbackPosition }
+    }
+    local data, selectedAnchor
+
+    for _, candidate in ipairs(anchors) do
+        if not waitCleanActive(runId) then return false end
+        print("[AUTO CLEAN] TP al punto", candidate.name, candidate.position, "y buscando prompt local")
+        root = getCleanRoot()
+        if not root then return false end
+        root.CFrame = CFrame.new(candidate.position)
+        task.wait(0.45)
+
+        data = findCleanJobPrompt(candidate.position)
+        if data then
+            selectedAnchor = candidate
+            break
+        end
+        warn("[AUTO CLEAN] No hay ProximityPrompt válido junto a " .. candidate.name .. ". Voy al siguiente punto fijo...")
+    end
+
+    if not data or not selectedAnchor then
+        warn("[AUTO CLEAN] No encontré el prompt en ninguna de las dos ubicaciones")
         return false
     end
-    local root=getCleanRoot()
+
+    arepamovilState.activeWorkAnchor = selectedAnchor.position
+    print("[AUTO CLEAN] Zona seleccionada:", selectedAnchor.name)
+
+    -- IMPORTANTE: permanecer en el punto elegido. No teletransportarse
+    -- a la ubicación del prompt; solo activarlo si está junto al ancla.
+    root = getCleanRoot()
     if not root then return false end
-    root.CFrame=CFrame.new(data.position+Vector3.new(0,3,0))
-    task.wait(0.3)
-    if not isCleanRunning(runId) then return false end
-    pcall(function() data.prompt.HoldDuration=0 end)
-    if fireproximityprompt then
-        pcall(function() fireproximityprompt(data.prompt) end)
+    local promptDistance = (root.Position - data.position).Magnitude
+    local maxPromptDistance = tonumber(data.prompt.MaxActivationDistance) or 10
+    if promptDistance > maxPromptDistance + 4 then
+        warn("[AUTO CLEAN] Prompt detectado fuera del alcance del punto:", promptDistance)
+        return false
     end
-    if getconnections then
+    task.wait(ArepamovilConfig.WaitAfterPrompt or 0.3)
+    if not waitCleanActive(runId) then return false end
+
+    pcall(function() data.prompt.HoldDuration = 0 end)
+    local fired = false
+    if type(fireproximityprompt) == "function" then
+        fired = pcall(function() fireproximityprompt(data.prompt) end)
+    end
+    if not fired and type(getconnections) == "function" then
         pcall(function()
-            local connections=getconnections(data.prompt.Triggered)
+            local connections = getconnections(data.prompt.Triggered)
             if connections then
-                for _,connection in ipairs(connections) do
-                    if not isCleanRunning(runId) then return end
+                for _, connection in ipairs(connections) do
+                    if not waitCleanActive(runId) then return end
                     pcall(function() connection:Fire() end)
                 end
+                fired = true
             end
         end)
     end
-    arepamovilState.stats.promptsActivated+=1
+
+    arepamovilState.stats.promptsActivated += 1
     task.wait(1)
-    return isCleanRunning(runId)
+    return waitCleanActive(runId)
 end
- function findCleanMess()
-    local root=getCleanRoot()
-    if not root then return end
+
+function findCleanMess()
+    local root = getCleanRoot()
+    if not root then return nil end
+
+    local anchor = arepamovilState.activeWorkAnchor or ArepamovilConfig.FarmanadaStartPosition
     local best
-    for _,v in ipairs(workspace:GetDescendants()) do
-        local id=v:GetAttribute("WorkSpotId")
-        if typeof(id)=="number" and not v:GetAttribute("JanitorDone") then
-            local p=cleanGetPos(v)
-            if p then
-                local d=(root.Position-p).Magnitude
-                if not best or d<best.distance then
-                    best={object=v,id=id,position=p,distance=d}
+    for _, object in ipairs(workspace:GetDescendants()) do
+        local id = object:GetAttribute("WorkSpotId")
+        if typeof(id) == "number" and not object:GetAttribute("JanitorDone") then
+            local position = cleanGetPos(object)
+            if position and (position - anchor).Magnitude <= ArepamovilConfig.FarmanadaSpotRadius then
+                local blockedUntil = arepamovilState.failedSpots[id]
+                if not blockedUntil or time() >= blockedUntil then
+                    local distance = (root.Position - position).Magnitude
+                    if not best or distance < best.distance then
+                        best = {
+                            object = object,
+                            id = id,
+                            position = position,
+                            distance = distance,
+                            size = object:GetAttribute("WorkSpotSize")
+                        }
+                    end
                 end
             end
         end
     end
     return best
 end
- function getCleanScrub()
-    if not HasGetGC then return nil,nil end
-    for _,obj in ipairs(getgc(true)) do
-        if type(obj)=="table" then
-            local workId=rawget(obj,"workId")
-            local scrub=rawget(obj,"scrub")
-            if workId=="foodix-cleaner" and type(scrub)=="table" then
-                return obj,scrub
-            end
-        end
+
+-- Espera una Promise de Janitor y devuelve el resultado sin dejar hilos colgados.
+function awaitJanitorPromise(promise, runId, timeout)
+    if not promise then return false, nil, "no-promise" end
+    local result, failure, settled = nil, nil, false
+    local chained, chainError = pcall(function()
+        promise:andThen(function(value)
+            result = value
+            settled = true
+        end):catch(function(err)
+            failure = err
+            settled = true
+        end)
+    end)
+    if not chained then return false, nil, chainError end
+
+    local started = time()
+    while not settled and time() - started < (timeout or 5) do
+        if not waitCleanActive(runId) then return false, nil, "stopped" end
+        task.wait(0.03)
     end
-    return nil,nil
+    if not settled then return false, nil, "timeout" end
+    if failure ~= nil then return false, nil, failure end
+    if type(result) == "table" and result.ok == false then
+        return false, result, result.reason or "rejected"
+    end
+    return true, result, nil
 end
- function startCleanSpot(id,runId)
-    if not JanitorAvailable or not isCleanRunning(runId) then return false end
-    local ok,promise=pcall(function()
-        return JanitorNet.StartClean.invoke({spotId=id})
+
+function startCleanSpot(id, runId)
+    if not JanitorAvailable or not waitCleanActive(runId) then
+        warn("[AUTO CLEAN] Janitor.Net no disponible o AutoFarm detenido")
+        return false
+    end
+
+    local ok, promise = pcall(function()
+        return JanitorNet.StartClean.invoke({ spotId = id })
     end)
     if not ok then
-        warn("[AUTO CLEAN] Start error:",promise)
+        warn("[AUTO CLEAN] Start error:", promise)
         return false
     end
-    local result
-    local finished=false
-    promise:andThen(function(r)
-        result=r
-        finished=true
-    end):catch(function(err)
-        warn("[AUTO CLEAN] Start rechazo:",err)
-        finished=true
-    end)
-    local t=time()
-    while not finished and time()-t<5 do
-        if not isCleanRunning(runId) then return false end
-        task.wait()
-    end
-    if not isCleanRunning(runId) or not result then return false end
-    if type(result)=="table" and result.ok==false then
-        warn("[AUTO CLEAN] Start rechazado:",result.reason)
+
+    local accepted, result, reason = awaitJanitorPromise(promise, runId, 5)
+    if not accepted then
+        warn("[AUTO CLEAN] Start rechazado:", reason)
         return false
     end
+    print("[AUTO CLEAN] START aceptado:", id, result)
     return true
 end
- function runCleanScrub(runId)
-    if not HasGetGC or not isCleanRunning(runId) then return false end
-    local scrub
-    local t=time()
-    while time()-t<5 do
-        if not isCleanRunning(runId) then return false end
-        local _,s=getCleanScrub()
-        if s then
-            scrub=s
-            break
+
+-- Modo secuencial validado: reclamar una mancha, esperar su tiempo minimo y finalizarla
+-- antes de reclamar la siguiente. No usa getgc ni mezcla controladores de minijuego.
+function finishCleanSpot(id, size, runId)
+    if not JanitorAvailable or not waitCleanActive(runId) then return false end
+
+    local minSeconds = 1.5
+    local sizeConfig = JanitorConfig and JanitorConfig.SIZES and JanitorConfig.SIZES[size]
+    if sizeConfig and tonumber(sizeConfig.minSeconds) then
+        minSeconds = tonumber(sizeConfig.minSeconds)
+    end
+
+    local remaining = minSeconds - (time() - (arepamovilState.lastStartAt or time()))
+    if remaining > 0 then
+        local untilTime = time() + remaining + 0.08
+        while time() < untilTime do
+            if not waitCleanActive(runId) then return false end
+            task.wait(math.min(0.05, untilTime - time()))
         end
-        task.wait(0.05)
     end
-    if not scrub or not isCleanRunning(runId) then return false end
-    print("[AUTO CLEAN] Scrub detectado")
-    while scrub and isCleanRunning(runId) and not scrub.finishing and scrub.done<scrub.strokes do
-        local waitTime=(scrub.nextStrokeAt or time())-time()
-        if waitTime>0 then
-            local untilTime=time()+waitTime
-            while time()<untilTime do
-                if not isCleanRunning(runId) then return false end
-                task.wait(math.min(0.05,untilTime-time()))
-            end
+
+    for attempt = 1, ArepamovilConfig.MaxFinishRetries do
+        if not waitCleanActive(runId) then return false end
+
+        -- El servidor aplica un cooldown entre FINISH; respetarlo evita too-fast.
+        local cooldown = 1.1 - (time() - (arepamovilState.lastFinishAt or 0))
+        if cooldown > 0 then task.wait(cooldown + 0.05) end
+        if not waitCleanActive(runId) then return false end
+
+        local ok, promise = pcall(function()
+            return JanitorNet.FinishClean.invoke({ spotId = id })
+        end)
+        if not ok then
+            warn("[AUTO CLEAN] Finish error:", promise)
+            return false
         end
-        if not isCleanRunning(runId) or scrub.finishing then break end
-        local direction=scrub.lastStrokeDir==1 and -1 or 1
-        pcall(function() scrub:_feedPointer(direction*55) end)
-        task.wait()
-        local _,newScrub=getCleanScrub()
-        if newScrub then scrub=newScrub end
+
+        local accepted, result, reason = awaitJanitorPromise(promise, runId, 5)
+        arepamovilState.lastFinishAt = time()
+        if accepted then
+            print("[AUTO CLEAN] FINISH aceptado:", id, result)
+            return true
+        end
+
+        warn("[AUTO CLEAN] FINISH fallo:", id, "intento:", attempt, "razon:", reason)
+        local reasonText = tostring(reason):lower()
+        if reasonText:find("too%-fast") or reasonText:find("too fast") then
+            task.wait(math.max(ArepamovilConfig.FinishRetryDelay, 1.15))
+        else
+            -- not-yours/no-spot no se arreglan repitiendo FINISH.
+            return false
+        end
     end
-    print("[AUTO CLEAN] Scrub terminado")
-    return isCleanRunning(runId) and scrub and scrub.done>=scrub.strokes
+    return false
 end
- function finishCleanSpot(id,size,runId)
-    if not JanitorAvailable or not isCleanRunning(runId) then return false end
-    local waitTime=1.5
-    if JanitorConfig.SIZES[size] then
-        waitTime=JanitorConfig.SIZES[size].minSeconds+0.05
-    end
-    local untilTime=time()+waitTime
-    while time()<untilTime do
-        if not isCleanRunning(runId) then return false end
-        task.wait(math.min(0.05,untilTime-time()))
-    end
-    if not isCleanRunning(runId) then return false end
-    local ok,promise=pcall(function()
-        return JanitorNet.FinishClean.invoke({spotId=id})
-    end)
-    if not ok then
-        warn("[AUTO CLEAN] Finish error:",promise)
-        return false
-    end
-    local result
-    local finished=false
-    promise:andThen(function(r)
-        result=r
-        finished=true
-    end):catch(function(err)
-        warn("[AUTO CLEAN] Finish rechazo:",err)
-        finished=true
-    end)
-    local t=time()
-    while not finished and time()-t<5 do
-        if not isCleanRunning(runId) then return false end
-        task.wait()
-    end
-    return isCleanRunning(runId) and result and result.ok==true
-end
-function JBC_cleanOneSpot(mess,runId)
-    if not isCleanRunning(runId) then return false end
-    arepamovilState.activeSpotId=mess.id
-    local root=getCleanRoot()
-    if root then
-        root.CFrame=CFrame.new(mess.position+Vector3.new(0,3,0))
-    end
-    task.wait(0.15)
-    if not isCleanRunning(runId) then return false end
-    if not startCleanSpot(mess.id,runId) then return false end
-    local scrubbed=runCleanScrub(runId)
-    if not isCleanRunning(runId) then return false end
-    if scrubbed then
+
+function JBC_cleanOneSpot(mess, runId)
+    if not waitCleanActive(runId) then return false end
+    arepamovilState.activeSpotId = mess.id
+
+    local root = getCleanRoot()
+    if not root then return false end
+    root.CFrame = CFrame.new(mess.position + Vector3.new(0, ArepamovilConfig.ManchaYOffset, 0))
+    task.wait(ArepamovilConfig.WaitAfterMove or 0.1)
+    if not waitCleanActive(runId) then return false end
+
+    if not startCleanSpot(mess.id, runId) then return false end
+    arepamovilState.lastStartAt = time()
+
+    local completed = finishCleanSpot(mess.id, mess.size, runId)
+    if completed then
+        arepamovilState.stats.completed += 1
         return true
     end
-    return finishCleanSpot(mess.id,mess.object:GetAttribute("WorkSpotSize"),runId)
+    arepamovilState.stats.failed += 1
+    return false
 end
+
 function JBC_startArepamovilAutoFarm()
     if ArepamovilConfig.AutoFarm then return end
-    ArepamovilConfig.AutoFarm=true
-    arepamovilState.paused=false
-    arepamovilState.runId+=1
-    local runId=arepamovilState.runId
+    if not JanitorAvailable then
+        warn("[AUTO CLEAN] No se pudo cargar Janitor.Net/Config. No inicio el AutoFarm.")
+        return
+    end
+
+    ArepamovilConfig.AutoFarm = true
+    arepamovilState.paused = false
+    arepamovilState.failedSpots = {}
+    arepamovilState.runId += 1
+    local runId = arepamovilState.runId
+
     if ArepamovilConfig.NoCooldown then
         task.spawn(function()
-            for _,v in pairs(workspace:GetDescendants()) do
+            for _, object in ipairs(workspace:GetDescendants()) do
                 if not isCleanRunning(runId) then return end
-                if v:IsA("ProximityPrompt") then v.HoldDuration=0 end
-            end
-        end)
-    end
-    task.spawn(function()
-        local ok,err=pcall(function()
-            arepamovilState.currentTask="Iniciando trabajo"
-            if not activateCleanJob(runId) then return end
-            print("[AUTO CLEAN] Trabajo iniciado")
-            while isCleanRunning(runId) do
-                local mess=findCleanMess()
-                if not mess then
-                    arepamovilState.currentTask="Esperando desastres"
-                    task.wait(0.25)
-                else
-                    arepamovilState.currentTask="Limpiando desastre"
-                    print("[AUTO CLEAN] Mancha:",mess.object:GetFullName())
-                    print("[AUTO CLEAN] SpotId:",mess.id)
-                    JBC_cleanOneSpot(mess,runId)
-                    arepamovilState.activeSpotId=nil
-                    if isCleanRunning(runId) then task.wait(0.15) end
+                if object:IsA("ProximityPrompt") then
+                    pcall(function() object.HoldDuration = 0 end)
                 end
             end
         end)
-        if not ok then warn("❌ Error en Limpiar:",err) end
-        if arepamovilState.runId==runId then
-            arepamovilState.currentTask="Inactivo"
-            arepamovilState.activeSpotId=nil
+    end
+
+    task.spawn(function()
+        local ok, err = pcall(function()
+            arepamovilState.currentTask = "Iniciando trabajo"
+            print("[AUTO CLEAN] Zona fijada: FarmanadaCentro | Inicio:", ArepamovilConfig.FarmanadaStartPosition)
+            if not activateCleanJob(runId) then
+                warn("[AUTO CLEAN] No se pudo iniciar el trabajo Foodix")
+                return
+            end
+            print("[AUTO CLEAN] Trabajo iniciado - modo secuencial")
+
+            while isCleanRunning(runId) do
+                if not waitCleanActive(runId) then break end
+                local mess = findCleanMess()
+                if not mess then
+                    arepamovilState.currentTask = "Esperando desastres"
+                    task.wait(0.25)
+                else
+                    arepamovilState.currentTask = "Limpiando desastre"
+                    print("[AUTO CLEAN] Mancha:", mess.object:GetFullName(), "SpotId:", mess.id)
+                    local completed = JBC_cleanOneSpot(mess, runId)
+                    if not completed and isCleanRunning(runId) then
+                        arepamovilState.failedSpots[mess.id] = time() + ArepamovilConfig.FailedSpotCooldown
+                        warn("[AUTO CLEAN] Mancha omitida temporalmente:", mess.id)
+                    else
+                        arepamovilState.failedSpots[mess.id] = nil
+                    end
+                    arepamovilState.activeSpotId = nil
+                    if ArepamovilConfig.SlowMode then
+                        task.wait(ArepamovilConfig.SlowModeWaitPerRound or 2.5)
+                    elseif isCleanRunning(runId) then
+                        task.wait(0.1)
+                    end
+                end
+            end
+        end)
+
+        if not ok then warn("[AUTO CLEAN] Error en AutoFarm:", err) end
+        if arepamovilState.runId == runId then
+            arepamovilState.currentTask = "Inactivo"
+            arepamovilState.activeSpotId = nil
+            ArepamovilConfig.AutoFarm = false
             pcall(RestoreCharacterState)
         end
     end)
 end
+
 function JBC_stopArepamovilAutoFarm()
-    ArepamovilConfig.AutoFarm=false
-    arepamovilState.runId+=1
-    arepamovilState.currentTask="Inactivo"
-    arepamovilState.paused=false
-    arepamovilState.activeSpotId=nil
+    ArepamovilConfig.AutoFarm = false
+    arepamovilState.runId += 1
+    arepamovilState.currentTask = "Inactivo"
+    arepamovilState.paused = false
+    arepamovilState.activeSpotId = nil
     pcall(function() GradualMoveSystem:Stop() end)
     pcall(function() TeleportSystem:StopForcePosition() end)
     pcall(RestoreCharacterState)
